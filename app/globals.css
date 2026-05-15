@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 202 43% 96%;
+    --foreground: 222 46% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 46% 11%;
+    --primary: 191 91% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 197 52% 92%;
+    --secondary-foreground: 222 46% 11%;
+    --muted: 197 34% 93%;
+    --muted-foreground: 215 17% 40%;
+    --accent: 22 92% 58%;
+    --accent-foreground: 0 0% 100%;
+    --border: 202 29% 84%;
+    --input: 202 29% 84%;
+    --ring: 191 91% 36%;
+    --radius: 1.25rem;
+    --font-body: "Segoe UI", "Aptos", "Helvetica Neue", Arial, sans-serif;
+    --font-display: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: var(--font-body), sans-serif;
+    @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
+      radial-gradient(circle at top right, rgba(251, 146, 60, 0.12), transparent 24%),
+      linear-gradient(180deg, #f7fbfd 0%, #eef5f8 100%);
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display), sans-serif;
+  }
+}
