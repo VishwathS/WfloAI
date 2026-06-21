@@ -2,8 +2,8 @@
 
 import {
   addEdge,
+  ConnectionLineType,
   ConnectionMode,
-  Controls,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -19,10 +19,11 @@ import {
   type ReactFlowInstance
 } from "reactflow";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Minus, Plus } from "lucide-react";
 import "reactflow/dist/style.css";
 import { TriggerNode } from "@/components/canvas/nodes/TriggerNode";
 import { AINode } from "@/components/canvas/nodes/AINode";
+import { RouterNode } from "@/components/canvas/nodes/RouterNode";
 import { ActionNode } from "@/components/canvas/nodes/ActionNode";
 import { DeletableEdge } from "@/components/canvas/edges/DeletableEdge";
 import { DND_NODE_TYPE_KEY, NodeSidebar } from "@/components/canvas/NodeSidebar";
@@ -30,6 +31,7 @@ import type {
   ActionNodeData,
   AINodeData,
   AIActionType,
+  RouterNodeData,
   TriggerNodeData,
   TriggerType
 } from "@/lib/types";
@@ -37,6 +39,7 @@ import type {
 const nodeTypes: NodeTypes = {
   triggerNode: TriggerNode,
   aiNode: AINode,
+  routerNode: RouterNode,
   actionNode: ActionNode
 };
 
@@ -44,24 +47,31 @@ const edgeTypes: EdgeTypes = {
   smoothstep: DeletableEdge
 };
 
-type CanvasNode = Node<TriggerNodeData | AINodeData | ActionNodeData>;
+const CONNECTION_LINE_STYLE = { stroke: "#6366f1", strokeWidth: 2 } as const;
+
+const EDGE_DEFAULTS = {
+  type: "smoothstep" as const,
+  animated: true,
+  deletable: true,
+  style: { stroke: "#6366f1", strokeWidth: 2 }
+};
+
+type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData>;
 type CanvasEdge = Edge;
 
 interface WorkflowCanvasProps {
   initialNodes: CanvasNode[];
   initialEdges: CanvasEdge[];
   onSave: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
+  onCancelSave: () => void;
 }
 
 function withAnimatedEdges(edges: CanvasEdge[]) {
   return edges.map((edge) => ({
     ...edge,
-    type: "smoothstep",
-    animated: true,
-    deletable: true,
+    ...EDGE_DEFAULTS,
     style: {
-      stroke: "#6366f1",
-      strokeWidth: 2,
+      ...EDGE_DEFAULTS.style,
       ...(edge.style ?? {})
     }
   }));
@@ -73,7 +83,8 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
 
     return {
       label: "Workflow start",
-      type: triggerType
+      type: triggerType,
+      inputText: ""
     } satisfies TriggerNodeData;
   }
 
@@ -82,6 +93,13 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
       label: "Save result",
       action: "Save Output"
     } satisfies ActionNodeData;
+  }
+
+  if (type === "routerNode") {
+    return {
+      label: "Route condition",
+      prompt: "Is this email urgent?"
+    } satisfies RouterNodeData;
   }
 
   const action: AIActionType = "Summarize";
@@ -96,14 +114,19 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
 function WorkflowCanvasInner({
   initialNodes,
   initialEdges,
-  onSave
+  onSave,
+  onCancelSave
 }: WorkflowCanvasProps) {
-  const nodes = useNodes<TriggerNodeData | AINodeData | ActionNodeData>();
+  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData>();
   const edges = useEdges();
-  const { setNodes, setEdges } = useReactFlow<TriggerNodeData | AINodeData | ActionNodeData>();
+  const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<
+    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData
+  >();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);
+  const isDraggingRef = useRef(false);
   const saveSnapshotRef = useRef(onSave);
+  const cancelSaveRef = useRef(onCancelSave);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -111,16 +134,40 @@ function WorkflowCanvasInner({
   }, [onSave]);
 
   useEffect(() => {
+    cancelSaveRef.current = onCancelSave;
+  }, [onCancelSave]);
+
+  // Fires for node adds, deletes, edge adds/deletes — NOT used for drag (handled by onNodeDragStop).
+  // useEffect is async so it always fires after onNodeDragStart sets isDraggingRef, making the
+  // isDraggingRef guard reliable here. onNodesChange/onEdgesChange are intentionally NOT passed
+  // to ReactFlow because they fire synchronously inside startDrag (before onNodeDragStart), which
+  // would schedule a save with stale pre-drag positions and create a network race condition.
+  useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       return;
     }
-
-    saveSnapshotRef.current(nodes, edges);
+    if (isDraggingRef.current || !reactFlowRef.current) {
+      return;
+    }
+    saveSnapshotRef.current(
+      reactFlowRef.current.getNodes() as CanvasNode[],
+      reactFlowRef.current.getEdges()
+    );
   }, [nodes, edges]);
 
-  const onNodesChange = useCallback(
+  const onNodeDragStart = useCallback(
     () => {
+      isDraggingRef.current = true;
+      cancelSaveRef.current();
+    },
+    []
+  );
+
+  const onNodeDragStop = useCallback(
+    () => {
+      isDraggingRef.current = false;
+
       if (!reactFlowRef.current) {
         return;
       }
@@ -133,36 +180,10 @@ function WorkflowCanvasInner({
     []
   );
 
-  const onEdgesChange = useCallback(
-    () => {
-      if (!reactFlowRef.current) {
-        return;
-      }
-
-      saveSnapshotRef.current(
-        reactFlowRef.current.getNodes() as CanvasNode[],
-        reactFlowRef.current.getEdges() as CanvasEdge[]
-      );
-    },
-    []
-  );
-
   const onConnect = useCallback(
     (connection: Connection) => {
       setEdges((currentEdges) =>
-        addEdge(
-          {
-            ...connection,
-            type: "smoothstep",
-            animated: true,
-            deletable: true,
-            style: {
-              stroke: "#6366f1",
-              strokeWidth: 2
-            }
-          },
-          currentEdges
-        )
+        addEdge({ ...connection, ...EDGE_DEFAULTS }, currentEdges)
       );
     },
     [setEdges]
@@ -239,6 +260,10 @@ function WorkflowCanvasInner({
       return "#2563eb";
     }
 
+    if (node.type === "routerNode") {
+      return "#d97706";
+    }
+
     return "#7c3aed";
   }, []);
 
@@ -252,6 +277,7 @@ function WorkflowCanvasInner({
         <ReactFlow
           defaultNodes={initialNodes}
           defaultEdges={withAnimatedEdges(initialEdges)}
+          defaultEdgeOptions={EDGE_DEFAULTS}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionMode={ConnectionMode.Strict}
@@ -261,9 +287,11 @@ function WorkflowCanvasInner({
             reactFlowRef.current = instance;
             setIsReady(true);
           }}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodeDragStart={onNodeDragStart}
+          onNodeDragStop={onNodeDragStop}
           onConnect={onConnect}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineStyle={CONNECTION_LINE_STYLE}
           isValidConnection={isValidConnection}
           onDragOver={onDragOver}
           onDrop={onDrop}
@@ -276,14 +304,32 @@ function WorkflowCanvasInner({
             pannable
             zoomable
             nodeColor={miniMapNodeColor}
-            className="!bottom-5 !left-5 !bg-zinc-900/95"
+            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-zinc-800 !bg-zinc-900/95"
             maskColor="rgba(15, 15, 17, 0.45)"
           />
-          <Controls
-            className="!bottom-5 !right-5 !border !border-zinc-800 !bg-zinc-900/95 !shadow-xl"
-            showInteractive={false}
-          />
         </ReactFlow>
+        <div className="absolute bottom-5 right-[184px] z-10 flex overflow-hidden rounded-full border border-zinc-800 bg-[#1a1a1f] shadow-xl">
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-zinc-700"
+            onClick={() => {
+              void zoomIn();
+            }}
+            aria-label="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center border-l border-zinc-800 text-white transition hover:bg-zinc-700"
+            onClick={() => {
+              void zoomOut();
+            }}
+            aria-label="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+        </div>
         {showEmptyState ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-950/80 px-8 py-7 text-center shadow-[0_30px_80px_-45px_rgba(0,0,0,0.95)] backdrop-blur-sm">

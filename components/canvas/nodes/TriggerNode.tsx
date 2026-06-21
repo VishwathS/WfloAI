@@ -1,26 +1,68 @@
 "use client";
 
-import { Handle, Position, type NodeProps } from "reactflow";
-import { Zap } from "lucide-react";
+import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
+import { AlertTriangle, CheckCircle2, Loader2, Zap } from "lucide-react";
+import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import type { TriggerNodeData } from "@/lib/types";
 
-export function TriggerNode({ data }: NodeProps<TriggerNodeData>) {
+export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
+  const { setNodes } = useReactFlow();
+  const executionState = useNodeExecutionState(id);
+  const isRunning = executionState.status === "running";
+  const isComplete = executionState.status === "complete";
+  const isError = executionState.status === "error";
+
   return (
-    <div className="min-w-[220px] overflow-hidden rounded-2xl border border-emerald-400/30 bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(22,163,74,0.75)]">
-      <div className="flex items-center gap-2 bg-emerald-600 px-4 py-3 text-white">
-        <Zap className="h-4 w-4" />
+    <div
+      className={`min-w-[220px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(22,163,74,0.75)] ${
+        isComplete
+          ? "border-emerald-400/60 shadow-[0_0_0_1px_rgba(74,222,128,0.28),0_20px_50px_-30px_rgba(34,197,94,0.9)]"
+          : isError
+            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
+            : "border-emerald-400/30"
+      }`}
+    >
+      <div
+        className={`flex items-center gap-2 px-4 py-3 text-white ${
+          isError ? "bg-rose-600" : "bg-emerald-600"
+        } ${isRunning ? "animate-pulse" : ""}`}
+      >
+        {isRunning ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isComplete ? (
+          <CheckCircle2 className="h-4 w-4" />
+        ) : isError ? (
+          <AlertTriangle className="h-4 w-4" />
+        ) : (
+          <Zap className="h-4 w-4" />
+        )}
         <div>
           <p className="text-sm font-semibold">Trigger</p>
           <p className="text-xs text-emerald-50/90">{data.label}</p>
         </div>
       </div>
-      <div className="space-y-2 px-4 py-4 text-sm text-zinc-200">
+      <div className="space-y-3 px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-          Type
+          Input
         </p>
-        <div className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
-          {data.type}
-        </div>
+        <textarea
+          value={data.inputText ?? ""}
+          onChange={(event) => {
+            const nextText = event.target.value;
+            setNodes((nodes) =>
+              nodes.map((node) =>
+                node.id === id
+                  ? ({ ...node, data: { ...(node.data as TriggerNodeData), inputText: nextText } } as Node<TriggerNodeData>)
+                  : node
+              )
+            );
+          }}
+          className="min-h-[100px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30"
+          placeholder="Enter the starting text for this workflow."
+        />
+        {isError && executionState.error ? (
+          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+        ) : null}
       </div>
       <Handle
         type="source"

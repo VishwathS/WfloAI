@@ -7,11 +7,11 @@ import { ArrowRight, Clock3, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import type { Workflow } from "@/lib/types";
+import type { WorkflowWithLastRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface WorkflowListProps {
-  workflows: Workflow[];
+  workflows: WorkflowWithLastRun[];
 }
 
 function formatTimestamp(value: string) {
@@ -19,6 +19,24 @@ function formatTimestamp(value: string) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function formatRelativeTime(value: string) {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
 }
 
 function WorkflowDeleteButton({
@@ -157,9 +175,16 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
                   <div className="inline-flex w-fit items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700">
                     Workflow {String(index + 1).padStart(2, "0")}
                   </div>
-                  <CardTitle className="line-clamp-2 text-2xl text-slate-950">
-                    {workflow.name}
-                  </CardTitle>
+                  <div className="space-y-2">
+                    <CardTitle className="line-clamp-2 text-2xl text-slate-950">
+                      {workflow.name}
+                    </CardTitle>
+                    <p className="text-xs font-medium text-slate-500">
+                      {workflow.last_run_at
+                        ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
+                        : "Last run: Never"}
+                    </p>
+                  </div>
                 </div>
                 <div className="rounded-2xl bg-slate-100 px-3 py-2 text-right">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">

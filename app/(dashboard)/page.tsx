@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { CreateWorkflowButton } from "@/components/dashboard/create-workflow-button";
 import { WorkflowList } from "@/components/dashboard/workflow-list";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Workflow } from "@/lib/types";
+import type { ExecutionLogRow, Workflow, WorkflowWithLastRun } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +33,43 @@ export default async function DashboardPage() {
   }
 
   const workflows = (data ?? []) as Workflow[];
-  const workflowCount = workflows.length;
-  const latestWorkflow = workflows[0];
+  const workflowIds = workflows.map((workflow) => workflow.id);
+  let lastRunMap = new Map<string, string>();
+
+  if (workflowIds.length > 0) {
+    const { data: executionLogRows, error: executionLogError } = await supabase
+      .from("execution_logs")
+      .select("workflow_id, ran_at")
+      .in("workflow_id", workflowIds)
+      .order("ran_at", { ascending: false });
+
+    if (executionLogError) {
+      const isMissingExecutionLogsTable =
+        executionLogError.message.includes("public.execution_logs") ||
+        executionLogError.message.includes("execution_logs");
+
+      if (!isMissingExecutionLogsTable) {
+        throw new Error(executionLogError.message);
+      }
+    } else {
+      lastRunMap = (executionLogRows ?? []).reduce<Map<string, string>>((accumulator, row) => {
+        const logRow = row as Pick<ExecutionLogRow, "workflow_id" | "ran_at">;
+
+        if (!accumulator.has(logRow.workflow_id)) {
+          accumulator.set(logRow.workflow_id, logRow.ran_at);
+        }
+
+        return accumulator;
+      }, new Map<string, string>());
+    }
+  }
+
+  const workflowsWithLastRun = workflows.map<WorkflowWithLastRun>((workflow) => ({
+    ...workflow,
+    last_run_at: lastRunMap.get(workflow.id) ?? null
+  }));
+  const workflowCount = workflowsWithLastRun.length;
+  const latestWorkflow = workflowsWithLastRun[0];
 
   return (
     <div className="space-y-8 p-6 lg:p-10">
@@ -101,7 +136,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <WorkflowList workflows={workflows} />
+      <WorkflowList workflows={workflowsWithLastRun} />
     </div>
   );
 }

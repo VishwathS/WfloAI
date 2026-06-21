@@ -1,22 +1,52 @@
 "use client";
 
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
-import { BrainCircuit } from "lucide-react";
+import { AlertTriangle, BrainCircuit, CheckCircle2, Loader2, MinusCircle } from "lucide-react";
+import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import type { AINodeData } from "@/lib/types";
 
 export function AINode({ id, data }: NodeProps<AINodeData>) {
   const { setNodes } = useReactFlow();
+  const executionState = useNodeExecutionState(id);
+  const isRunning = executionState.status === "running";
+  const isComplete = executionState.status === "complete";
+  const isError = executionState.status === "error";
+  const isSkipped = executionState.status === "skipped";
 
   return (
-    <div className="min-w-[260px] overflow-hidden rounded-2xl border border-violet-400/30 bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(124,58,237,0.85)]">
+    <div
+      className={`min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(124,58,237,0.85)] ${
+        isComplete
+          ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
+          : isError
+            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
+            : isSkipped
+              ? "border-zinc-700 shadow-none"
+              : "border-violet-400/30"
+      }`}
+    >
       <Handle
         type="target"
         position={Position.Left}
         className="!h-3 !w-3 !border-2 !border-violet-200 !bg-violet-500"
       />
-      <div className="flex items-center justify-between gap-3 bg-violet-600 px-4 py-3 text-white">
+      <div
+        className={`flex items-center justify-between gap-3 px-4 py-3 text-white ${
+          isError ? "bg-rose-600" : "bg-violet-600"
+        } ${isRunning ? "animate-pulse" : ""}`}
+      >
         <div className="flex items-center gap-2">
-          <BrainCircuit className="h-4 w-4" />
+          {isRunning ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : isError ? (
+            <AlertTriangle className="h-4 w-4" />
+          ) : isSkipped ? (
+            <MinusCircle className="h-4 w-4 opacity-60" />
+          ) : (
+            <BrainCircuit className="h-4 w-4" />
+          )}
           <div>
             <p className="text-sm font-semibold">AI Node</p>
             <p className="text-xs text-violet-50/90">{data.label}</p>
@@ -52,6 +82,22 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
           className="min-h-[120px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
           placeholder="Tell this AI node what to do with its incoming data."
         />
+        {isRunning ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+              Output
+            </p>
+            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
+              {executionState.output || "Streaming response..."}
+            </div>
+          </div>
+        ) : null}
+        {isError && executionState.error ? (
+          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+        ) : null}
+        {isSkipped ? (
+          <p className="text-xs leading-5 text-zinc-500">Skipped — branch not selected.</p>
+        ) : null}
       </div>
       <Handle
         type="source"

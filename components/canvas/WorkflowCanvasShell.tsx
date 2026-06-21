@@ -3,10 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { Edge, Node } from "reactflow";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
+import { ExecutionLog } from "@/components/canvas/ExecutionLog";
 import { WorkflowCanvas } from "@/components/canvas/WorkflowCanvas";
-import type { ActionNodeData, AINodeData, TriggerNodeData } from "@/lib/types";
+import { ExecutionProvider } from "@/components/canvas/execution-context";
+import { useExecution } from "@/hooks/useExecution";
+import type {
+  ActionNodeData,
+  AINodeData,
+  RouterNodeData,
+  TriggerNodeData
+} from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-type CanvasNode = Node<TriggerNodeData | AINodeData | ActionNodeData>;
+type CanvasNode = Node<
+  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData
+>;
 type CanvasEdge = Edge;
 
 interface WorkflowCanvasShellProps {
@@ -14,6 +25,17 @@ interface WorkflowCanvasShellProps {
   workflowName: string;
   initialNodes: CanvasNode[];
   initialEdges: CanvasEdge[];
+}
+
+function sanitizeNodes(nodes: CanvasNode[]): CanvasNode[] {
+  return nodes.map(({
+    dragging: _dragging,
+    selected: _selected,
+    positionAbsolute: _positionAbsolute,
+    width: _width,
+    height: _height,
+    ...rest
+  }) => rest as CanvasNode);
 }
 
 function areGraphsEqual(
@@ -34,19 +56,27 @@ export function WorkflowCanvasShell({
   initialNodes,
   initialEdges
 }: WorkflowCanvasShellProps) {
-  const [draftNodes, setDraftNodes] = useState(initialNodes);
+  const [draftNodes, setDraftNodes] = useState(() => sanitizeNodes(initialNodes));
   const [draftEdges, setDraftEdges] = useState(initialEdges);
-  const [savedNodes, setSavedNodes] = useState(initialNodes);
+  const [savedNodes, setSavedNodes] = useState(() => sanitizeNodes(initialNodes));
   const [savedEdges, setSavedEdges] = useState(initialEdges);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isExecutionCleared, setIsExecutionCleared] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestGraphRef = useRef({
-    nodes: initialNodes,
+    nodes: sanitizeNodes(initialNodes),
     edges: initialEdges
   });
+  const { run, isRunning, nodeStates, runError } = useExecution(
+    workflowId,
+    draftNodes,
+    draftEdges
+  );
 
   const hasUnsavedChanges = !areGraphsEqual(draftNodes, draftEdges, savedNodes, savedEdges);
+  const visibleNodeStates = isExecutionCleared ? {} : nodeStates;
 
   useEffect(() => {
     return () => {
@@ -55,6 +85,25 @@ export function WorkflowCanvasShell({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const previousBackground = document.body.style.background;
+    const previousBackgroundImage = document.body.style.backgroundImage;
+    document.body.style.overflow = "hidden";
+    document.body.style.background = "#0f0f11";
+    document.body.style.backgroundImage = "none";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.background = previousBackground;
+      document.body.style.backgroundImage = previousBackgroundImage;
+    };
+  }, [isFullscreen]);
 
   async function persistGraph(nodes: CanvasNode[], edges: CanvasEdge[]) {
     setIsSaving(true);
@@ -88,17 +137,26 @@ export function WorkflowCanvasShell({
     }
   }
 
+  function cancelPendingSave() {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+  }
+
   function scheduleSave(nodes: CanvasNode[], edges: CanvasEdge[]) {
-    setDraftNodes(nodes);
+    const cleanNodes = sanitizeNodes(nodes);
+    setDraftNodes(cleanNodes);
     setDraftEdges(edges);
-    latestGraphRef.current = { nodes, edges };
+    latestGraphRef.current = { nodes: cleanNodes, edges };
+    setIsExecutionCleared(false);
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      void persistGraph(nodes, edges);
+      void persistGraph(cleanNodes, edges);
     }, 700);
   }
 
@@ -111,24 +169,56 @@ export function WorkflowCanvasShell({
     void persistGraph(latestGraphRef.current.nodes, latestGraphRef.current.edges);
   }
 
+  function handleRun() {
+    setIsExecutionCleared(false);
+    void run();
+  }
+
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[760px] flex-col overflow-hidden rounded-[30px] border border-zinc-800 bg-[#0f0f11] shadow-[0_28px_80px_-40px_rgba(0,0,0,0.9)]">
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden border border-zinc-800 bg-[#0f0f11] shadow-[0_28px_80px_-40px_rgba(0,0,0,0.9)]",
+        isFullscreen
+          ? "fixed inset-0 z-50 rounded-none border-none shadow-none !mt-0"
+          : "h-[calc(100vh-8rem)] min-h-[760px] rounded-[30px]"
+      )}
+    >
       <CanvasToolbar
         workflowName={workflowName}
         isSaving={isSaving}
+        isRunning={isRunning}
+        isFullscreen={isFullscreen}
         hasUnsavedChanges={hasUnsavedChanges}
         onSave={handleManualSave}
+        onRun={handleRun}
+        onToggleFullscreen={() => setIsFullscreen((currentValue) => !currentValue)}
       />
       {saveError ? (
         <div className="border-b border-rose-500/20 bg-rose-500/10 px-5 py-3 text-sm text-rose-200">
           {saveError}
         </div>
       ) : null}
-      <WorkflowCanvas
-        initialNodes={initialNodes}
-        initialEdges={initialEdges}
-        onSave={scheduleSave}
-      />
+      {runError ? (
+        <div className="border-b border-rose-500/20 bg-rose-500/10 px-5 py-3 text-sm text-rose-200">
+          {runError}
+        </div>
+      ) : null}
+      <ExecutionProvider nodeStates={visibleNodeStates}>
+        <div className="relative flex min-h-0 flex-1 overflow-hidden">
+          <WorkflowCanvas
+            initialNodes={initialNodes}
+            initialEdges={initialEdges}
+            onSave={scheduleSave}
+            onCancelSave={cancelPendingSave}
+          />
+          <ExecutionLog
+            nodes={draftNodes}
+            nodeStates={visibleNodeStates}
+            isRunning={isRunning}
+            onClear={() => setIsExecutionCleared(true)}
+          />
+        </div>
+      </ExecutionProvider>
     </div>
   );
 }

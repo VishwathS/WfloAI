@@ -1,20 +1,28 @@
 "use client";
 
-import { Play, Save } from "lucide-react";
+import { Loader2, Maximize2, Minimize2, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CanvasToolbarProps {
   workflowName: string;
   isSaving: boolean;
+  isRunning: boolean;
+  isFullscreen: boolean;
   hasUnsavedChanges: boolean;
   onSave: () => void;
+  onRun: () => void;
+  onToggleFullscreen: () => void;
 }
 
 export function CanvasToolbar({
   workflowName,
   isSaving,
+  isRunning,
+  isFullscreen,
   hasUnsavedChanges,
-  onSave
+  onSave,
+  onRun,
+  onToggleFullscreen
 }: CanvasToolbarProps) {
   const statusLabel = isSaving
     ? "Saving changes"
@@ -52,17 +60,33 @@ export function CanvasToolbar({
           <Save className="mr-2 h-4 w-4" />
           {isSaving ? "Saving..." : "Save"}
         </Button>
-        <div title="Execution coming in Phase 3">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-400"
-            disabled
-          >
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white"
+          onClick={onRun}
+          disabled={isRunning}
+        >
+          {isRunning ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
             <Play className="mr-2 h-4 w-4" />
-            Run
-          </Button>
-        </div>
+          )}
+          {isRunning ? "Running..." : "Run"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white"
+          onClick={onToggleFullscreen}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="mr-2 h-4 w-4" />
+          ) : (
+            <Maximize2 className="mr-2 h-4 w-4" />
+          )}
+          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        </Button>
       </div>
     </div>
   );
