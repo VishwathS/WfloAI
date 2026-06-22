@@ -32,19 +32,25 @@ function buildParentContext(
 }
 
 async function requestAIText(prompt: string, context: string, nodeId: string, onEvent?: (event: ExecutionEvent) => void) {
-  const response = await fetch("/api/execute", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      prompt,
-      context
-    })
-  });
+  let response: Response;
+
+  try {
+    response = await fetch("/api/execute", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt,
+        context
+      })
+    });
+  } catch {
+    throw new Error("Cannot reach /api/execute — ensure the dev server is running.");
+  }
 
   if (!response.ok || !response.body) {
-    throw new Error("Failed to execute AI node.");
+    throw new Error(`AI request failed (HTTP ${response.status}).`);
   }
 
   const reader = response.body.getReader();
@@ -89,35 +95,16 @@ async function executeRouterNode(node: WorkflowCanvasNode, context: string): Pro
   const data = node.data as RouterNodeData;
   const routerInstruction = `${data.prompt}
 
-Respond with ONLY "true" or "false". Do not include any explanation or punctuation.`;
+Respond with exactly one word: true or false. No punctuation, no explanation.`;
   const decision = await requestAIText(routerInstruction, context, node.id);
-  const normalizedDecision = decision.trim().toLowerCase();
+  const match = decision.toLowerCase().match(/\b(true|false)\b/);
+  const normalizedDecision = match ? match[1] : "";
 
   if (normalizedDecision !== "true" && normalizedDecision !== "false") {
     throw new Error('Router node must respond with only "true" or "false".');
   }
 
   return { output: context, route: normalizedDecision };
-}
-
-function collectInactiveBranchNodes(
-  inactiveTargets: string[],
-  edges: Edge[],
-  nodeMap: Map<string, WorkflowCanvasNode>
-): Set<string> {
-  const skipped = new Set<string>();
-  const queue = [...inactiveTargets];
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (!nodeMap.has(id) || skipped.has(id)) continue;
-    skipped.add(id);
-    for (const edge of edges) {
-      if (edge.source === id && !skipped.has(edge.target)) {
-        queue.push(edge.target);
-      }
-    }
-  }
-  return skipped;
 }
 
 export async function executeWorkflow(
@@ -130,7 +117,6 @@ export async function executeWorkflow(
   const outputsByNodeId = new Map<string, string>();
   const activeIncomingEdgesByNodeId = new Map<string, Edge[]>();
   const executedNodeIds = new Set<string>();
-  const inactiveBranchNodeIds = new Set<string>();
 
   function appendActiveEdges(nextEdges: Edge[]) {
     for (const edge of nextEdges) {
@@ -191,12 +177,6 @@ export async function executeWorkflow(
             (edge) => edge.source === node.id && edge.sourceHandle === result.route
           )
         );
-        const inactiveTargets = edges
-          .filter((edge) => edge.source === node.id && edge.sourceHandle !== result.route)
-          .map((edge) => edge.target);
-        for (const id of collectInactiveBranchNodes(inactiveTargets, edges, nodeMap)) {
-          inactiveBranchNodeIds.add(id);
-        }
       } else {
         appendActiveEdges(edges.filter((edge) => edge.source === node.id));
       }
@@ -217,12 +197,6 @@ export async function executeWorkflow(
       });
 
       throw error;
-    }
-  }
-
-  for (const nodeId of inactiveBranchNodeIds) {
-    if (!executedNodeIds.has(nodeId)) {
-      await onEvent({ type: "node:skip", nodeId });
     }
   }
 

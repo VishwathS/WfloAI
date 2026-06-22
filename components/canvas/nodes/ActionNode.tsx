@@ -1,20 +1,24 @@
 "use client";
 
 import { Handle, Position, type NodeProps, useEdges } from "reactflow";
-import { AlertTriangle, CheckCircle2, Loader2, MinusCircle, TerminalSquare } from "lucide-react";
-import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { AlertTriangle, CheckCircle2, Loader2, TerminalSquare } from "lucide-react";
+import { useNodeExecutionState, useNodeStates } from "@/components/canvas/execution-context";
 import type { ActionNodeData } from "@/lib/types";
 
 export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   const executionState = useNodeExecutionState(id);
   const edges = useEdges();
-  const sourceNodeId = edges.find((e) => e.target === id)?.source ?? "";
+  const nodeStates = useNodeStates();
+  const incomingEdges = edges.filter((e) => e.target === id);
+  const sourceNodeId =
+    incomingEdges.find((e) => nodeStates[e.source]?.status === "complete")?.source ??
+    incomingEdges[0]?.source ??
+    "";
   const sourceState = useNodeExecutionState(sourceNodeId);
 
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
-  const isSkipped = executionState.status === "skipped";
 
   const displayOutput = sourceState.output || "No output yet.";
 
@@ -25,9 +29,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
           ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
           : isError
             ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : isSkipped
-              ? "border-zinc-700 shadow-none"
-              : "border-blue-400/30"
+            : "border-blue-400/30"
       }`}
     >
       <Handle
@@ -46,8 +48,6 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
           <CheckCircle2 className="h-4 w-4" />
         ) : isError ? (
           <AlertTriangle className="h-4 w-4" />
-        ) : isSkipped ? (
-          <MinusCircle className="h-4 w-4 opacity-60" />
         ) : (
           <TerminalSquare className="h-4 w-4" />
         )}
@@ -75,9 +75,6 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
         ) : null}
         {isError && executionState.error ? (
           <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
-        ) : null}
-        {isSkipped ? (
-          <p className="text-xs leading-5 text-zinc-500">Skipped — branch not selected.</p>
         ) : null}
       </div>
     </div>

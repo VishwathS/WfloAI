@@ -145,22 +145,6 @@ export function useExecution(
           return;
         }
 
-        if (event.type === "node:skip") {
-          executionResultsRef.current[event.nodeId] = {
-            nodeId: event.nodeId,
-            status: "skipped",
-            output: "Skipped — branch not selected"
-          };
-          setNodeStates((currentState) => ({
-            ...currentState,
-            [event.nodeId]: {
-              status: "skipped",
-              output: "Skipped — branch not selected"
-            }
-          }));
-          return;
-        }
-
         if (event.type === "node:error") {
           const currentResult = executionResultsRef.current[event.nodeId] ?? {
             nodeId: event.nodeId,
@@ -195,6 +179,8 @@ export function useExecution(
           void persistExecutionLog(nodeResults);
         }
       });
+    } catch {
+      // node:error already emitted before re-throw; absorb to prevent unhandled rejection
     } finally {
       setIsRunning(false);
     }

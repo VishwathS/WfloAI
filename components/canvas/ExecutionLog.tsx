@@ -52,10 +52,6 @@ function statusClassName(status: NodeExecutionState["status"]) {
     return "border-rose-400/20 bg-rose-500/10 text-rose-200";
   }
 
-  if (status === "skipped") {
-    return "border-zinc-600 bg-zinc-800/50 text-zinc-400";
-  }
-
   return "border-zinc-700 bg-zinc-800 text-zinc-300";
 }
 

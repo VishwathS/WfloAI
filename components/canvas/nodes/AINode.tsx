@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
-import { AlertTriangle, BrainCircuit, CheckCircle2, Loader2, MinusCircle } from "lucide-react";
+import { AlertTriangle, BrainCircuit, CheckCircle2, Loader2 } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import type { AINodeData } from "@/lib/types";
 
@@ -11,7 +11,6 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
-  const isSkipped = executionState.status === "skipped";
 
   return (
     <div
@@ -20,9 +19,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
           ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
           : isError
             ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : isSkipped
-              ? "border-zinc-700 shadow-none"
-              : "border-violet-400/30"
+            : "border-violet-400/30"
       }`}
     >
       <Handle
@@ -42,8 +39,6 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
             <CheckCircle2 className="h-4 w-4" />
           ) : isError ? (
             <AlertTriangle className="h-4 w-4" />
-          ) : isSkipped ? (
-            <MinusCircle className="h-4 w-4 opacity-60" />
           ) : (
             <BrainCircuit className="h-4 w-4" />
           )}
@@ -94,9 +89,6 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         ) : null}
         {isError && executionState.error ? (
           <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
-        ) : null}
-        {isSkipped ? (
-          <p className="text-xs leading-5 text-zinc-500">Skipped — branch not selected.</p>
         ) : null}
       </div>
       <Handle

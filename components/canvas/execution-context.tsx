@@ -35,3 +35,7 @@ export function useNodeExecutionState(nodeId: string): NodeExecutionState {
     }
   );
 }
+
+export function useNodeStates(): Record<string, NodeExecutionState> {
+  return useContext(ExecutionContext).nodeStates;
+}

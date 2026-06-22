@@ -3,11 +3,10 @@ export type ExecutionEvent =
   | { type: "node:output"; nodeId: string; chunk: string }
   | { type: "node:complete"; nodeId: string; output: string; durationMs: number }
   | { type: "node:error"; nodeId: string; error: string }
-  | { type: "node:skip"; nodeId: string }
   | { type: "workflow:done" };
 
 export interface NodeExecutionState {
-  status: "idle" | "running" | "complete" | "error" | "skipped";
+  status: "idle" | "running" | "complete" | "error";
   output: string;
   durationMs?: number;
   error?: string;
