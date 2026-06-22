@@ -3,10 +3,12 @@
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, Loader2, Zap } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useNodeResize } from "@/hooks/useNodeResize";
 import type { TriggerNodeData } from "@/lib/types";
 
 export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
   const { setNodes } = useReactFlow();
+  const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
@@ -14,7 +16,8 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
 
   return (
     <div
-      className={`min-w-[220px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(22,163,74,0.75)] ${
+      ref={containerRef}
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(22,163,74,0.75)] ${
         isComplete
           ? "border-emerald-400/60 shadow-[0_0_0_1px_rgba(74,222,128,0.28),0_20px_50px_-30px_rgba(34,197,94,0.9)]"
           : isError
@@ -23,7 +26,7 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
       }`}
     >
       <div
-        className={`flex items-center gap-2 px-4 py-3 text-white ${
+        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
           isError ? "bg-rose-600" : "bg-emerald-600"
         } ${isRunning ? "animate-pulse" : ""}`}
       >
@@ -41,7 +44,7 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
           <p className="text-xs text-emerald-50/90">{data.label}</p>
         </div>
       </div>
-      <div className="space-y-3 px-4 py-4">
+      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
           Input
         </p>
@@ -57,7 +60,7 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
               )
             );
           }}
-          className="min-h-[100px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30"
+          className="flex-1 min-h-[100px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30"
           placeholder="Enter the starting text for this workflow."
         />
         {isError && executionState.error ? (
@@ -68,6 +71,10 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
         type="source"
         position={Position.Right}
         className="!h-3 !w-3 !border-2 !border-emerald-200 !bg-emerald-500"
+      />
+      <div
+        className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"
+        onPointerDown={onResizePointerDown}
       />
     </div>
   );

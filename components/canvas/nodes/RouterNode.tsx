@@ -3,10 +3,12 @@
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, GitBranch, Loader2 } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useNodeResize } from "@/hooks/useNodeResize";
 import type { RouterNodeData } from "@/lib/types";
 
 export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
   const { setNodes } = useReactFlow();
+  const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
@@ -14,7 +16,8 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
 
   return (
     <div
-      className={`min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(217,119,6,0.9)] ${
+      ref={containerRef}
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(217,119,6,0.9)] ${
         isComplete
           ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
           : isError
@@ -28,7 +31,7 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
         className="!h-3 !w-3 !border-2 !border-amber-200 !bg-amber-500"
       />
       <div
-        className={`flex items-center gap-2 px-4 py-3 text-white ${
+        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
           isError ? "bg-rose-600" : "bg-amber-600"
         } ${isRunning ? "animate-pulse" : ""}`}
       >
@@ -46,7 +49,7 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
           <p className="text-xs text-amber-50/90">{data.label}</p>
         </div>
       </div>
-      <div className="space-y-3 px-4 py-4">
+      <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
           Condition
         </p>
@@ -69,7 +72,7 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
               )
             );
           }}
-          className="min-h-[96px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+          className="flex-1 min-h-[96px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
           placeholder="Is this email urgent?"
         />
         <div className="flex gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
@@ -97,6 +100,10 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
         position={Position.Right}
         style={{ top: "68%" }}
         className="!h-3 !w-3 !border-2 !border-rose-200 !bg-rose-500"
+      />
+      <div
+        className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"
+        onPointerDown={onResizePointerDown}
       />
     </div>
   );

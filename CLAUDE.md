@@ -18,6 +18,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Execution log** — collapsible panel showing per-node status, output, duration
 - **Execution persistence** — POST to `/api/workflows/[id]/logs` after each run
 - **RLS-enforced multi-tenancy** — users see only their own data at the DB level
+- **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 
 ---
 
@@ -91,6 +92,7 @@ interface WorkflowNode<TData = WorkflowNodeData> {
   type: string;          // "triggerNode" | "aiNode" | "routerNode" | "actionNode"
   position: { x: number; y: number };
   data: TData;
+  style?: { width?: number; height?: number };  // persisted resize dimensions (flow units)
 }
 
 interface WorkflowEdge {
@@ -155,6 +157,37 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 4. Handle it in `executor.ts` before the final `throw new Error('Unsupported node type')`
 5. Add it to the draggable library in `NodeSidebar.tsx`
 6. Update `isValidConnection` in `WorkflowCanvas.tsx` if it needs connection constraints
+
+### Node resizing
+
+Node dimensions are stored in `node.style.width` and `node.style.height` (flow units). React Flow applies `node.style` as inline CSS to the `.react-flow__node` container, so the stored values directly control rendered size.
+
+**Why `node.style`, not `node.data`:** `sanitizeNodes()` in `WorkflowCanvasShell.tsx` strips React Flow's internally-measured `width` and `height` fields before saving, but destructures only those two names. `style` falls through in `...rest` and is preserved through the auto-save pipeline unchanged.
+
+**Persistence:** Dimensions are saved automatically via the existing 700ms debounced PATCH triggered by `setNodes()`. On reload, `node.style` is applied by React Flow before the first render.
+
+**The `useNodeResize` hook (`hooks/useNodeResize.ts`):**
+- Returns `{ containerRef, onResizePointerDown }`
+- `containerRef` must be attached to the node's root `<div>`
+- `onResizePointerDown` must be placed on a 16×16px zone at `absolute bottom-0 right-0`
+- Calls `e.stopPropagation()` to prevent React Flow from starting a node drag
+- Converts screen pixel delta to flow units via `delta / zoom` (zoom captured at drag start via `getZoom()`)
+- `offsetWidth` / `offsetHeight` are CSS layout dimensions, unaffected by viewport `transform: scale(zoom)` — they are already in flow units; do NOT divide by zoom
+
+**Layout convention for resizable nodes:**
+- Root div: `relative flex h-full flex-col`
+- Header div: `flex-shrink-0`
+- Content div: `flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4`
+- Textareas / primary content area: `flex-1 min-h-[...]`
+
+**Adding resize to a new node type:**
+1. Import `useNodeResize` from `@/hooks/useNodeResize`
+2. Call `const { containerRef, onResizePointerDown } = useNodeResize(id)` in the component
+3. Add `ref={containerRef}` and `relative flex h-full flex-col` to the root div
+4. Add `flex-shrink-0` to the header div
+5. Change the content div to `flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4`
+6. Add `flex-1` to any textarea or primary content area (keep a `min-h-[...]` as the minimum)
+7. Add `<div className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize" onPointerDown={onResizePointerDown} />` as the last child of the root div
 
 ### Adding a new API route
 - Auth-check first via `createServerSupabaseClient().auth.getUser()`

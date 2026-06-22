@@ -47,6 +47,7 @@ export interface WorkflowNode<TData = WorkflowNodeData> {
   type: string;
   position: WorkflowNodePosition;
   data: TData;
+  style?: { width?: number; height?: number };
 }
 
 export interface WorkflowEdge<TData = Record<string, unknown>> {
