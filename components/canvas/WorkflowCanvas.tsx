@@ -25,12 +25,14 @@ import { TriggerNode } from "@/components/canvas/nodes/TriggerNode";
 import { AINode } from "@/components/canvas/nodes/AINode";
 import { RouterNode } from "@/components/canvas/nodes/RouterNode";
 import { ActionNode } from "@/components/canvas/nodes/ActionNode";
+import { LookupNode } from "@/components/canvas/nodes/LookupNode";
 import { DeletableEdge } from "@/components/canvas/edges/DeletableEdge";
 import { DND_NODE_TYPE_KEY, NodeSidebar } from "@/components/canvas/NodeSidebar";
 import type {
   ActionNodeData,
   AINodeData,
   AIActionType,
+  LookupNodeData,
   RouterNodeData,
   TriggerNodeData,
   TriggerType
@@ -40,7 +42,8 @@ const nodeTypes: NodeTypes = {
   triggerNode: TriggerNode,
   aiNode: AINode,
   routerNode: RouterNode,
-  actionNode: ActionNode
+  actionNode: ActionNode,
+  lookupNode: LookupNode
 };
 
 const edgeTypes: EdgeTypes = {
@@ -56,7 +59,7 @@ const EDGE_DEFAULTS = {
   style: { stroke: "#6366f1", strokeWidth: 2 }
 };
 
-type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData>;
+type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | LookupNodeData>;
 type CanvasEdge = Edge;
 
 interface WorkflowCanvasProps {
@@ -102,6 +105,14 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
     } satisfies RouterNodeData;
   }
 
+  if (type === "lookupNode") {
+    return {
+      label: "Web search",
+      query: "{{input}}",
+      maxResults: 5
+    } satisfies LookupNodeData;
+  }
+
   const action: AIActionType = "Summarize";
 
   return {
@@ -117,10 +128,10 @@ function WorkflowCanvasInner({
   onSave,
   onCancelSave
 }: WorkflowCanvasProps) {
-  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData>();
+  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData>();
   const edges = useEdges();
   const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<
-    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData
+    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
   >();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);

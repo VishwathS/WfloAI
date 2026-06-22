@@ -2,6 +2,7 @@ import type { Edge, Node } from "reactflow";
 import type {
   ActionNodeData,
   AINodeData,
+  LookupNodeData,
   RouterNodeData,
   TriggerNodeData
 } from "@/lib/types";
@@ -9,7 +10,7 @@ import type { ExecutionEvent, NodeExecutionResult } from "@/lib/execution/types"
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 
 type WorkflowCanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData
+  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
 >;
 
 function delay(ms: number) {
@@ -80,6 +81,38 @@ async function requestAIText(prompt: string, context: string, nodeId: string, on
 
   output += decoder.decode();
   return output;
+}
+
+async function executeLookupNode(
+  node: WorkflowCanvasNode,
+  context: string,
+  onEvent: (event: ExecutionEvent) => void | Promise<void>
+): Promise<NodeExecutionResult> {
+  const data = node.data as LookupNodeData;
+  const query = data.query.replace(/\{\{input\}\}/g, context).trim();
+
+  let response: Response;
+
+  try {
+    response = await fetch("/api/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, maxResults: data.maxResults })
+    });
+  } catch {
+    throw new Error("Cannot reach /api/lookup — ensure the dev server is running.");
+  }
+
+  if (!response.ok) {
+    const json = (await response.json()) as { error?: string };
+    throw new Error(json.error ?? `Lookup request failed (HTTP ${response.status}).`);
+  }
+
+  const json = (await response.json()) as { output: string };
+  const output = json.output ?? "";
+
+  onEvent({ type: "node:output", nodeId: node.id, chunk: output });
+  return { output };
 }
 
 async function executeAINode(
@@ -164,6 +197,8 @@ export async function executeWorkflow(
         result = { output: "Output saved." };
       } else if (node.type === "aiNode") {
         result = await executeAINode(node, parentContext, onEvent);
+      } else if (node.type === "lookupNode") {
+        result = await executeLookupNode(node, parentContext, onEvent);
       } else {
         throw new Error(`Unsupported node type: ${node.type}`);
       }

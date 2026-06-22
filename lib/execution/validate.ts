@@ -1,5 +1,5 @@
 import type { Edge, Node } from "reactflow";
-import type { AINodeData, RouterNodeData, WorkflowNodeData } from "@/lib/types";
+import type { AINodeData, LookupNodeData, RouterNodeData, WorkflowNodeData } from "@/lib/types";
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 
 type WorkflowNode = Node<WorkflowNodeData>;
@@ -82,6 +82,13 @@ export function validateWorkflow(
       const data = node.data as RouterNodeData;
       if (!data.prompt?.trim()) {
         nodeErrors[node.id] = `"${data.label || "Router"}" needs a condition before it can run.`;
+      }
+    }
+
+    if (node.type === "lookupNode") {
+      const data = node.data as LookupNodeData;
+      if (!data.query?.trim()) {
+        nodeErrors[node.id] = `"${data.label || "Lookup"}" needs a search query before it can run.`;
       }
     }
   }

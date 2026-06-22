@@ -36,11 +36,18 @@ export interface ActionNodeData {
   action: ActionType;
 }
 
+export interface LookupNodeData {
+  label: string;
+  query: string;
+  maxResults: number;
+}
+
 export type WorkflowNodeData =
   | TriggerNodeData
   | AINodeData
   | RouterNodeData
-  | ActionNodeData;
+  | ActionNodeData
+  | LookupNodeData;
 
 export interface WorkflowNode<TData = WorkflowNodeData> {
   id: string;

@@ -28,6 +28,12 @@ const NODE_CARDS = [
     title: "Action Node",
     description: "Finish the flow by saving, logging, or displaying the result.",
     accentClassName: "border-blue-400/30 bg-blue-500/10 text-blue-200"
+  },
+  {
+    type: "lookupNode",
+    title: "Lookup Node",
+    description: "Search the web via Tavily and pass results downstream.",
+    accentClassName: "border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
   }
 ] as const;
 

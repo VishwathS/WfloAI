@@ -11,7 +11,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Google OAuth** via Supabase Auth with cookie-based sessions
 - **Dashboard** — list all workflows with last-run timestamp, delete
 - **Canvas editor** — React Flow canvas with drag-and-drop node creation
-- **Four node types** — Trigger, AI, Router, Action
+- **Five node types** — Trigger, AI, Router, Action, Lookup
 - **Auto-save** — 700ms debounced PATCH to `/api/workflows/[id]` on every canvas change
 - **Workflow execution** — client-side topological traversal, streams AI output live
 - **Router node** — AI-evaluated conditional branching (true/false paths)
@@ -89,7 +89,7 @@ interface WorkflowGraph {
 
 interface WorkflowNode<TData = WorkflowNodeData> {
   id: string;
-  type: string;          // "triggerNode" | "aiNode" | "routerNode" | "actionNode"
+  type: string;          // "triggerNode" | "aiNode" | "routerNode" | "actionNode" | "lookupNode"
   position: { x: number; y: number };
   data: TData;
   style?: { width?: number; height?: number };  // persisted resize dimensions (flow units)
@@ -111,6 +111,7 @@ type TriggerNodeData  = { label: string; type: "Manual" | "Webhook" | "File Uplo
 type AINodeData       = { label: string; action: AIActionType; prompt: string }
 type RouterNodeData   = { label: string; prompt: string }
 type ActionNodeData   = { label: string; action: "Save Output" | "Log Result" | "Display" }
+type LookupNodeData   = { label: string; query: string; maxResults: number }
 ```
 
 ### `ExecutionLogRow` (DB table: `public.execution_logs`)
@@ -141,7 +142,7 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 - **No premature abstractions.** Three similar lines is better than a premature helper.
 - **No `any`.** Use proper types from `lib/types.ts`; extend that file when needed.
 - **Tailwind only** for styling. No CSS modules, no inline `style` props.
-- **Node type strings are literals:** `"triggerNode"`, `"aiNode"`, `"routerNode"`, `"actionNode"`. These must match across React Flow node registration, the executor switch, and the DB-stored graph.
+- **Node type strings are literals:** `"triggerNode"`, `"aiNode"`, `"routerNode"`, `"actionNode"`, `"lookupNode"`. These must match across React Flow node registration, the executor switch, and the DB-stored graph.
 - **Execution events** are typed in `lib/execution/types.ts` — extend the union there; never use raw string event types.
 - Import paths use the `@/` alias (mapped to project root).
 - Never put secrets in `NEXT_PUBLIC_` env vars. Client-accessible vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` only.
@@ -203,6 +204,62 @@ Node dimensions are stored in `node.style.width` and `node.style.height` (flow u
 ### Execution engine
 - Runs in the browser — no Node.js-only APIs in `lib/execution/`
 - No React or Next.js imports in `lib/execution/`
+
+### Lookup Node
+
+**Configuration schema (`LookupNodeData`):**
+```ts
+interface LookupNodeData {
+  label: string;
+  query: string;      // template — supports {{input}} substitution with upstream context
+  maxResults: number; // 1–10, default 5
+}
+```
+
+**Execution flow:**
+1. Executor calls `executeLookupNode` in `lib/execution/executor.ts`
+2. `{{input}}` in `query` is replaced with the concatenated upstream context string
+3. A POST is made to `/api/lookup` with `{ query, maxResults }`
+4. The server calls Tavily and returns `{ output: string }` — plain-text formatted results
+5. Executor emits `node:output` once (no streaming) then `node:complete`
+6. Formatted results become the node's output and flow downstream as normal context
+
+**Backend route:** `app/api/lookup/route.ts`
+- Auth-gated via `createServerSupabaseClient().auth.getUser()`
+- Reads `TAVILY_API_KEY` from env (server-only — never `NEXT_PUBLIC_`)
+- Calls `https://api.tavily.com/search` with `{ query, max_results }`
+- Returns `{ output: string }` — numbered list of Title / URL / Content per result
+- Returns `{ error: string }` with appropriate HTTP status on failure
+
+**Output format:**
+```
+Search results for "...":
+
+1. Title: ...
+   URL: ...
+   Content: ...
+
+2. Title: ...
+   ...
+```
+
+**Variable substitution:** `{{input}}` in the query field is replaced with the upstream context at execution time. Scoped to Lookup node only — AI/Router nodes are unaffected.
+
+**Persistence:** `query` and `maxResults` are stored in `node.data` as part of the workflow graph JSONB. Dimensions persist via `node.style` like all other node types.
+
+**Environment variable required:** `TAVILY_API_KEY=tvly-...` in `.env.local`
+
+### External Tool Node Pattern
+
+The Lookup node establishes the pattern for future external-tool nodes (HTTP Request, GitHub, Gmail, Database Query, etc.):
+
+1. **Type definition** — Add `interface XxxNodeData` to `lib/types.ts`, extend `WorkflowNodeData` union
+2. **Server route** — Create `app/api/xxx/route.ts`: auth-check first, read API key from env, call external service, return `{ output: string }` or `{ error: string }`
+3. **Executor case** — Add `else if (node.type === "xxxNode")` in `executor.ts`, call the route via plain `fetch` (not streaming unless the service supports it), emit `node:output` + return output
+4. **Validation** — Add required-field check in `validate.ts` if the node has a mandatory config field
+5. **Component** — Create `components/canvas/nodes/XxxNode.tsx` following the AINode/LookupNode pattern: color scheme, handles, resize zone, execution state display
+6. **Registration** — Add to `nodeTypes` in `WorkflowCanvas.tsx`, `createNodeDefaults`, `NODE_CARDS` in `NodeSidebar.tsx`
+7. **Secrets** — All API keys stay server-side in `.env.local`; never use `NEXT_PUBLIC_` for external service credentials
 
 ---
 
