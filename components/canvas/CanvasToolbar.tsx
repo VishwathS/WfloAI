@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2, Maximize2, Minimize2, Play, Save } from "lucide-react";
+import { History, Loader2, Maximize2, Minimize2, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CanvasToolbarProps {
   workflowName: string;
@@ -9,9 +10,11 @@ interface CanvasToolbarProps {
   isRunning: boolean;
   isFullscreen: boolean;
   hasUnsavedChanges: boolean;
+  historyOpen: boolean;
   onSave: () => void;
   onRun: () => void;
   onToggleFullscreen: () => void;
+  onToggleHistory: () => void;
 }
 
 export function CanvasToolbar({
@@ -20,9 +23,11 @@ export function CanvasToolbar({
   isRunning,
   isFullscreen,
   hasUnsavedChanges,
+  historyOpen,
   onSave,
   onRun,
-  onToggleFullscreen
+  onToggleFullscreen,
+  onToggleHistory
 }: CanvasToolbarProps) {
   const statusLabel = isSaving
     ? "Saving changes"
@@ -73,6 +78,18 @@ export function CanvasToolbar({
             <Play className="mr-2 h-4 w-4" />
           )}
           {isRunning ? "Running..." : "Run"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white",
+            historyOpen && "border-cyan-700 bg-cyan-950 text-cyan-300"
+          )}
+          onClick={onToggleHistory}
+        >
+          <History className="mr-2 h-4 w-4" />
+          History
         </Button>
         <Button
           type="button"

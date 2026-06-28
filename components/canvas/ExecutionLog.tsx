@@ -22,6 +22,8 @@ interface ExecutionLogProps {
   nodeStates: Record<string, NodeExecutionState>;
   isRunning: boolean;
   onClear: () => void;
+  rightClass?: string;
+  widthStyle?: string;
 }
 
 function formatDuration(durationMs?: number) {
@@ -60,7 +62,9 @@ export function ExecutionLog({
   nodes,
   nodeStates,
   isRunning,
-  onClear
+  onClear,
+  rightClass,
+  widthStyle
 }: ExecutionLogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -104,10 +108,10 @@ export function ExecutionLog({
 
   return (
     <div
-      className={`absolute bottom-4 right-4 z-20 overflow-hidden rounded-[24px] border border-zinc-800 bg-zinc-950/96 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.95)] backdrop-blur transition-all duration-300 ${
+      className={`absolute bottom-4 ${rightClass ?? "right-4"} z-20 overflow-hidden rounded-[24px] border border-zinc-800 bg-zinc-950/96 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.95)] backdrop-blur transition-all duration-300 ${
         isOpen ? "max-h-[320px]" : "max-h-[58px]"
       }`}
-      style={{ width: "min(760px, calc(100% - 312px))" }}
+      style={{ width: widthStyle ?? "min(760px, calc(100% - 312px))" }}
     >
       <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
         <div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Edge, Node } from "reactflow";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { ExecutionLog } from "@/components/canvas/ExecutionLog";
+import { RunHistorySidebar } from "@/components/canvas/RunHistorySidebar";
 import { WorkflowCanvas } from "@/components/canvas/WorkflowCanvas";
 import { ExecutionProvider } from "@/components/canvas/execution-context";
 import { useExecution } from "@/hooks/useExecution";
@@ -65,6 +66,8 @@ export function WorkflowCanvasShell({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isExecutionCleared, setIsExecutionCleared] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [runRefreshTrigger, setRunRefreshTrigger] = useState(0);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestGraphRef = useRef({
     nodes: sanitizeNodes(initialNodes),
@@ -73,7 +76,8 @@ export function WorkflowCanvasShell({
   const { run, isRunning, nodeStates, runError } = useExecution(
     workflowId,
     draftNodes,
-    draftEdges
+    draftEdges,
+    () => setRunRefreshTrigger((n) => n + 1)
   );
 
   const hasUnsavedChanges = !areGraphsEqual(draftNodes, draftEdges, savedNodes, savedEdges);
@@ -190,9 +194,11 @@ export function WorkflowCanvasShell({
         isRunning={isRunning}
         isFullscreen={isFullscreen}
         hasUnsavedChanges={hasUnsavedChanges}
+        historyOpen={historyOpen}
         onSave={handleManualSave}
         onRun={handleRun}
         onToggleFullscreen={() => setIsFullscreen((currentValue) => !currentValue)}
+        onToggleHistory={() => setHistoryOpen((v) => !v)}
       />
       {saveError ? (
         <div className="border-b border-rose-500/20 bg-rose-500/10 px-5 py-3 text-sm text-rose-200">
@@ -212,11 +218,25 @@ export function WorkflowCanvasShell({
             onSave={scheduleSave}
             onCancelSave={cancelPendingSave}
           />
+          {historyOpen ? (
+            <RunHistorySidebar
+              workflowId={workflowId}
+              open={historyOpen}
+              onClose={() => setHistoryOpen(false)}
+              refreshTrigger={runRefreshTrigger}
+            />
+          ) : null}
           <ExecutionLog
             nodes={draftNodes}
             nodeStates={visibleNodeStates}
             isRunning={isRunning}
             onClear={() => setIsExecutionCleared(true)}
+            rightClass={historyOpen ? "right-[324px]" : "right-4"}
+            widthStyle={
+              historyOpen
+                ? "min(760px, calc(100% - 632px))"
+                : "min(760px, calc(100% - 312px))"
+            }
           />
         </div>
       </ExecutionProvider>

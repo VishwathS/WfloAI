@@ -97,3 +97,21 @@ export interface ExecutionLogRow {
 export interface WorkflowWithLastRun extends Workflow {
   last_run_at: string | null;
 }
+
+export interface WorkflowRun {
+  id: string;
+  workflow_id: string;
+  user_id: string;
+  status: "success" | "error";
+  final_output: string | null;
+  node_outputs: Array<{
+    nodeId: string;
+    status: string;
+    output: string;
+    durationMs?: number;
+  }> | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}

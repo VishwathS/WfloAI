@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import type { Edge, Node } from "reactflow";
 import type {
   ActionNodeData,
@@ -12,6 +13,17 @@ import { topologicalSort } from "@/lib/execution/topologicalSort";
 type WorkflowCanvasNode = Node<
   TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
 >;
+
+interface TavilyResult {
+  title: string;
+  url: string;
+  content: string;
+}
+
+interface TavilyResponse {
+  query: string;
+  results: TavilyResult[];
+}
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => {
@@ -32,84 +44,84 @@ function buildParentContext(
   return parentOutputs.join("\n\n");
 }
 
-async function requestAIText(prompt: string, context: string, nodeId: string, onEvent?: (event: ExecutionEvent) => void) {
-  let response: Response;
+function buildPrompt(prompt: string, context: string) {
+  return `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+}
 
-  try {
-    response = await fetch("/api/execute", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        prompt,
-        context
-      })
-    });
-  } catch {
-    throw new Error("Cannot reach /api/execute — ensure the dev server is running.");
+function formatLookupResults(query: string, results: TavilyResult[]): string {
+  const lines: string[] = [`Search results for "${query}":`, ""];
+  results.forEach((r, i) => {
+    lines.push(`${i + 1}. Title: ${r.title}`);
+    lines.push(`   URL: ${r.url}`);
+    lines.push(`   Content: ${r.content}`);
+    lines.push("");
+  });
+  return lines.join("\n").trimEnd();
+}
+
+async function requestAIText(
+  prompt: string,
+  context: string,
+  nodeId: string,
+  onEvent?: (event: ExecutionEvent) => void
+) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing ANTHROPIC_API_KEY");
   }
 
-  if (!response.ok || !response.body) {
-    throw new Error(`AI request failed (HTTP ${response.status}).`);
-  }
+  const client = new Anthropic({ apiKey });
+  const stream = client.messages.stream({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: buildPrompt(prompt, context) }]
+  });
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
   let output = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    const chunk = decoder.decode(value, { stream: true });
-
-    if (!chunk) {
-      continue;
-    }
-
-    output += chunk;
-    onEvent?.({
-      type: "node:output",
-      nodeId,
-      chunk
+  await new Promise<void>((resolve, reject) => {
+    stream.on("text", (text) => {
+      output += text;
+      onEvent?.({ type: "node:output", nodeId, chunk: text });
     });
-  }
+    stream.on("end", resolve);
+    stream.on("error", reject);
+  });
 
-  output += decoder.decode();
   return output;
 }
 
 async function executeLookupNode(
   node: WorkflowCanvasNode,
   context: string,
-  onEvent: (event: ExecutionEvent) => void | Promise<void>
+  onEvent: (event: ExecutionEvent) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as LookupNodeData;
   const query = data.query.replace(/\{\{input\}\}/g, context).trim();
+  const maxResults = Math.min(Math.max(data.maxResults, 1), 10);
+  const apiKey = process.env.TAVILY_API_KEY;
 
-  let response: Response;
-
-  try {
-    response = await fetch("/api/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, maxResults: data.maxResults })
-    });
-  } catch {
-    throw new Error("Cannot reach /api/lookup — ensure the dev server is running.");
+  if (!apiKey) {
+    throw new Error("Missing TAVILY_API_KEY");
   }
+
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({ query, max_results: maxResults })
+  });
 
   if (!response.ok) {
-    const json = (await response.json()) as { error?: string };
-    throw new Error(json.error ?? `Lookup request failed (HTTP ${response.status}).`);
+    const text = await response.text();
+    throw new Error(`Tavily error: ${response.status} ${text}`);
   }
 
-  const json = (await response.json()) as { output: string };
-  const output = json.output ?? "";
+  const json = (await response.json()) as TavilyResponse;
+  const output = formatLookupResults(json.query ?? query, json.results ?? []);
 
   onEvent({ type: "node:output", nodeId: node.id, chunk: output });
   return { output };
@@ -118,13 +130,16 @@ async function executeLookupNode(
 async function executeAINode(
   node: WorkflowCanvasNode,
   context: string,
-  onEvent: (event: ExecutionEvent) => void | Promise<void>
+  onEvent: (event: ExecutionEvent) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as AINodeData;
   return { output: await requestAIText(data.prompt, context, node.id, onEvent) };
 }
 
-async function executeRouterNode(node: WorkflowCanvasNode, context: string): Promise<NodeExecutionResult> {
+async function executeRouterNode(
+  node: WorkflowCanvasNode,
+  context: string
+): Promise<NodeExecutionResult> {
   const data = node.data as RouterNodeData;
   const routerInstruction = `${data.prompt}
 
@@ -143,7 +158,7 @@ Respond with exactly one word: true or false. No punctuation, no explanation.`;
 export async function executeWorkflow(
   nodes: WorkflowCanvasNode[],
   edges: Edge[],
-  onEvent: (event: ExecutionEvent) => void | Promise<void>
+  onEvent: (event: ExecutionEvent) => void
 ): Promise<void> {
   const orderedNodes = topologicalSort(nodes, edges);
   const nodeMap = new Map(orderedNodes.map((node) => [node.id, node]));
@@ -170,19 +185,14 @@ export async function executeWorkflow(
       continue;
     }
 
-    if (
-      activeIncomingEdges.some((edge) => !executedNodeIds.has(edge.source))
-    ) {
+    if (activeIncomingEdges.some((edge) => !executedNodeIds.has(edge.source))) {
       continue;
     }
 
     const startedAt = Date.now();
 
     try {
-      await onEvent({
-        type: "node:start",
-        nodeId: node.id
-      });
+      onEvent({ type: "node:start", nodeId: node.id });
 
       const parentContext = buildParentContext(node.id, activeIncomingEdges, outputsByNodeId);
       let result: NodeExecutionResult;
@@ -216,7 +226,7 @@ export async function executeWorkflow(
         appendActiveEdges(edges.filter((edge) => edge.source === node.id));
       }
 
-      await onEvent({
+      onEvent({
         type: "node:complete",
         nodeId: node.id,
         output: result.output,
@@ -224,18 +234,10 @@ export async function executeWorkflow(
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Execution failed.";
-
-      await onEvent({
-        type: "node:error",
-        nodeId: node.id,
-        error: message
-      });
-
+      onEvent({ type: "node:error", nodeId: node.id, error: message });
       throw error;
     }
   }
 
-  await onEvent({
-    type: "workflow:done"
-  });
+  onEvent({ type: "workflow:done" });
 }

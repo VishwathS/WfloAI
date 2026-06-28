@@ -19,6 +19,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Execution persistence** — POST to `/api/workflows/[id]/logs` after each run
 - **RLS-enforced multi-tenancy** — users see only their own data at the DB level
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
+- **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
 
 ---
 
@@ -130,6 +131,27 @@ interface ExecutionLogRow {
 }
 ```
 
+### `WorkflowRun` (DB table: `public.workflow_runs`)
+```ts
+interface WorkflowRun {
+  id: string;            // uuid, PK
+  workflow_id: string;   // uuid, FK → workflows (cascade delete)
+  user_id: string;       // uuid, FK → auth.users (cascade delete)
+  status: "success" | "error";
+  final_output: string | null;   // output of the last completed node
+  node_outputs: Array<{          // full per-node results, mirrors ExecutionLogEntry[]
+    nodeId: string;
+    status: string;
+    output: string;
+    durationMs?: number;
+  }> | null;
+  error: string | null;          // output of the first errored node, if any
+  started_at: string | null;     // ISO UTC, captured when execution begins
+  completed_at: string | null;   // ISO UTC, captured when workflow:done fires
+  created_at: string;            // ISO UTC, default now()
+}
+```
+
 ### RouterNode edge convention
 Router nodes have exactly two output handles: `"true"` and `"false"`. The executor filters outgoing edges by matching `edge.sourceHandle` to the AI's response string. Any future conditional node type must follow this same handle-naming convention.
 
@@ -205,6 +227,31 @@ Node dimensions are stored in `node.style.width` and `node.style.height` (flow u
 - Runs in the browser — no Node.js-only APIs in `lib/execution/`
 - No React or Next.js imports in `lib/execution/`
 
+### Run history architecture
+
+**How runs are saved:**
+1. `useExecution.ts` captures `startedAtRef.current = new Date().toISOString()` when execution begins
+2. On `workflow:done`, it derives `status` (error if any node errored), `final_output` (last completed node's output), `error` (first errored node's output)
+3. It calls `persistWorkflowRun(...)` which POSTs to `POST /api/workflows/[id]/runs`
+4. After the POST resolves, the optional `onRunSaved` callback is fired
+5. `WorkflowCanvasShell` passes `() => setRunRefreshTrigger(n => n + 1)` as `onRunSaved`
+
+**How the sidebar loads runs:**
+- `RunHistorySidebar` (`components/canvas/RunHistorySidebar.tsx`) has a `useEffect` keyed on `[open, refreshTrigger, workflowId]`
+- When `open=true` or `refreshTrigger` increments, it fetches `GET /api/workflows/[id]/runs`
+- Runs are displayed newest-first; clicking a row expands the full output
+
+**How runs are deleted:**
+- Each run row has a hover-reveal delete button
+- Clicking it calls `DELETE /api/workflows/[id]/runs/[runId]` and removes the row from local state
+- RLS enforces user ownership at the DB level; the route also checks explicitly
+
+**History button:**
+- Located in `CanvasToolbar` between Run and Fullscreen buttons
+- Uses `History` icon from lucide-react
+- Highlights cyan when the sidebar is open
+- When sidebar is open, `ExecutionLog` shifts left by 320px (`right-[324px]`) and narrows accordingly
+
 ### Lookup Node
 
 **Configuration schema (`LookupNodeData`):**
@@ -270,7 +317,8 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `graph` JSONB shape matches `WorkflowGraph` in `lib/types.ts` | No schema migration layer — a mismatch silently corrupts the canvas on load |
 | `sourceHandle: "true" \| "false"` on RouterNode edges | Executor matches these strings exactly; any other value silently drops that branch |
 | Node type string literals consistent across canvas, executor, and DB | Mismatch causes nodes to be skipped silently during execution |
-| RLS policies on `workflows` and `execution_logs` | Only DB-level access control — weakening them exposes all users' data |
+| RLS policies on `workflows`, `execution_logs`, and `workflow_runs` | Only DB-level access control — weakening them exposes all users' data |
+| `workflow_runs` INSERT policy subquery on `workflows` | Prevents users from inserting runs for workflows they don't own, even if they guess a workflow UUID |
 | `/api/execute` streams `text/plain` chunks | `requestAIText()` reads raw chunks; changing format breaks AI node streaming |
 | `updateSession()` in middleware on every request | Without it, sessions don't refresh and users get logged out unexpectedly |
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |

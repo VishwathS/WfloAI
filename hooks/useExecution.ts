@@ -2,9 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "reactflow";
-import { executeWorkflow } from "@/lib/execution/executor";
 import { validateWorkflow } from "@/lib/execution/validate";
-import type { ExecutionLogEntry, NodeExecutionState } from "@/lib/execution/types";
+import type { ExecutionEvent, ExecutionLogEntry, NodeExecutionState } from "@/lib/execution/types";
 import type {
   ActionNodeData,
   AINodeData,
@@ -25,7 +24,8 @@ const IDLE_STATE: NodeExecutionState = {
 export function useExecution(
   workflowId: string,
   nodes: WorkflowCanvasNode[],
-  edges: Edge[]
+  edges: Edge[],
+  onRunSaved?: () => void
 ) {
   const [isRunning, setIsRunning] = useState(false);
   const [nodeStates, setNodeStates] = useState<Record<string, NodeExecutionState>>({});
@@ -52,6 +52,96 @@ export function useExecution(
 
     if (!response.ok) {
       throw new Error("Failed to persist execution log.");
+    }
+  }
+
+  function handleEvent(event: ExecutionEvent) {
+    if (event.type === "node:start") {
+      executionResultsRef.current[event.nodeId] = {
+        nodeId: event.nodeId,
+        status: "running",
+        output: ""
+      };
+
+      setNodeStates((currentState) => ({
+        ...currentState,
+        [event.nodeId]: { status: "running", output: "" }
+      }));
+      return;
+    }
+
+    if (event.type === "node:output") {
+      const currentResult = executionResultsRef.current[event.nodeId] ?? {
+        nodeId: event.nodeId,
+        status: "running",
+        output: ""
+      };
+
+      executionResultsRef.current[event.nodeId] = {
+        ...currentResult,
+        status: "running",
+        output: `${currentResult.output}${event.chunk}`
+      };
+
+      setNodeStates((currentState) => ({
+        ...currentState,
+        [event.nodeId]: {
+          ...(currentState[event.nodeId] ?? IDLE_STATE),
+          status: "running",
+          output: `${currentState[event.nodeId]?.output ?? ""}${event.chunk}`
+        }
+      }));
+      return;
+    }
+
+    if (event.type === "node:complete") {
+      executionResultsRef.current[event.nodeId] = {
+        nodeId: event.nodeId,
+        status: "complete",
+        output: event.output,
+        durationMs: event.durationMs
+      };
+
+      setNodeStates((currentState) => ({
+        ...currentState,
+        [event.nodeId]: {
+          status: "complete",
+          output: event.output,
+          durationMs: event.durationMs
+        }
+      }));
+      return;
+    }
+
+    if (event.type === "node:error") {
+      const currentResult = executionResultsRef.current[event.nodeId] ?? {
+        nodeId: event.nodeId,
+        status: "error",
+        output: ""
+      };
+
+      executionResultsRef.current[event.nodeId] = { ...currentResult, status: "error" };
+
+      setNodeStates((currentState) => ({
+        ...currentState,
+        [event.nodeId]: {
+          ...(currentState[event.nodeId] ?? IDLE_STATE),
+          status: "error",
+          error: event.error
+        }
+      }));
+      return;
+    }
+
+    if (event.type === "workflow:done") {
+      const nodeResults = Object.values(executionResultsRef.current).map((result) => ({
+        nodeId: result.nodeId,
+        status: result.status,
+        output: result.output,
+        durationMs: result.durationMs
+      }));
+
+      void persistExecutionLog(nodeResults);
     }
   }
 
@@ -85,103 +175,49 @@ export function useExecution(
     executionResultsRef.current = {};
 
     try {
-      await executeWorkflow(nodes, edges, (event) => {
-        if (event.type === "node:start") {
-          executionResultsRef.current[event.nodeId] = {
-            nodeId: event.nodeId,
-            status: "running",
-            output: ""
-          };
-
-          setNodeStates((currentState) => ({
-            ...currentState,
-            [event.nodeId]: {
-              status: "running",
-              output: ""
-            }
-          }));
-          return;
-        }
-
-        if (event.type === "node:output") {
-          const currentResult = executionResultsRef.current[event.nodeId] ?? {
-            nodeId: event.nodeId,
-            status: "running",
-            output: ""
-          };
-
-          executionResultsRef.current[event.nodeId] = {
-            ...currentResult,
-            status: "running",
-            output: `${currentResult.output}${event.chunk}`
-          };
-
-          setNodeStates((currentState) => ({
-            ...currentState,
-            [event.nodeId]: {
-              ...(currentState[event.nodeId] ?? IDLE_STATE),
-              status: "running",
-              output: `${currentState[event.nodeId]?.output ?? ""}${event.chunk}`
-            }
-          }));
-          return;
-        }
-
-        if (event.type === "node:complete") {
-          executionResultsRef.current[event.nodeId] = {
-            nodeId: event.nodeId,
-            status: "complete",
-            output: event.output,
-            durationMs: event.durationMs
-          };
-
-          setNodeStates((currentState) => ({
-            ...currentState,
-            [event.nodeId]: {
-              status: "complete",
-              output: event.output,
-              durationMs: event.durationMs
-            }
-          }));
-          return;
-        }
-
-        if (event.type === "node:error") {
-          const currentResult = executionResultsRef.current[event.nodeId] ?? {
-            nodeId: event.nodeId,
-            status: "error",
-            output: ""
-          };
-
-          executionResultsRef.current[event.nodeId] = {
-            ...currentResult,
-            status: "error"
-          };
-
-          setNodeStates((currentState) => ({
-            ...currentState,
-            [event.nodeId]: {
-              ...(currentState[event.nodeId] ?? IDLE_STATE),
-              status: "error",
-              error: event.error
-            }
-          }));
-          return;
-        }
-
-        if (event.type === "workflow:done") {
-          const nodeResults = Object.values(executionResultsRef.current).map((result) => ({
-            nodeId: result.nodeId,
-            status: result.status,
-            output: result.output,
-            durationMs: result.durationMs
-          }));
-
-          void persistExecutionLog(nodeResults);
-        }
+      const response = await fetch(`/api/workflows/${workflowId}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
       });
+
+      if (!response.ok || !response.body) {
+        setRunError("Execution request failed. Please try again.");
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() ?? "";
+
+        for (const block of blocks) {
+          const dataLine = block.split("\n").find((l) => l.startsWith("data: "));
+          if (!dataLine) continue;
+
+          try {
+            const event = JSON.parse(dataLine.slice(6)) as ExecutionEvent;
+            handleEvent(event);
+          } catch {
+            // malformed SSE frame; skip
+          }
+        }
+      }
+
+      onRunSaved?.();
     } catch {
-      // node:error already emitted before re-throw; absorb to prevent unhandled rejection
+      // network error; node states already reflect any partial progress
     } finally {
       setIsRunning(false);
     }
