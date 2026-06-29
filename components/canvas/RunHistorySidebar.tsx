@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { WorkflowRun } from "@/lib/types";
+import { NodeOutputDisplay, getOutputPreview } from "@/components/canvas/NodeOutputDisplay";
 
 interface RunHistorySidebarProps {
   workflowId: string;
@@ -21,10 +22,6 @@ function formatTimestamp(iso: string) {
   });
 }
 
-function truncate(text: string, maxLength: number) {
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength)}…`;
-}
 
 export function RunHistorySidebar({
   workflowId,
@@ -123,16 +120,15 @@ export function RunHistorySidebar({
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-zinc-300">
-                      {previewText ? truncate(previewText, 50) : "No output"}
+                      {previewText ? getOutputPreview(previewText, 50) : "No output"}
                     </p>
                   </button>
 
                   {isExpanded ? (
                     <div className="px-4 pb-4">
-                      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 text-sm leading-6 text-zinc-200">
-                        {(run.status === "error" ? run.error : run.final_output) ??
-                          "No output captured."}
-                      </div>
+                      <NodeOutputDisplay
+                        output={(run.status === "error" ? run.error : run.final_output) ?? ""}
+                      />
                     </div>
                   ) : null}
 

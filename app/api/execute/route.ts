@@ -5,10 +5,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 interface ExecuteRequestBody {
   prompt?: string;
   context?: string;
+  schema?: string;
 }
 
-function buildPrompt(prompt: string, context: string) {
-  return `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+function buildPrompt(prompt: string, context: string, schema?: string) {
+  const base = `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+  if (!schema) return base;
+  return `${base}\n\nYou MUST respond with ONLY a valid JSON object matching this exact shape:\n${schema}\nNo markdown, no code blocks, no explanation — just the raw JSON object.`;
 }
 
 export async function POST(request: Request) {
@@ -40,14 +43,15 @@ export async function POST(request: Request) {
   }
 
   const context = typeof body.context === "string" ? body.context : "";
+  const schema = typeof body.schema === "string" ? body.schema : undefined;
   const client = new Anthropic({ apiKey });
   const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [
       {
         role: "user",
-        content: buildPrompt(body.prompt, context)
+        content: buildPrompt(body.prompt, context, schema)
       }
     ]
   });

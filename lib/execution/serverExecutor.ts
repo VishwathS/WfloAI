@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Edge, Node } from "reactflow";
 import type {
   ActionNodeData,
+  AIActionType,
   AINodeData,
   LookupNodeData,
   RouterNodeData,
@@ -31,6 +32,29 @@ function delay(ms: number) {
   });
 }
 
+function extractJson(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function getActionSchema(action: AIActionType, outputFields?: string[]): string {
+  switch (action) {
+    case "Summarize":
+      return `{"summary": "string", "keyPoints": ["string"]}`;
+    case "Rewrite":
+      return `{"rewrittenContent": "string"}`;
+    case "Classify":
+      return `{"category": "string", "confidence": 0.95, "reasoning": "string"}`;
+    case "Extract": {
+      const fields = outputFields?.length ? outputFields : ["value"];
+      return JSON.stringify(Object.fromEntries(fields.map((f) => [f, "string"])));
+    }
+    case "Generate":
+      return `{"content": "string"}`;
+  }
+}
+
 function buildParentContext(
   nodeId: string,
   edges: Edge[],
@@ -38,14 +62,28 @@ function buildParentContext(
 ) {
   const parentOutputs = edges
     .filter((edge) => edge.target === nodeId)
-    .map((edge) => outputsByNodeId.get(edge.source)?.trim())
+    .map((edge) => {
+      const raw = outputsByNodeId.get(edge.source)?.trim();
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (parsed && typeof parsed === "object") {
+          return `Structured output:\n${JSON.stringify(parsed, null, 2)}`;
+        }
+      } catch {
+        // not JSON, pass through as-is
+      }
+      return raw;
+    })
     .filter((output): output is string => Boolean(output));
 
   return parentOutputs.join("\n\n");
 }
 
-function buildPrompt(prompt: string, context: string) {
-  return `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+function buildPrompt(prompt: string, context: string, schema?: string) {
+  const base = `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+  if (!schema) return base;
+  return `${base}\n\nYou MUST respond with ONLY a valid JSON object matching this exact shape:\n${schema}\nNo markdown, no code blocks, no explanation — just the raw JSON object.`;
 }
 
 function formatLookupResults(query: string, results: TavilyResult[]): string {
@@ -63,7 +101,8 @@ async function requestAIText(
   prompt: string,
   context: string,
   nodeId: string,
-  onEvent?: (event: ExecutionEvent) => void
+  onEvent?: (event: ExecutionEvent) => void,
+  schema?: string
 ) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -74,8 +113,8 @@ async function requestAIText(
   const client = new Anthropic({ apiKey });
   const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: buildPrompt(prompt, context) }]
+    max_tokens: 2048,
+    messages: [{ role: "user", content: buildPrompt(prompt, context, schema) }]
   });
 
   let output = "";
@@ -88,6 +127,15 @@ async function requestAIText(
     stream.on("end", resolve);
     stream.on("error", reject);
   });
+
+  if (schema) {
+    output = extractJson(output);
+    try {
+      JSON.parse(output);
+    } catch {
+      throw new Error(`AI node did not return valid JSON. Output: ${output.slice(0, 120)}`);
+    }
+  }
 
   return output;
 }
@@ -133,7 +181,8 @@ async function executeAINode(
   onEvent: (event: ExecutionEvent) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as AINodeData;
-  return { output: await requestAIText(data.prompt, context, node.id, onEvent) };
+  const schema = getActionSchema(data.action, data.outputFields);
+  return { output: await requestAIText(data.prompt, context, node.id, onEvent, schema) };
 }
 
 async function executeRouterNode(
@@ -141,6 +190,19 @@ async function executeRouterNode(
   context: string
 ): Promise<NodeExecutionResult> {
   const data = node.data as RouterNodeData;
+
+  if (data.conditionField && typeof data.conditionValue === "string") {
+    try {
+      const parsed = JSON.parse(context) as Record<string, unknown>;
+      if (parsed[data.conditionField] !== undefined) {
+        const matched = String(parsed[data.conditionField]) === data.conditionValue;
+        return { output: context, route: matched ? "true" : "false" };
+      }
+    } catch {
+      // context is not JSON — fall through to AI routing
+    }
+  }
+
   const routerInstruction = `${data.prompt}
 
 Respond with exactly one word: true or false. No punctuation, no explanation.`;

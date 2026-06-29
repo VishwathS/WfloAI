@@ -50,9 +50,20 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-          Condition
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            Condition
+          </p>
+          {data.conditionField && typeof data.conditionValue === "string" ? (
+            <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+              ⚡ Deterministic
+            </span>
+          ) : (
+            <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
+              AI routing
+            </span>
+          )}
+        </div>
         <textarea
           value={data.prompt}
           onChange={(event) => {
@@ -72,9 +83,54 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
               )
             );
           }}
-          className="flex-1 min-h-[96px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+          className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
           placeholder="Is this email urgent?"
         />
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            JSON Condition (optional)
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={data.conditionField ?? ""}
+              onChange={(event) => {
+                const nextField = event.target.value;
+                setNodes((nodes) =>
+                  nodes.map((node) =>
+                    node.id === id
+                      ? ({
+                          ...node,
+                          data: { ...(node.data as RouterNodeData), conditionField: nextField || undefined }
+                        } as Node<RouterNodeData>)
+                      : node
+                  )
+                );
+              }}
+              className="w-1/2 rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+              placeholder="field"
+            />
+            <input
+              type="text"
+              value={data.conditionValue ?? ""}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setNodes((nodes) =>
+                  nodes.map((node) =>
+                    node.id === id
+                      ? ({
+                          ...node,
+                          data: { ...(node.data as RouterNodeData), conditionValue: nextValue }
+                        } as Node<RouterNodeData>)
+                      : node
+                  )
+                );
+              }}
+              className="w-1/2 rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+              placeholder="value"
+            />
+          </div>
+        </div>
         <div className="flex gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
           <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
             True

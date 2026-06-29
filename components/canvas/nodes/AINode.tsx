@@ -4,7 +4,17 @@ import { Handle, Position, useReactFlow, type Node, type NodeProps } from "react
 import { AlertTriangle, BrainCircuit, CheckCircle2, Loader2 } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
-import type { AINodeData } from "@/lib/types";
+import type { AIActionType, AINodeData } from "@/lib/types";
+
+function getSchemaPreview(action: AIActionType, outputFields?: string[]): string {
+  switch (action) {
+    case "Summarize": return "{ summary, keyPoints[] }";
+    case "Rewrite": return "{ rewrittenContent }";
+    case "Classify": return "{ category, confidence, reasoning }";
+    case "Extract": return outputFields?.length ? `{ ${outputFields.join(", ")} }` : "{ …fields }";
+    case "Generate": return "{ content }";
+  }
+}
 
 export function AINode({ id, data }: NodeProps<AINodeData>) {
   const { setNodes } = useReactFlow();
@@ -13,6 +23,15 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
+
+  const parsedOutput = (() => {
+    if (!isComplete || !executionState.output) return null;
+    try {
+      return JSON.parse(executionState.output) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <div
@@ -80,6 +99,38 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
           className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
           placeholder="Tell this AI node what to do with its incoming data."
         />
+        {data.action === "Extract" ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+              Output Fields
+            </p>
+            <input
+              type="text"
+              value={(data.outputFields ?? []).join(", ")}
+              onChange={(event) => {
+                const nextFields = event.target.value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                setNodes((nodes) =>
+                  nodes.map((node) =>
+                    node.id === id
+                      ? ({
+                          ...node,
+                          data: { ...(node.data as AINodeData), outputFields: nextFields }
+                        } as Node<AINodeData>)
+                      : node
+                  )
+                );
+              }}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
+              placeholder="name, email, phone"
+            />
+          </div>
+        ) : null}
+        <p className="font-mono text-[10px] text-zinc-600">
+          → {getSchemaPreview(data.action, data.outputFields)}
+        </p>
         {isRunning ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
@@ -88,6 +139,21 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
             <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
               {executionState.output || "Streaming response..."}
             </div>
+          </div>
+        ) : isComplete && executionState.output ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+              Output
+            </p>
+            {parsedOutput ? (
+              <pre className="flex-1 min-h-[80px] overflow-auto whitespace-pre-wrap rounded-xl border border-emerald-700/30 bg-zinc-950/70 px-3 py-2 font-mono text-sm leading-6 text-zinc-200">
+                {JSON.stringify(parsedOutput, null, 2)}
+              </pre>
+            ) : (
+              <div className="min-h-[80px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
+                {executionState.output}
+              </div>
+            )}
           </div>
         ) : null}
         {isError && executionState.error ? (

@@ -1,6 +1,7 @@
 import type { Edge, Node } from "reactflow";
 import type {
   ActionNodeData,
+  AIActionType,
   AINodeData,
   LookupNodeData,
   RouterNodeData,
@@ -19,6 +20,29 @@ function delay(ms: number) {
   });
 }
 
+function extractJson(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function getActionSchema(action: AIActionType, outputFields?: string[]): string {
+  switch (action) {
+    case "Summarize":
+      return `{"summary": "string", "keyPoints": ["string"]}`;
+    case "Rewrite":
+      return `{"rewrittenContent": "string"}`;
+    case "Classify":
+      return `{"category": "string", "confidence": 0.95, "reasoning": "string"}`;
+    case "Extract": {
+      const fields = outputFields?.length ? outputFields : ["value"];
+      return JSON.stringify(Object.fromEntries(fields.map((f) => [f, "string"])));
+    }
+    case "Generate":
+      return `{"content": "string"}`;
+  }
+}
+
 function buildParentContext(
   nodeId: string,
   edges: Edge[],
@@ -26,13 +50,31 @@ function buildParentContext(
 ) {
   const parentOutputs = edges
     .filter((edge) => edge.target === nodeId)
-    .map((edge) => outputsByNodeId.get(edge.source)?.trim())
+    .map((edge) => {
+      const raw = outputsByNodeId.get(edge.source)?.trim();
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (parsed && typeof parsed === "object") {
+          return `Structured output:\n${JSON.stringify(parsed, null, 2)}`;
+        }
+      } catch {
+        // not JSON, pass through as-is
+      }
+      return raw;
+    })
     .filter((output): output is string => Boolean(output));
 
   return parentOutputs.join("\n\n");
 }
 
-async function requestAIText(prompt: string, context: string, nodeId: string, onEvent?: (event: ExecutionEvent) => void) {
+async function requestAIText(
+  prompt: string,
+  context: string,
+  nodeId: string,
+  onEvent?: (event: ExecutionEvent) => void,
+  schema?: string
+) {
   let response: Response;
 
   try {
@@ -41,10 +83,7 @@ async function requestAIText(prompt: string, context: string, nodeId: string, on
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        prompt,
-        context
-      })
+      body: JSON.stringify({ prompt, context, schema })
     });
   } catch {
     throw new Error("Cannot reach /api/execute — ensure the dev server is running.");
@@ -80,6 +119,16 @@ async function requestAIText(prompt: string, context: string, nodeId: string, on
   }
 
   output += decoder.decode();
+
+  if (schema) {
+    output = extractJson(output);
+    try {
+      JSON.parse(output);
+    } catch {
+      throw new Error(`AI node did not return valid JSON. Output: ${output.slice(0, 120)}`);
+    }
+  }
+
   return output;
 }
 
@@ -121,11 +170,25 @@ async function executeAINode(
   onEvent: (event: ExecutionEvent) => void | Promise<void>
 ): Promise<NodeExecutionResult> {
   const data = node.data as AINodeData;
-  return { output: await requestAIText(data.prompt, context, node.id, onEvent) };
+  const schema = getActionSchema(data.action, data.outputFields);
+  return { output: await requestAIText(data.prompt, context, node.id, onEvent, schema) };
 }
 
 async function executeRouterNode(node: WorkflowCanvasNode, context: string): Promise<NodeExecutionResult> {
   const data = node.data as RouterNodeData;
+
+  if (data.conditionField && typeof data.conditionValue === "string") {
+    try {
+      const parsed = JSON.parse(context) as Record<string, unknown>;
+      if (parsed[data.conditionField] !== undefined) {
+        const matched = String(parsed[data.conditionField]) === data.conditionValue;
+        return { output: context, route: matched ? "true" : "false" };
+      }
+    } catch {
+      // context is not JSON — fall through to AI routing
+    }
+  }
+
   const routerInstruction = `${data.prompt}
 
 Respond with exactly one word: true or false. No punctuation, no explanation.`;

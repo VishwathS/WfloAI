@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Loader2, TerminalSquare } from "lucide-rea
 import { useNodeExecutionState, useNodeStates } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { ActionNodeData } from "@/lib/types";
+import { NodeOutputDisplay } from "@/components/canvas/NodeOutputDisplay";
 
 export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   const { containerRef, onResizePointerDown } = useNodeResize(id);
@@ -21,8 +22,6 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
-
-  const displayOutput = sourceState.output || "No output yet.";
 
   return (
     <div
@@ -67,12 +66,12 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
           {data.action}
         </div>
         {isComplete ? (
-          <div className="flex flex-1 min-h-0 flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
               Output
             </p>
-            <div className="flex-1 min-h-[80px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
-              {displayOutput}
+            <div className="max-h-[200px] overflow-y-auto">
+              <NodeOutputDisplay output={sourceState.output ?? ""} />
             </div>
           </div>
         ) : null}

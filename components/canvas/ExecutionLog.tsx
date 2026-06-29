@@ -12,6 +12,7 @@ import type {
   RouterNodeData,
   TriggerNodeData
 } from "@/lib/types";
+import { NodeOutputDisplay, getOutputPreview } from "@/components/canvas/NodeOutputDisplay";
 
 type WorkflowCanvasNode = Node<
   TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
@@ -34,13 +35,6 @@ function formatDuration(durationMs?: number) {
   return `${durationMs} ms`;
 }
 
-function truncateOutput(output: string) {
-  if (output.length <= 80) {
-    return output || "--";
-  }
-
-  return `${output.slice(0, 80)}...`;
-}
 
 function statusClassName(status: NodeExecutionState["status"]) {
   if (status === "complete") {
@@ -191,11 +185,11 @@ export function ExecutionLog({
                       </span>
                     </div>
                     <div className="text-zinc-400">{formatDuration(state.durationMs)}</div>
-                    <div className="truncate text-zinc-400">{truncateOutput(outputText)}</div>
+                    <div className="truncate text-zinc-400">{getOutputPreview(outputText, 80) || "--"}</div>
                   </div>
                   {isExpanded ? (
-                    <div className="mt-3 whitespace-pre-wrap rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 text-sm leading-6 text-zinc-200">
-                      {outputText || "No output captured."}
+                    <div className="mt-3">
+                      <NodeOutputDisplay output={outputText} />
                     </div>
                   ) : null}
                 </button>

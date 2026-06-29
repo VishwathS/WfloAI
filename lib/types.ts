@@ -24,11 +24,14 @@ export interface AINodeData {
   label: string;
   action: AIActionType;
   prompt: string;
+  outputFields?: string[];
 }
 
 export interface RouterNodeData {
   label: string;
   prompt: string;
+  conditionField?: string;
+  conditionValue?: string;
 }
 
 export interface ActionNodeData {
