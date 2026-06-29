@@ -120,7 +120,7 @@ export function useExecution(
         output: ""
       };
 
-      executionResultsRef.current[event.nodeId] = { ...currentResult, status: "error" };
+      executionResultsRef.current[event.nodeId] = { ...currentResult, status: "error", output: currentResult.output || event.error };
 
       setNodeStates((currentState) => ({
         ...currentState,

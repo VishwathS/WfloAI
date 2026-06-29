@@ -13,8 +13,9 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Canvas editor** — React Flow canvas with drag-and-drop node creation
 - **Five node types** — Trigger, AI, Router, Action, Lookup
 - **Auto-save** — 700ms debounced PATCH to `/api/workflows/[id]` on every canvas change
-- **Workflow execution** — client-side topological traversal, streams AI output live
+- **Workflow execution** — server-side topological traversal via `POST /api/workflows/[id]/execute`; streams SSE events to the client in real time; run persisted to `workflow_runs` server-side after completion
 - **Router node** — AI-evaluated conditional branching (true/false paths)
+- **Structured node outputs** — AI nodes emit typed JSON per action type; Router node supports optional deterministic field-value branching before AI fallback
 - **Execution log** — collapsible panel showing per-node status, output, duration
 - **Execution persistence** — POST to `/api/workflows/[id]/logs` after each run
 - **RLS-enforced multi-tenancy** — users see only their own data at the DB level
@@ -54,15 +55,23 @@ No Redux, Zustand, or other state managers. State is React hooks + React Context
 - Never use the service role key or bypass RLS
 
 ### Execution engine
-- Lives entirely in `lib/execution/` — pure TypeScript, no React dependencies
-- `executor.ts` drives the traversal; `topologicalSort.ts` orders nodes; `types.ts` defines events
-- The executor communicates with React via the `onEvent` callback — never import React into `lib/execution/`
-- New node types must be handled in `executor.ts` with an explicit `throw new Error('Unsupported node type')` fallback
+
+Two executor files live in `lib/execution/`:
+
+**`serverExecutor.ts` (primary)** — server-only; uses Anthropic SDK directly; invoked by `app/api/workflows/[id]/execute/route.ts`. That route owns the full graph traversal, SSE streaming, and `workflow_runs` persistence.
+
+**`executor.ts` (browser-side, legacy)** — browser-safe, no Node.js APIs; called internally by `/api/execute` for single-step AI calls. Still exists; not the primary run path.
+
+- `topologicalSort.ts` is shared between both executors
+- `types.ts` defines all execution events — extend the union there; never use raw string event types
+- Neither executor may import React or Next.js
+- New node types must be handled in **both** `executor.ts` and `serverExecutor.ts` before the `throw new Error('Unsupported node type')` fallback in each
 
 ### API routes
 - All routes in `app/api/` must call `supabase.auth.getUser()` before any operation and return 401 if unauthenticated
 - Validate all incoming payloads — use guard functions (`isValidGraph`, `isValidNodeResults`) before writing to DB
 - `/api/execute` streams via `ReadableStream` with `text/plain` content-type — do not change this without updating `requestAIText()` in `executor.ts`
+- `/api/workflows/[id]/execute` is the primary run endpoint — streams SSE (`text/event-stream`), executes the full graph server-side via `serverExecutor.ts`, persists `workflow_runs`
 
 ---
 
@@ -109,8 +118,8 @@ interface WorkflowEdge {
 ### Node data shapes
 ```ts
 type TriggerNodeData  = { label: string; type: "Manual" | "Webhook" | "File Upload" }
-type AINodeData       = { label: string; action: AIActionType; prompt: string }
-type RouterNodeData   = { label: string; prompt: string }
+type AINodeData       = { label: string; action: AIActionType; prompt: string; outputFields?: string[] }
+type RouterNodeData   = { label: string; prompt: string; conditionField?: string; conditionValue?: string }
 type ActionNodeData   = { label: string; action: "Save Output" | "Log Result" | "Display" }
 type LookupNodeData   = { label: string; query: string; maxResults: number }
 ```
@@ -177,7 +186,7 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 1. Add its data interface to `lib/types.ts` and include it in the `WorkflowNodeData` union
 2. Create the React Flow node component in `components/canvas/nodes/`
 3. Register it in `nodeTypes` in `WorkflowCanvas.tsx`
-4. Handle it in `executor.ts` before the final `throw new Error('Unsupported node type')`
+4. Handle it in **both** `executor.ts` and `serverExecutor.ts` before the `throw new Error('Unsupported node type')` fallback in each
 5. Add it to the draggable library in `NodeSidebar.tsx`
 6. Update `isValidConnection` in `WorkflowCanvas.tsx` if it needs connection constraints
 
@@ -223,9 +232,34 @@ Node dimensions are stored in `node.style.width` and `node.style.height` (flow u
 - Any change to the `graph` JSONB shape requires both a migration and a `lib/types.ts` update
 - All user-data tables need `user_id uuid references auth.users(id) on delete cascade`
 
-### Execution engine
-- Runs in the browser — no Node.js-only APIs in `lib/execution/`
-- No React or Next.js imports in `lib/execution/`
+### Structured node outputs
+
+**AI node schema system:**
+`getActionSchema(action, outputFields?)` in both executors maps each `AIActionType` to a fixed JSON shape:
+
+| Action    | Output shape |
+|-----------|-------------|
+| Summarize | `{ summary: string, keyPoints: string[] }` |
+| Rewrite   | `{ rewrittenContent: string }` |
+| Classify  | `{ category: string, confidence: number, reasoning: string }` |
+| Extract   | `{ [field]: string }` — one key per entry in `outputFields` |
+| Generate  | `{ content: string }` |
+
+The schema is appended to the AI prompt as a hard "respond with ONLY valid JSON" constraint. After streaming, `extractJson()` strips any markdown code fences, then `JSON.parse()` validates the result. Failure throws with a descriptive error surfaced as a node error in the UI.
+
+**Context passing (`buildParentContext()`):**
+Each upstream output is inspected. If it parses as a JSON object it is prefixed:
+`"Structured output:\n" + JSON.stringify(parsed, null, 2)`
+Plain-text outputs (Trigger, Lookup) pass through as-is. Downstream AI nodes see the prefix as a signal that the input is typed structured data.
+
+**`NodeOutputDisplay` (`components/canvas/NodeOutputDisplay.tsx`):**
+- `cleanOutput(raw)` — strips `"Structured output:\n"` prefix before display or parsing
+- `getOutputPreview(raw, maxLength)` — first string field value, truncated; used in row summaries
+- `NodeOutputDisplay({ output })` — renders JSON as labeled field sections (arrays → bullet lists); falls back to `whitespace-pre-wrap` for plain text
+- Used in: `ExecutionLog.tsx`, `RunHistorySidebar.tsx`, `ActionNode.tsx`
+
+**Router node deterministic routing:**
+If `conditionField` and `conditionValue` are set on a RouterNode, the executor checks `String(parsed[conditionField]) === conditionValue` against the upstream JSON before calling AI. Match → `"true"` handle; no match → `"false"` handle. Falls through to AI routing if context is not JSON or the field is absent.
 
 ### Run history architecture
 
@@ -324,3 +358,5 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |
 | 700ms debounce on auto-save in `WorkflowCanvasShell` | Without it, every React Flow state change fires a PATCH — floods the DB |
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |
+| `extractJson()` strips fences before `JSON.parse()` in both executors | Claude occasionally wraps JSON in code fences despite instructions; without stripping, all AI nodes fail JSON validation |
+| `"Structured output:\n"` prefix written by `buildParentContext()` | `cleanOutput()` in `NodeOutputDisplay` matches this exact string — changing the prefix breaks display in the canvas, execution log, and run history sidebar |

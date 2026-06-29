@@ -85,7 +85,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
               status: "error",
               output: ""
             };
-            executionResults.set(event.nodeId, { ...cur, status: "error" });
+            executionResults.set(event.nodeId, { ...cur, status: "error", output: cur.output || event.error });
           }
 
           try {
