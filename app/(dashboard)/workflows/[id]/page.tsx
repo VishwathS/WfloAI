@@ -54,13 +54,13 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
 
   return (
     <div className="space-y-5 p-4 lg:p-6">
-      <div className="flex flex-col gap-4 rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-[24px] border border-gray-200 bg-white px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <Link
             href="/"
             className={cn(
               buttonVariants({ variant: "ghost" }),
-              "h-8 w-fit px-0 text-sm text-slate-600 hover:text-slate-950"
+              "h-8 w-fit px-0 text-sm text-gray-600 hover:text-gray-900"
             )}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -69,7 +69,7 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
         </div>
         <div className="min-w-0 flex-1 space-y-2 sm:max-w-3xl">
           <WorkflowTitleEditor workflowId={workflow.id} initialName={workflow.name} />
-          <p className="text-sm leading-6 text-slate-600">
+          <p className="text-sm leading-6 text-gray-500">
             Arrange triggers, AI steps, and terminal actions visually, then save the
             workflow graph back to Supabase.
           </p>

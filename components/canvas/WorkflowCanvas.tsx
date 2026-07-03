@@ -2,6 +2,8 @@
 
 import {
   addEdge,
+  Background,
+  BackgroundVariant,
   ConnectionLineType,
   ConnectionMode,
   MiniMap,
@@ -53,13 +55,13 @@ const edgeTypes: EdgeTypes = {
   smoothstep: DeletableEdge
 };
 
-const CONNECTION_LINE_STYLE = { stroke: "#6366f1", strokeWidth: 2 } as const;
+const CONNECTION_LINE_STYLE = { stroke: "#6366f1", strokeWidth: 2.5 } as const;
 
 const EDGE_DEFAULTS = {
   type: "smoothstep" as const,
   animated: true,
   deletable: true,
-  style: { stroke: "#6366f1", strokeWidth: 2 }
+  style: { stroke: "#6366f1", strokeWidth: 2.5 }
 };
 
 type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData>;
@@ -295,7 +297,7 @@ function WorkflowCanvasInner({
   const showEmptyState = isReady && nodes.length === 0;
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-[#0f0f11]">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-white">
       <NodeSidebar />
       <div className="relative min-h-0 flex-1">
         <ReactFlow
@@ -321,21 +323,22 @@ function WorkflowCanvasInner({
           onDrop={onDrop}
           minZoom={0.35}
           maxZoom={1.8}
-          className="bg-[#0f0f11]"
+          className="bg-white"
           proOptions={{ hideAttribution: true }}
         >
+          <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="#e5e7eb" />
           <MiniMap
             pannable
             zoomable
             nodeColor={miniMapNodeColor}
-            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-zinc-800 !bg-zinc-900/95"
-            maskColor="rgba(15, 15, 17, 0.45)"
+            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-gray-200 !bg-white"
+            maskColor="rgba(249, 250, 251, 0.75)"
           />
         </ReactFlow>
-        <div className="absolute bottom-5 right-[184px] z-10 flex overflow-hidden rounded-full border border-zinc-800 bg-[#1a1a1f] shadow-xl">
+        <div className="absolute bottom-5 right-[184px] z-10 flex overflow-hidden rounded-full border border-gray-200 bg-white shadow-md">
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center text-white transition hover:bg-zinc-700"
+            className="flex h-8 w-8 items-center justify-center text-gray-700 transition hover:bg-gray-100"
             onClick={() => {
               void zoomIn();
             }}
@@ -345,7 +348,7 @@ function WorkflowCanvasInner({
           </button>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center border-l border-zinc-800 text-white transition hover:bg-zinc-700"
+            className="flex h-8 w-8 items-center justify-center border-l border-gray-200 text-gray-700 transition hover:bg-gray-100"
             onClick={() => {
               void zoomOut();
             }}
@@ -356,14 +359,14 @@ function WorkflowCanvasInner({
         </div>
         {showEmptyState ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-950/80 px-8 py-7 text-center shadow-[0_30px_80px_-45px_rgba(0,0,0,0.95)] backdrop-blur-sm">
-              <div className="flex items-center justify-center gap-3 text-cyan-300">
+            <div className="rounded-[28px] border border-gray-200 bg-white px-8 py-7 text-center shadow-sm">
+              <div className="flex items-center justify-center gap-3 text-violet-500">
                 <ArrowLeft className="h-5 w-5 animate-[pulse_1.8s_ease-in-out_infinite]" />
-                <span className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300/80">
+                <span className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-500">
                   Start here
                 </span>
               </div>
-              <p className="mt-4 max-w-md text-xl font-semibold tracking-tight text-white">
+              <p className="mt-4 max-w-md text-xl font-semibold tracking-tight text-gray-900">
                 Drag an Input node from the sidebar to start your workflow
               </p>
             </div>
@@ -371,7 +374,7 @@ function WorkflowCanvasInner({
         ) : null}
       </div>
       {!isReady ? (
-        <div className="pointer-events-none absolute inset-0 bg-[#0f0f11]" />
+        <div className="pointer-events-none absolute inset-0 bg-white" />
       ) : null}
     </div>
   );

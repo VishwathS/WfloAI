@@ -45,12 +45,12 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(124,58,237,0.85)] ${
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
+          ? "border-emerald-400/55"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-violet-400/30"
+            ? "border-rose-400/50"
+            : "border-violet-400"
       }`}
     >
       <Handle
@@ -59,37 +59,41 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         className="!h-3 !w-3 !border-2 !border-violet-200 !bg-violet-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center gap-3 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-violet-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        {isRunning ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isComplete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isError ? (
-          <AlertTriangle className="h-4 w-4" />
-        ) : (
-          <BrainCircuit className="h-4 w-4" />
-        )}
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-violet-100"
+        }`}>
+          {isRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-600" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          ) : isError ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+          ) : (
+            <BrainCircuit className="h-3.5 w-3.5 text-violet-600" />
+          )}
+        </div>
         <div>
-          <p className="text-sm font-semibold">AI Node</p>
-          <p className="text-xs text-violet-50/90">{data.label}</p>
+          <p className="text-sm font-semibold text-gray-900">AI Node</p>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-violet-600"}`}>
+            {data.label}
+          </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
             Output Mode
           </p>
-          <div className="flex overflow-hidden rounded-full border border-zinc-700 text-xs">
+          <div className="flex overflow-hidden rounded-full border border-gray-200 text-xs">
             <button
               type="button"
               onClick={() => updateData({ outputMode: "text" })}
               className={`px-3 py-1 transition ${
                 outputMode === "text"
                   ? "bg-violet-600 text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Text
@@ -100,7 +104,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
               className={`px-3 py-1 transition ${
                 outputMode === "json"
                   ? "bg-violet-600 text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               JSON
@@ -109,7 +113,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         </div>
         {outputMode === "json" ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
               Action Type
             </p>
             <select
@@ -118,7 +122,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
                 const val = e.target.value;
                 updateData({ action: val ? (val as AIActionType) : undefined });
               }}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400"
             >
               <option value="">Select action…</option>
               {ACTION_TYPES.map((a) => (
@@ -131,7 +135,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         ) : null}
         {outputMode === "json" && data.action === "Extract" ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
               Output Fields
             </p>
             <input
@@ -144,24 +148,24 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
                   .filter(Boolean);
                 updateData({ outputFields: nextFields });
               }}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400"
               placeholder="name, email, phone"
             />
           </div>
         ) : null}
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Prompt</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Prompt</p>
         <textarea
           value={data.prompt}
           onChange={(e) => updateData({ prompt: e.target.value })}
-          className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
+          className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
           placeholder="Tell this AI node what to do with its incoming data."
         />
         {showOutput ? (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
               Output
             </p>
-            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
+            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
               {executionState.output || (isRunning ? "Streaming response…" : "")}
             </div>
           </div>
@@ -170,13 +174,13 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}
-            className="flex items-center gap-1.5 self-start rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-700"
+            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50"
           >
             View output <ChevronDown className="h-3 w-3" />
           </button>
         ) : null}
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
       <Handle

@@ -71,72 +71,81 @@ export default async function DashboardPage() {
   const workflowCount = workflowsWithLastRun.length;
   const latestWorkflow = workflowsWithLastRun[0];
 
+  const hours = new Date().getHours();
+  const timeOfDay = hours < 12 ? "morning" : hours < 17 ? "afternoon" : "evening";
+  const rawName = (user.email ?? "").split("@")[0].split(".")[0];
+  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
   return (
-    <div className="space-y-8 p-6 lg:p-10">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,rgba(8,145,178,0.94),rgba(15,23,42,0.98))] px-6 py-7 text-white shadow-[0_28px_80px_-35px_rgba(8,145,178,0.8)] lg:px-8">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,rgba(251,146,60,0.22),transparent_58%)]" />
-        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl space-y-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-100/80">
-              Workflow command center
-            </p>
-            <div className="space-y-3">
-              <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-white lg:text-5xl">
-                Build AI-native automations with a sharper starting point.
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">
-                Keep your workflows organized, iterate quickly, and move from blank
-                canvases to intelligent orchestration without the usual dashboard clutter.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <CreateWorkflowButton />
-          </div>
+    <div className="space-y-6 p-6 lg:p-8">
+      <section className="rounded-[24px] border border-gray-200 bg-gradient-to-br from-white to-violet-50/40 px-8 py-10 shadow-sm">
+        <p className="text-2xl font-semibold text-gray-900">
+          Good {timeOfDay}, {displayName} 👋
+        </p>
+        <p className="mt-2 text-base font-medium text-gray-600">
+          Build AI-native automations visually.
+        </p>
+        <p className="mt-0.5 text-sm text-gray-400">
+          From blank canvas to intelligent workflows.
+        </p>
+        <div className="mt-6">
+          <CreateWorkflowButton />
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr]">
-        <div className="rounded-[28px] border border-white/70 bg-white/85 p-6 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.18)] backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
             Library
           </p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
             {workflowCount} {workflowCount === 1 ? "workflow" : "workflows"}
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Everything you are building lives here, ready to be edited, expanded, or
-            archived when it no longer earns its space.
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Everything you are building lives here, ready to be edited or expanded.
           </p>
         </div>
-        <div className="rounded-[28px] border border-cyan-200/70 bg-cyan-50/80 p-6 shadow-[0_24px_60px_-32px_rgba(6,182,212,0.24)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
             Recent activity
           </p>
-          <p className="mt-3 text-lg font-semibold text-slate-950">
+          <p className="mt-3 text-lg font-semibold text-gray-900">
             {latestWorkflow ? formatTimestamp(latestWorkflow.updated_at) : "No activity yet"}
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm leading-6 text-gray-500">
             {latestWorkflow
               ? `Most recently touched: ${latestWorkflow.name}.`
               : "Create your first workflow to begin tracking updates here."}
           </p>
         </div>
-        <div className="rounded-[28px] border border-orange-200/80 bg-[linear-gradient(180deg,rgba(255,247,237,0.98),rgba(255,255,255,0.96))] p-6 shadow-[0_24px_60px_-32px_rgba(249,115,22,0.22)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-orange-700">
-            Phase 1
-          </p>
-          <p className="mt-3 text-lg font-semibold text-slate-950">
-            Structure now, canvas next
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            This release keeps the workflow system tight and usable while leaving room
-            for React Flow and AI execution in later phases.
-          </p>
-        </div>
       </section>
 
       <WorkflowList workflows={workflowsWithLastRun} />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Templates</h2>
+          <p className="mt-0.5 text-sm text-gray-400">Coming soon</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { name: "Email Summarizer", desc: "Summarize incoming emails into concise bullet points automatically." },
+            { name: "Lead Qualifier", desc: "Route and score inbound leads using AI branching logic." },
+            { name: "Content Generator", desc: "Generate marketing copy from a simple prompt and brief." }
+          ].map((template) => (
+            <div
+              key={template.name}
+              className="cursor-not-allowed select-none rounded-2xl border border-dashed border-gray-200 bg-white p-6 opacity-60"
+            >
+              <p className="font-medium text-gray-900">{template.name}</p>
+              <p className="mt-1 text-sm text-gray-500">{template.desc}</p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Coming soon
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

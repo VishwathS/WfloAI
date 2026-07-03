@@ -42,30 +42,30 @@ export function NodeOutputDisplay({ output }: { output: string }) {
 
   if (!parsed) {
     return (
-      <div className="whitespace-pre-wrap rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 text-sm leading-6 text-zinc-200">
+      <div className="whitespace-pre-wrap rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm leading-6 text-gray-700">
         {cleaned || "No output captured."}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-3">
+    <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3">
       {Object.entries(parsed).map(([key, value]) => (
         <div key={key}>
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
             {labelCase(key)}
           </p>
           {Array.isArray(value) ? (
             <ul className="space-y-1">
               {(value as unknown[]).map((item, i) => (
-                <li key={i} className="flex gap-2 text-sm leading-6 text-zinc-200">
-                  <span className="shrink-0 text-zinc-600">•</span>
+                <li key={i} className="flex gap-2 text-sm leading-6 text-gray-700">
+                  <span className="shrink-0 text-gray-300">•</span>
                   <span>{String(item)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-200">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
               {typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)}
             </p>
           )}

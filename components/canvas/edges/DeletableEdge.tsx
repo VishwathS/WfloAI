@@ -37,7 +37,7 @@ export function DeletableEdge({
         <EdgeLabelRenderer>
           <button
             type="button"
-            className="absolute rounded-full border border-rose-400/40 bg-zinc-950 px-2 py-1 text-xs font-semibold text-rose-200 shadow-lg transition hover:bg-rose-500/15"
+            className="absolute rounded-full border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-600 shadow-md transition hover:bg-rose-50"
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: "all"

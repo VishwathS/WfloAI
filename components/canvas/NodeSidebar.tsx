@@ -9,31 +9,31 @@ const NODE_CARDS = [
     type: "inputNode",
     title: "Input",
     description: "Provide a named value that flows into your workflow steps.",
-    accentClassName: "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200"
+    accentClassName: "border-fuchsia-300/60 bg-fuchsia-50 text-fuchsia-700"
   },
   {
     type: "aiNode",
     title: "AI Node",
     description: "Transform incoming context with prompts and model-driven actions.",
-    accentClassName: "border-violet-400/30 bg-violet-500/10 text-violet-200"
+    accentClassName: "border-violet-300/60 bg-violet-50 text-violet-700"
   },
   {
     type: "routerNode",
     title: "Router Node",
     description: "Branch execution by deciding whether a condition is true or false.",
-    accentClassName: "border-amber-400/30 bg-amber-500/10 text-amber-200"
+    accentClassName: "border-amber-300/60 bg-amber-50 text-amber-700"
   },
   {
     type: "actionNode",
     title: "Action Node",
     description: "Finish the flow by saving, logging, or displaying the result.",
-    accentClassName: "border-blue-400/30 bg-blue-500/10 text-blue-200"
+    accentClassName: "border-blue-300/60 bg-blue-50 text-blue-700"
   },
   {
     type: "lookupNode",
     title: "Lookup Node",
     description: "Search the web via Tavily and pass results downstream.",
-    accentClassName: "border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
+    accentClassName: "border-cyan-300/60 bg-cyan-50 text-cyan-700"
   }
 ] as const;
 
@@ -44,20 +44,20 @@ export function NodeSidebar() {
   }
 
   return (
-    <aside className="grid h-full min-h-0 w-[280px] shrink-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-r border-zinc-800 bg-zinc-950/90 p-4">
+    <aside className="grid h-full min-h-0 w-[280px] shrink-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-r border-gray-200 bg-white p-4">
       <div className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
           Node library
         </p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
           Drag into canvas
         </h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-400">
+        <p className="mt-2 text-sm leading-6 text-gray-500">
           Compose the flow visually by dragging node types into the workspace.
         </p>
       </div>
 
-      <div className="min-h-0 overflow-y-auto pr-2 [scrollbar-color:#52525b_#18181b] [scrollbar-width:thin]">
+      <div className="min-h-0 overflow-y-auto pr-2 [scrollbar-color:#d1d5db_#f9fafb] [scrollbar-width:thin]">
         <div className="space-y-3 pb-3">
           {NODE_CARDS.map((card) => (
             <button
@@ -65,15 +65,15 @@ export function NodeSidebar() {
               type="button"
               draggable
               onDragStart={(event) => handleDragStart(event, card.type)}
-              className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-left transition hover:border-zinc-700 hover:bg-zinc-900/80"
+              className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:border-gray-300 hover:bg-gray-50"
             >
               <div
                 className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${card.accentClassName}`}
               >
                 {card.title}
               </div>
-              <p className="mt-3 text-base font-semibold text-white">{card.title}</p>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">{card.description}</p>
+              <p className="mt-3 text-base font-semibold text-gray-900">{card.title}</p>
+              <p className="mt-2 text-sm leading-6 text-gray-500">{card.description}</p>
             </button>
           ))}
         </div>

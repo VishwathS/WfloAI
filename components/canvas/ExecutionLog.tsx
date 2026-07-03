@@ -39,18 +39,18 @@ function formatDuration(durationMs?: number) {
 
 function statusClassName(status: NodeExecutionState["status"]) {
   if (status === "complete") {
-    return "border-emerald-400/20 bg-emerald-500/10 text-emerald-200";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
   if (status === "running") {
-    return "border-cyan-400/20 bg-cyan-500/10 text-cyan-200";
+    return "border-violet-200 bg-violet-50 text-violet-700";
   }
 
   if (status === "error") {
-    return "border-rose-400/20 bg-rose-500/10 text-rose-200";
+    return "border-rose-200 bg-rose-50 text-rose-700";
   }
 
-  return "border-zinc-700 bg-zinc-800 text-zinc-300";
+  return "border-gray-200 bg-gray-100 text-gray-500";
 }
 
 export function ExecutionLog({
@@ -103,17 +103,17 @@ export function ExecutionLog({
 
   return (
     <div
-      className={`absolute bottom-4 ${rightClass ?? "right-4"} z-20 overflow-hidden rounded-[24px] border border-zinc-800 bg-zinc-950/96 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.95)] backdrop-blur transition-all duration-300 ${
+      className={`absolute bottom-4 ${rightClass ?? "right-4"} z-20 overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-lg transition-all duration-300 ${
         isOpen ? "max-h-[320px]" : "max-h-[58px]"
       }`}
       style={{ width: widthStyle ?? "min(760px, calc(100% - 312px))" }}
     >
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
             Execution log
           </p>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-gray-500">
             {entries.length > 0
               ? `${entries.length} node${entries.length === 1 ? "" : "s"} recorded`
               : "No execution events yet"}
@@ -124,7 +124,7 @@ export function ExecutionLog({
             type="button"
             variant="ghost"
             size="sm"
-            className="rounded-full text-zinc-300 hover:bg-zinc-900 hover:text-white"
+            className="rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             onClick={onClear}
             disabled={isRunning || entries.length === 0}
           >
@@ -135,7 +135,7 @@ export function ExecutionLog({
             type="button"
             variant="ghost"
             size="icon"
-            className="rounded-full text-zinc-300 hover:bg-zinc-900 hover:text-white"
+            className="rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             onClick={() => setIsOpen((currentValue) => !currentValue)}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -145,11 +145,11 @@ export function ExecutionLog({
 
       <div ref={scrollContainerRef} className="max-h-[262px] overflow-y-auto">
         {entries.length === 0 ? (
-          <div className="px-4 py-5 text-sm text-zinc-500">
+          <div className="px-4 py-5 text-sm text-gray-400">
             Run the workflow to see node-by-node output and timing here.
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-gray-100">
             {entries.map(({ node, state }) => {
               const isExpanded = expandedRows[node.id] ?? false;
               const outputText = state.error ?? state.output;
@@ -158,7 +158,7 @@ export function ExecutionLog({
                 <button
                   key={node.id}
                   type="button"
-                  className="w-full px-4 py-3 text-left transition hover:bg-zinc-900/70"
+                  className="w-full px-4 py-3 text-left transition hover:bg-gray-50"
                   onClick={() =>
                     setExpandedRows((currentState) => ({
                       ...currentState,
@@ -166,8 +166,8 @@ export function ExecutionLog({
                     }))
                   }
                 >
-                  <div className="grid gap-3 text-sm text-zinc-200 md:grid-cols-[minmax(0,1.3fr)_120px_100px_minmax(0,2fr)] md:items-center">
-                    <div className="font-medium text-white">
+                  <div className="grid gap-3 text-sm text-gray-600 md:grid-cols-[minmax(0,1.3fr)_120px_100px_minmax(0,2fr)] md:items-center">
+                    <div className="font-medium text-gray-900">
                       {(
                         node.data as
                           | TriggerNodeData
@@ -185,8 +185,8 @@ export function ExecutionLog({
                         {state.status}
                       </span>
                     </div>
-                    <div className="text-zinc-400">{formatDuration(state.durationMs)}</div>
-                    <div className="truncate text-zinc-400">{getOutputPreview(outputText, 80) || "--"}</div>
+                    <div className="text-gray-500">{formatDuration(state.durationMs)}</div>
+                    <div className="truncate text-gray-500">{getOutputPreview(outputText, 80) || "--"}</div>
                   </div>
                   {isExpanded ? (
                     <div className="mt-3">

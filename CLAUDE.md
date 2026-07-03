@@ -190,6 +190,60 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 5. Add it to the draggable library in `NodeSidebar.tsx`
 6. Update `isValidConnection` in `WorkflowCanvas.tsx` if it needs connection constraints
 
+### Node visual design
+
+All node components share a consistent visual template. Follow this pattern when creating a new node type.
+
+**Root container:**
+```jsx
+className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
+  isComplete ? "border-emerald-400/55" : isError ? "border-rose-400/50" : "border-{color}-400"
+}`}
+```
+- `border-2` — 2px border on all sides
+- Idle: `border-{color}-400` — accent-colored, fully opaque
+- Complete: `border-emerald-400/55` — green at 55% opacity
+- Error: `border-rose-400/50` — red at 50% opacity
+
+**Header (always white background):**
+```jsx
+<div className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}>
+  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+    isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-{color}-100"
+  }`}>
+    {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin text-{color}-600" />
+    : isComplete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+    : isError ? <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+    : <NodeIcon className="h-3.5 w-3.5 text-{color}-600" />}
+  </div>
+  <div>
+    <p className="text-sm font-semibold text-gray-900">Node Title</p>
+    <p className={`text-xs ${isError ? "text-rose-600" : "text-{color}-600"}`}>{data.label}</p>
+  </div>
+</div>
+```
+
+**Accent color per node type:**
+
+| Node type | `{color}` | Icon |
+|---|---|---|
+| `triggerNode` | `emerald` | `Zap` |
+| `aiNode` | `violet` | `BrainCircuit` |
+| `routerNode` | `amber` | `GitBranch` |
+| `actionNode` | `blue` | `TerminalSquare` |
+| `lookupNode` | `cyan` | `Search` |
+| `inputNode` | `fuchsia` | `Inbox` |
+
+**Form inputs inside the node:**
+- Background: `bg-gray-50`, border: `border-gray-200`
+- Focus: `focus:border-{color}-400 focus:ring-2 focus:ring-{color}-500/20`
+- Text: `text-gray-900`, placeholder: `placeholder:text-gray-400`
+
+**Section labels:**
+```jsx
+<p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Label</p>
+```
+
 ### Node resizing
 
 Node dimensions are stored in `node.style.width` and `node.style.height` (flow units). React Flow applies `node.style` as inline CSS to the `.react-flow__node` container, so the stored values directly control rendered size.
@@ -283,7 +337,7 @@ If `conditionField` and `conditionValue` are set on a RouterNode, the executor c
 **History button:**
 - Located in `CanvasToolbar` between Run and Fullscreen buttons
 - Uses `History` icon from lucide-react
-- Highlights cyan when the sidebar is open
+- Highlights violet when the sidebar is open
 - When sidebar is open, `ExecutionLog` shifts left by 320px (`right-[324px]`) and narrows accordingly
 
 ### Lookup Node

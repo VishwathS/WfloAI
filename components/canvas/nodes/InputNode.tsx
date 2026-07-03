@@ -32,42 +32,46 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[240px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(217,70,239,0.75)] ${
+      className={`relative flex h-full flex-col min-w-[240px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/60 shadow-[0_0_0_1px_rgba(74,222,128,0.28),0_20px_50px_-30px_rgba(34,197,94,0.9)]"
+          ? "border-emerald-400/60"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-fuchsia-400/30"
+            ? "border-rose-400/50"
+            : "border-fuchsia-400"
       }`}
     >
       <div
-        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-fuchsia-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        {isRunning ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isComplete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isError ? (
-          <AlertTriangle className="h-4 w-4" />
-        ) : (
-          <Inbox className="h-4 w-4" />
-        )}
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-fuchsia-100"
+        }`}>
+          {isRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-fuchsia-600" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          ) : isError ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+          ) : (
+            <Inbox className="h-3.5 w-3.5 text-fuchsia-600" />
+          )}
+        </div>
         <div>
-          <p className="text-sm font-semibold">Input</p>
-          <p className="text-xs text-fuchsia-50/80">Information for this workflow</p>
+          <p className="text-sm font-semibold text-gray-900">Input</p>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-fuchsia-600"}`}>
+            Information for this workflow
+          </p>
         </div>
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Label</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Label</p>
           <input
             type="text"
             value={data.label}
             onChange={(e) => handleLabelChange(e.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/30"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
             placeholder="e.g. Company Name"
           />
           {data.key ? (
@@ -76,11 +80,11 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Value</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Value</p>
           <textarea
             value={data.defaultValue}
             onChange={(e) => updateData({ defaultValue: e.target.value })}
-            className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/30"
+            className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
             placeholder="Paste or type anything this workflow needs…"
           />
         </div>

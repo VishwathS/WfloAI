@@ -36,22 +36,22 @@ export function CanvasToolbar({
       : "All changes saved";
 
   return (
-    <div className="flex flex-col gap-4 border-b border-zinc-800 bg-zinc-950/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
           Canvas
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
           {workflowName}
         </h2>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400/80">
+        <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500">
           <Zap className="h-3.5 w-3.5" />
           Manual
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+        <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
           <span
             className={`h-2.5 w-2.5 rounded-full ${
               hasUnsavedChanges || isSaving ? "bg-amber-400" : "bg-emerald-400"
@@ -62,7 +62,7 @@ export function CanvasToolbar({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
+          className="rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
           onClick={onSave}
           disabled={isSaving}
         >
@@ -72,7 +72,7 @@ export function CanvasToolbar({
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white"
+          className="rounded-full border-transparent bg-violet-600 text-white hover:bg-violet-700"
           onClick={onRun}
           disabled={isRunning}
         >
@@ -87,8 +87,8 @@ export function CanvasToolbar({
           type="button"
           variant="outline"
           className={cn(
-            "rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white",
-            historyOpen && "border-cyan-700 bg-cyan-950 text-cyan-300"
+            "rounded-full border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
+            historyOpen && "border-violet-200 bg-violet-50 text-violet-700"
           )}
           onClick={onToggleHistory}
         >
@@ -98,7 +98,7 @@ export function CanvasToolbar({
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 hover:text-white"
+          className="rounded-full border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
           onClick={onToggleFullscreen}
         >
           {isFullscreen ? (

@@ -17,12 +17,12 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(8,145,178,0.85)] ${
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
+          ? "border-emerald-400/55"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-cyan-400/30"
+            ? "border-rose-400/50"
+            : "border-cyan-400"
       }`}
     >
       <Handle
@@ -31,31 +31,35 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
         className="!h-3 !w-3 !border-2 !border-cyan-200 !bg-cyan-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-cyan-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className="flex items-center gap-2">
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isComplete ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : isError ? (
-            <AlertTriangle className="h-4 w-4" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
+        <div className="flex items-center gap-3">
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+            isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-cyan-100"
+          }`}>
+            {isRunning ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-600" />
+            ) : isComplete ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            ) : isError ? (
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+            ) : (
+              <Search className="h-3.5 w-3.5 text-cyan-600" />
+            )}
+          </div>
           <div>
-            <p className="text-sm font-semibold">Lookup Node</p>
-            <p className="text-xs text-cyan-50/90">{data.label}</p>
+            <p className="text-sm font-semibold text-gray-900">Lookup Node</p>
+            <p className={`text-xs ${isError ? "text-rose-600" : "text-cyan-600"}`}>
+              {data.label}
+            </p>
           </div>
         </div>
-        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-50">
+        <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
           Web Search
         </span>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
           Query
         </p>
         <textarea
@@ -76,11 +80,11 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
               )
             );
           }}
-          className="flex-1 min-h-[80px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30"
+          className="flex-1 min-h-[80px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
           placeholder="{{input}} or e.g. Latest AI coding tools"
         />
         <div className="flex items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
             Max Results
           </p>
           <input
@@ -104,21 +108,21 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
                 )
               );
             }}
-            className="w-16 rounded-lg border border-zinc-700 bg-zinc-950/70 px-2 py-1 text-sm text-zinc-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/30"
+            className="w-16 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
           />
         </div>
         {isRunning ? (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
               Results
             </p>
-            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
+            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
               {executionState.output || "Searching..."}
             </div>
           </div>
         ) : null}
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
       <Handle

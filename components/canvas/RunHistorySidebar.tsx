@@ -64,19 +64,19 @@ export function RunHistorySidebar({
   }
 
   return (
-    <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-hidden border-l border-zinc-800 bg-zinc-950/90">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-4">
+    <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-hidden border-l border-gray-200 bg-white">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
             Run history
           </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-white">Past runs</h2>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-gray-900">Past runs</h2>
         </div>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="rounded-full text-zinc-300 hover:bg-zinc-900 hover:text-white"
+          className="rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900"
           onClick={onClose}
         >
           <span className="text-base leading-none">×</span>
@@ -86,14 +86,14 @@ export function RunHistorySidebar({
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
           </div>
         ) : runs.length === 0 ? (
-          <div className="px-4 py-8 text-sm text-zinc-500">
+          <div className="px-4 py-8 text-sm text-gray-500">
             No runs yet. Run the workflow to see history here.
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-gray-100">
             {runs.map((run) => {
               const isExpanded = expandedId === run.id;
               const previewText = run.final_output ?? run.error ?? "";
@@ -102,24 +102,24 @@ export function RunHistorySidebar({
                 <div key={run.id} className="group relative">
                   <button
                     type="button"
-                    className="w-full px-4 py-3 text-left transition hover:bg-zinc-900/70"
+                    className="w-full px-4 py-3 text-left transition hover:bg-gray-50"
                     onClick={() => setExpandedId(isExpanded ? null : run.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-gray-400">
                         {formatTimestamp(run.created_at)}
                       </span>
                       <span
                         className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${
                           run.status === "success"
-                            ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
-                            : "border-rose-400/20 bg-rose-500/10 text-rose-200"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-rose-200 bg-rose-50 text-rose-700"
                         }`}
                       >
                         {run.status === "success" ? "Success" : "Error"}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-zinc-300">
+                    <p className="mt-1 text-sm text-gray-700">
                       {previewText ? getOutputPreview(previewText, 50) : "No output"}
                     </p>
                   </button>
@@ -134,7 +134,7 @@ export function RunHistorySidebar({
 
                   <button
                     type="button"
-                    className="absolute right-3 top-3 hidden rounded-full p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-rose-400 group-hover:block"
+                    className="absolute right-3 top-3 hidden rounded-full p-1 text-gray-400 transition hover:bg-red-50 hover:text-rose-600 group-hover:block"
                     onClick={(e) => {
                       e.stopPropagation();
                       void handleDelete(run.id);

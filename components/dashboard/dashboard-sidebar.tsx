@@ -10,61 +10,58 @@ export async function DashboardSidebar() {
   } = await supabase.auth.getUser();
 
   return (
-    <aside className="relative flex flex-col overflow-hidden rounded-[28px] border border-white/40 bg-[linear-gradient(180deg,#082f49_0%,#0f172a_48%,#111827_100%)] p-4 text-slate-100 shadow-[0_30px_80px_-35px_rgba(8,47,73,0.85)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.28),transparent_68%)]" />
-      <div className="pointer-events-none absolute -right-16 bottom-20 h-40 w-40 rounded-full bg-orange-400/10 blur-3xl" />
-
-      <div className="relative rounded-[24px] border border-white/10 bg-white/8 p-3.5 backdrop-blur-sm">
+    <aside className="flex flex-col gap-5 rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-200 ring-1 ring-cyan-100/20">
-            <Bot className="h-4.5 w-4.5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+            <Bot className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-lg font-semibold tracking-tight text-white">FlowAI</p>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/70">
+            <p className="text-base font-semibold tracking-tight text-gray-900">FlowAI</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-gray-400">
               AI workflow studio
             </p>
           </div>
         </div>
       </div>
 
-      <nav className="relative mt-6 space-y-2">
+      <nav className="space-y-1">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-3.5 py-2.5 text-sm font-medium text-white transition hover:bg-cyan-300/15"
+          className="flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-3.5 py-2.5 text-sm font-medium text-violet-700 transition hover:bg-violet-100"
         >
           <LayoutGrid className="h-4 w-4" />
           Dashboard
         </Link>
       </nav>
 
-      <div className="relative mt-6 rounded-[24px] border border-white/10 bg-white/8 p-3.5 backdrop-blur-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
             Builder mode
           </p>
-          <Workflow className="h-4 w-4 text-cyan-200/80" />
+          <Workflow className="h-4 w-4 text-violet-400" />
         </div>
-        <p className="text-sm leading-6 text-slate-200">
+        <p className="text-sm leading-6 text-gray-600">
           Shape automations visually, then layer in AI nodes and orchestration logic.
         </p>
       </div>
 
-      <div className="relative mt-4 rounded-[24px] border border-white/10 bg-white/8 p-3.5 backdrop-blur-sm">
+      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-xl bg-cyan-300/15 p-2 text-cyan-200">
+          <div className="mt-0.5 rounded-xl bg-violet-100 p-2 text-violet-600">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-white">Signed in</p>
-            <p className="break-all text-sm text-slate-300/80">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-900">Signed in</p>
+            <p className="break-all text-sm text-gray-500">
               {user?.email ?? "No active session"}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="relative mt-auto pt-6">
+      <div className="mt-auto">
         <SignOutButton />
       </div>
     </aside>

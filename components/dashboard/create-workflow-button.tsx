@@ -45,7 +45,7 @@ export function CreateWorkflowButton() {
       <Button
         type="submit"
         size="lg"
-        className="h-12 rounded-full px-6 text-[15px] font-semibold"
+        className="h-11 rounded-full bg-violet-600 px-6 text-[15px] font-semibold text-white shadow-none hover:bg-violet-700"
       >
         <Plus className="mr-2 h-4 w-4" />
         New workflow

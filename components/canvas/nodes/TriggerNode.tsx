@@ -16,36 +16,40 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(22,163,74,0.75)] ${
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/60 shadow-[0_0_0_1px_rgba(74,222,128,0.28),0_20px_50px_-30px_rgba(34,197,94,0.9)]"
+          ? "border-emerald-400/60"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-emerald-400/30"
+            ? "border-rose-400/50"
+            : "border-emerald-400"
       }`}
     >
       <div
-        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-emerald-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        {isRunning ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isComplete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isError ? (
-          <AlertTriangle className="h-4 w-4" />
-        ) : (
-          <Zap className="h-4 w-4" />
-        )}
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-emerald-100"
+        }`}>
+          {isRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          ) : isError ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+          ) : (
+            <Zap className="h-3.5 w-3.5 text-emerald-600" />
+          )}
+        </div>
         <div>
-          <p className="text-sm font-semibold">Trigger</p>
-          <p className="text-xs text-emerald-50/90">{data.label}</p>
+          <p className="text-sm font-semibold text-gray-900">Trigger</p>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-emerald-600"}`}>
+            {data.label}
+          </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
       <Handle

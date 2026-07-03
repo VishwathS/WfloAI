@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowRight, Clock3, Trash2 } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { WorkflowWithLastRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -117,112 +116,84 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
 
   if (items.length === 0) {
     return (
-      <Card className="overflow-hidden border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(240,249,255,0.92))]">
-        <CardHeader className="pb-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
-            Empty state
+      <section className="space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
+            Workflow library
           </p>
-          <CardTitle className="mt-3 text-3xl text-slate-950">
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
             No workflows yet
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="max-w-2xl text-sm leading-6 text-slate-600">
-            Start with a blank workflow and begin shaping your first AI-powered
-            automation. As your library grows, you will manage and prune it from here.
+          </h2>
+        </div>
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
+          <p className="text-sm text-gray-500">
+            Start with a blank workflow and begin shaping your first AI-powered automation.
           </p>
-          <div className="rounded-[24px] border border-dashed border-cyan-200 bg-cyan-50/70 p-5 text-sm text-cyan-900">
+          <p className="mt-2 text-sm text-gray-400">
             Use the New workflow button above to create your first canvas.
-          </div>
+          </p>
           {errorMessage ? (
-            <p className="text-sm text-rose-600">{errorMessage}</p>
+            <p className="mt-3 text-sm text-rose-600">{errorMessage}</p>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     );
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
             Workflow library
           </p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
             Pick up where you left off
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Open any workflow to continue building, or remove the ones that no longer
-            belong in your active stack.
-          </p>
         </div>
         {errorMessage ? (
           <p className="text-sm text-rose-600">{errorMessage}</p>
         ) : null}
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {items.map((workflow, index) => (
-          <Card
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white divide-y divide-gray-100">
+        {items.map((workflow) => (
+          <div
             key={workflow.id}
-            className="group relative overflow-hidden border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_75px_-38px_rgba(14,116,144,0.55)]"
+            className="flex flex-wrap items-center gap-3 px-5 py-4 transition hover:bg-gray-50 sm:flex-nowrap"
           >
-            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-            <CardHeader className="space-y-4 pb-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-3">
-                  <div className="inline-flex w-fit items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700">
-                    Workflow {String(index + 1).padStart(2, "0")}
-                  </div>
-                  <div className="space-y-2">
-                    <CardTitle className="line-clamp-2 text-2xl text-slate-950">
-                      {workflow.name}
-                    </CardTitle>
-                    <p className="text-xs font-medium text-slate-500">
-                      {workflow.last_run_at
-                        ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
-                        : "Last run: Never"}
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-slate-100 px-3 py-2 text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Updated
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    <span>{formatTimestamp(workflow.updated_at)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <p className="min-h-[72px] text-sm leading-6 text-slate-600">
-                {workflow.description?.trim() ||
-                  "Blank workflow ready for AI nodes, branching logic, and visual orchestration."}
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium text-gray-900">{workflow.name}</p>
+              <p className="mt-0.5 text-sm text-gray-500">
+                {workflow.last_run_at
+                  ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
+                  : "Last run: Never"}
               </p>
+            </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                <Link
-                  href={`/workflows/${workflow.id}`}
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "rounded-full border-cyan-200 bg-cyan-50/70 px-4 text-cyan-900 hover:border-cyan-300 hover:bg-cyan-100"
-                  )}
-                >
-                  Open canvas
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+            <p className="hidden shrink-0 text-sm text-gray-400 sm:block">
+              Updated {formatRelativeTime(workflow.updated_at)}
+            </p>
 
-                <WorkflowDeleteButton
-                  workflowId={workflow.id}
-                  workflowName={workflow.name}
-                  onDelete={handleDelete}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <Link
+              href={`/workflows/${workflow.id}`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "shrink-0 rounded-full border-violet-200 px-4 text-violet-700 hover:border-violet-300 hover:bg-violet-50"
+              )}
+            >
+              Open
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+
+            <div className="shrink-0">
+              <WorkflowDeleteButton
+                workflowId={workflow.id}
+                workflowName={workflow.name}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </section>

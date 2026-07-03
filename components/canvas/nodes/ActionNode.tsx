@@ -39,12 +39,12 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(37,99,235,0.85)] ${
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
+          ? "border-emerald-400/55"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-blue-400/30"
+            ? "border-rose-400/50"
+            : "border-blue-400"
       }`}
     >
       <Handle
@@ -53,34 +53,38 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
         className="!h-3 !w-3 !border-2 !border-blue-200 !bg-blue-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-blue-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        {isRunning ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isComplete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isError ? (
-          <AlertTriangle className="h-4 w-4" />
-        ) : (
-          <TerminalSquare className="h-4 w-4" />
-        )}
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-blue-100"
+        }`}>
+          {isRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          ) : isError ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+          ) : (
+            <TerminalSquare className="h-3.5 w-3.5 text-blue-600" />
+          )}
+        </div>
         <div>
-          <p className="text-sm font-semibold">Action</p>
-          <p className="text-xs text-blue-50/90">{data.label}</p>
+          <p className="text-sm font-semibold text-gray-900">Action</p>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-blue-600"}`}>
+            {data.label}
+          </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
           Action
         </p>
-        <div className="inline-flex rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-200">
+        <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
           {data.action}
         </div>
         {showOutput ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
               Output
             </p>
             <div className="max-h-[200px] overflow-y-auto">
@@ -92,13 +96,13 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}
-            className="flex items-center gap-1.5 self-start rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-700"
+            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50"
           >
             View output <ChevronDown className="h-3 w-3" />
           </button>
         ) : null}
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
       <div

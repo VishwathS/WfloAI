@@ -17,12 +17,12 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-2xl border bg-zinc-900 shadow-[0_20px_50px_-30px_rgba(217,119,6,0.9)] ${
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
         isComplete
-          ? "border-emerald-400/55 shadow-[0_0_0_1px_rgba(74,222,128,0.25),0_20px_50px_-30px_rgba(34,197,94,0.8)]"
+          ? "border-emerald-400/55"
           : isError
-            ? "border-rose-400/50 shadow-[0_20px_50px_-30px_rgba(244,63,94,0.85)]"
-            : "border-amber-400/30"
+            ? "border-rose-400/50"
+            : "border-amber-400"
       }`}
     >
       <Handle
@@ -31,35 +31,39 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
         className="!h-3 !w-3 !border-2 !border-amber-200 !bg-amber-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center gap-2 px-4 py-3 text-white ${
-          isError ? "bg-rose-600" : "bg-amber-600"
-        } ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
-        {isRunning ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isComplete ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : isError ? (
-          <AlertTriangle className="h-4 w-4" />
-        ) : (
-          <GitBranch className="h-4 w-4" />
-        )}
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-amber-100"
+        }`}>
+          {isRunning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
+          ) : isComplete ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          ) : isError ? (
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+          ) : (
+            <GitBranch className="h-3.5 w-3.5 text-amber-600" />
+          )}
+        </div>
         <div>
-          <p className="text-sm font-semibold">Router</p>
-          <p className="text-xs text-amber-50/90">{data.label}</p>
+          <p className="text-sm font-semibold text-gray-900">Router</p>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-amber-600"}`}>
+            {data.label}
+          </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
             Condition
           </p>
           {data.conditionField && typeof data.conditionValue === "string" ? (
-            <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+            <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-700">
               ⚡ Deterministic
             </span>
           ) : (
-            <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
+            <span className="rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
               AI routing
             </span>
           )}
@@ -83,11 +87,11 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
               )
             );
           }}
-          className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+          className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
           placeholder="Is this email urgent?"
         />
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
             JSON Condition (optional)
           </p>
           <div className="flex gap-2">
@@ -107,7 +111,7 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
                   )
                 );
               }}
-              className="w-1/2 rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+              className="w-1/2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
               placeholder="field"
             />
             <input
@@ -126,21 +130,21 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
                   )
                 );
               }}
-              className="w-1/2 rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
+              className="w-1/2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
               placeholder="value"
             />
           </div>
         </div>
         <div className="flex gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
-          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
             True
           </span>
-          <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-rose-200">
+          <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-700">
             False
           </span>
         </div>
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
       <Handle

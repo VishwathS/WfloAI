@@ -183,7 +183,7 @@ export function WorkflowCanvasShell({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-zinc-800 bg-[#0f0f11] shadow-[0_28px_80px_-40px_rgba(0,0,0,0.9)]",
+        "flex flex-col overflow-hidden border border-gray-200 bg-white shadow-sm",
         isFullscreen
           ? "fixed inset-0 z-50 rounded-none border-none shadow-none !mt-0"
           : "h-[calc(100vh-8rem)] min-h-[760px] rounded-[30px]"
@@ -202,12 +202,12 @@ export function WorkflowCanvasShell({
         onToggleHistory={() => setHistoryOpen((v) => !v)}
       />
       {saveError ? (
-        <div className="border-b border-rose-500/20 bg-rose-500/10 px-5 py-3 text-sm text-rose-200">
+        <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">
           {saveError}
         </div>
       ) : null}
       {runError ? (
-        <div className="border-b border-rose-500/20 bg-rose-500/10 px-5 py-3 text-sm text-rose-200">
+        <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">
           {runError}
         </div>
       ) : null}
