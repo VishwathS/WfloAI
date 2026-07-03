@@ -8,6 +8,7 @@ import type { NodeExecutionState } from "@/lib/execution/types";
 import type {
   ActionNodeData,
   AINodeData,
+  InputNodeData,
   LookupNodeData,
   RouterNodeData,
   TriggerNodeData
@@ -15,7 +16,7 @@ import type {
 import { NodeOutputDisplay, getOutputPreview } from "@/components/canvas/NodeOutputDisplay";
 
 type WorkflowCanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
+  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
 >;
 
 interface ExecutionLogProps {

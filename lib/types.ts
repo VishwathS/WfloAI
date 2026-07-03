@@ -20,11 +20,14 @@ export interface TriggerNodeData {
   inputText?: string;
 }
 
+export type AIOutputMode = "text" | "json";
+
 export interface AINodeData {
   label: string;
-  action: AIActionType;
+  action?: AIActionType;
   prompt: string;
   outputFields?: string[];
+  outputMode?: AIOutputMode;
 }
 
 export interface RouterNodeData {
@@ -45,12 +48,25 @@ export interface LookupNodeData {
   maxResults: number;
 }
 
+export type InputNodeKind = "text" | "number";
+
+export interface InputNodeData {
+  label: string;
+  key: string;
+  defaultValue: string;
+  placeholder?: string;
+  description?: string;
+  required?: boolean;
+  kind?: InputNodeKind;
+}
+
 export type WorkflowNodeData =
   | TriggerNodeData
   | AINodeData
   | RouterNodeData
   | ActionNodeData
-  | LookupNodeData;
+  | LookupNodeData
+  | InputNodeData;
 
 export interface WorkflowNode<TData = WorkflowNodeData> {
   id: string;

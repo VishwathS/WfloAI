@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Loader2, Maximize2, Minimize2, Play, Save } from "lucide-react";
+import { History, Loader2, Maximize2, Minimize2, Play, Save, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,10 @@ export function CanvasToolbar({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400/80">
+          <Zap className="h-3.5 w-3.5" />
+          Manual
+        </div>
         <div className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
           <span
             className={`h-2.5 w-2.5 rounded-full ${

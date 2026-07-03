@@ -3,6 +3,7 @@ import type {
   ActionNodeData,
   AIActionType,
   AINodeData,
+  InputNodeData,
   LookupNodeData,
   RouterNodeData,
   TriggerNodeData
@@ -11,7 +12,7 @@ import type { ExecutionEvent, NodeExecutionResult } from "@/lib/execution/types"
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 
 type WorkflowCanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
+  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
 >;
 
 function delay(ms: number) {
@@ -41,6 +42,53 @@ function getActionSchema(action: AIActionType, outputFields?: string[]): string 
     case "Generate":
       return `{"content": "string"}`;
   }
+}
+
+function collectNamedInputs(
+  nodes: WorkflowCanvasNode[],
+  edges: Edge[]
+): Record<string, string> {
+  const adjacency = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!adjacency.has(edge.source)) adjacency.set(edge.source, []);
+    adjacency.get(edge.source)!.push(edge.target);
+  }
+
+  const reachable = new Set<string>();
+  const queue = nodes
+    .filter((n) => n.type === "triggerNode" || n.type === "inputNode")
+    .map((n) => n.id);
+  for (const id of queue) reachable.add(id);
+
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    for (const targetId of adjacency.get(id) ?? []) {
+      if (!reachable.has(targetId)) {
+        reachable.add(targetId);
+        queue.push(targetId);
+      }
+    }
+  }
+
+  const inputs: Record<string, string> = {};
+  for (const node of nodes) {
+    if (node.type === "inputNode" && reachable.has(node.id)) {
+      const data = node.data as InputNodeData;
+      if (data.key) inputs[data.key] = data.defaultValue ?? "";
+    }
+  }
+  return inputs;
+}
+
+function interpolateTemplate(template: string, inputs: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+    if (!(key in inputs)) {
+      throw new Error(
+        `Prompt references undefined input "{{${key}}}" — add an Input node with key "${key}".`
+      );
+    }
+    return inputs[key];
+  });
 }
 
 function buildParentContext(
@@ -135,10 +183,11 @@ async function requestAIText(
 async function executeLookupNode(
   node: WorkflowCanvasNode,
   context: string,
-  onEvent: (event: ExecutionEvent) => void | Promise<void>
+  onEvent: (event: ExecutionEvent) => void | Promise<void>,
+  namedInputs: Record<string, string>
 ): Promise<NodeExecutionResult> {
   const data = node.data as LookupNodeData;
-  const query = data.query.replace(/\{\{input\}\}/g, context).trim();
+  const query = interpolateTemplate(data.query, { ...namedInputs, input: context }).trim();
 
   let response: Response;
 
@@ -167,14 +216,24 @@ async function executeLookupNode(
 async function executeAINode(
   node: WorkflowCanvasNode,
   context: string,
-  onEvent: (event: ExecutionEvent) => void | Promise<void>
+  onEvent: (event: ExecutionEvent) => void | Promise<void>,
+  namedInputs: Record<string, string>
 ): Promise<NodeExecutionResult> {
   const data = node.data as AINodeData;
-  const schema = getActionSchema(data.action, data.outputFields);
-  return { output: await requestAIText(data.prompt, context, node.id, onEvent, schema) };
+  const action = data.action;
+  const outputMode = data.outputMode ?? (action ? "json" : "text");
+  const schema = outputMode === "json" && action
+    ? getActionSchema(action, data.outputFields)
+    : undefined;
+  const prompt = interpolateTemplate(data.prompt, namedInputs);
+  return { output: await requestAIText(prompt, context, node.id, onEvent, schema) };
 }
 
-async function executeRouterNode(node: WorkflowCanvasNode, context: string): Promise<NodeExecutionResult> {
+async function executeRouterNode(
+  node: WorkflowCanvasNode,
+  context: string,
+  namedInputs: Record<string, string>
+): Promise<NodeExecutionResult> {
   const data = node.data as RouterNodeData;
 
   if (data.conditionField && typeof data.conditionValue === "string") {
@@ -189,7 +248,8 @@ async function executeRouterNode(node: WorkflowCanvasNode, context: string): Pro
     }
   }
 
-  const routerInstruction = `${data.prompt}
+  const prompt = interpolateTemplate(data.prompt, namedInputs);
+  const routerInstruction = `${prompt}
 
 Respond with exactly one word: true or false. No punctuation, no explanation.`;
   const decision = await requestAIText(routerInstruction, context, node.id);
@@ -209,6 +269,7 @@ export async function executeWorkflow(
   onEvent: (event: ExecutionEvent) => void | Promise<void>
 ): Promise<void> {
   const orderedNodes = topologicalSort(nodes, edges);
+  const namedInputs = collectNamedInputs(orderedNodes, edges);
   const nodeMap = new Map(orderedNodes.map((node) => [node.id, node]));
   const outputsByNodeId = new Map<string, string>();
   const activeIncomingEdgesByNodeId = new Map<string, Edge[]>();
@@ -226,10 +287,11 @@ export async function executeWorkflow(
   }
 
   for (const node of orderedNodes) {
+    const isEntryNode = node.type === "triggerNode" || node.type === "inputNode";
     const activeIncomingEdges =
-      node.type === "triggerNode" ? [] : activeIncomingEdgesByNodeId.get(node.id) ?? [];
+      isEntryNode ? [] : activeIncomingEdgesByNodeId.get(node.id) ?? [];
 
-    if (node.type !== "triggerNode" && activeIncomingEdges.length === 0) {
+    if (!isEntryNode && activeIncomingEdges.length === 0) {
       continue;
     }
 
@@ -253,15 +315,18 @@ export async function executeWorkflow(
       if (node.type === "triggerNode") {
         await delay(400);
         result = { output: (node.data as TriggerNodeData).inputText?.trim() || "Workflow triggered." };
+      } else if (node.type === "inputNode") {
+        await delay(200);
+        result = { output: (node.data as InputNodeData).defaultValue ?? "" };
       } else if (node.type === "routerNode") {
-        result = await executeRouterNode(node, parentContext);
+        result = await executeRouterNode(node, parentContext, namedInputs);
       } else if (node.type === "actionNode") {
         await delay(300);
         result = { output: parentContext || "Output saved." };
       } else if (node.type === "aiNode") {
-        result = await executeAINode(node, parentContext, onEvent);
+        result = await executeAINode(node, parentContext, onEvent, namedInputs);
       } else if (node.type === "lookupNode") {
-        result = await executeLookupNode(node, parentContext, onEvent);
+        result = await executeLookupNode(node, parentContext, onEvent, namedInputs);
       } else {
         throw new Error(`Unsupported node type: ${node.type}`);
       }

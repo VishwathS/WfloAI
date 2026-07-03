@@ -1,13 +1,12 @@
 "use client";
 
-import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
+import { Handle, Position, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, Loader2, Zap } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { TriggerNodeData } from "@/lib/types";
 
 export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
-  const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
@@ -45,24 +44,6 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-          Input
-        </p>
-        <textarea
-          value={data.inputText ?? ""}
-          onChange={(event) => {
-            const nextText = event.target.value;
-            setNodes((nodes) =>
-              nodes.map((node) =>
-                node.id === id
-                  ? ({ ...node, data: { ...(node.data as TriggerNodeData), inputText: nextText } } as Node<TriggerNodeData>)
-                  : node
-              )
-            );
-          }}
-          className="flex-1 min-h-[100px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30"
-          placeholder="Enter the starting text for this workflow."
-        />
         {isError && executionState.error ? (
           <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
         ) : null}

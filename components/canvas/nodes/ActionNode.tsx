@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, useEdges } from "reactflow";
-import { AlertTriangle, CheckCircle2, Loader2, TerminalSquare } from "lucide-react";
-import { useNodeExecutionState, useNodeStates } from "@/components/canvas/execution-context";
+import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, TerminalSquare } from "lucide-react";
+import { useIsWorkflowRunning, useNodeExecutionState, useNodeStates } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { ActionNodeData } from "@/lib/types";
 import { NodeOutputDisplay } from "@/components/canvas/NodeOutputDisplay";
@@ -10,6 +11,8 @@ import { NodeOutputDisplay } from "@/components/canvas/NodeOutputDisplay";
 export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
+  const isWorkflowRunning = useIsWorkflowRunning();
+  const [isOutputOpen, setIsOutputOpen] = useState(false);
   const edges = useEdges();
   const nodeStates = useNodeStates();
   const incomingEdges = edges.filter((e) => e.target === id);
@@ -19,9 +22,19 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
     "";
   const sourceState = useNodeExecutionState(sourceNodeId);
 
-  const isRunning = executionState.status === "running";
-  const isComplete = executionState.status === "complete";
-  const isError = executionState.status === "error";
+  const status = executionState.status;
+  const isRunning = status === "running";
+  const isComplete = status === "complete";
+  const isError = status === "error";
+
+  useEffect(() => {
+    if (status === "running") setIsOutputOpen(false);
+  }, [status]);
+
+  const showOutput =
+    isRunning ||
+    (status !== "idle" && isWorkflowRunning) ||
+    isOutputOpen;
 
   return (
     <div
@@ -65,7 +78,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
         <div className="inline-flex rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-200">
           {data.action}
         </div>
-        {isComplete ? (
+        {showOutput ? (
           <div className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
               Output
@@ -74,6 +87,15 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
               <NodeOutputDisplay output={sourceState.output ?? ""} />
             </div>
           </div>
+        ) : null}
+        {!isWorkflowRunning && isComplete && !isOutputOpen ? (
+          <button
+            type="button"
+            onClick={() => setIsOutputOpen(true)}
+            className="flex items-center gap-1.5 self-start rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-700"
+          >
+            View output <ChevronDown className="h-3 w-3" />
+          </button>
         ) : null}
         {isError && executionState.error ? (
           <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>

@@ -1,5 +1,11 @@
 import type { Edge, Node } from "reactflow";
-import type { AINodeData, LookupNodeData, RouterNodeData, WorkflowNodeData } from "@/lib/types";
+import type {
+  AINodeData,
+  InputNodeData,
+  LookupNodeData,
+  RouterNodeData,
+  WorkflowNodeData
+} from "@/lib/types";
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 
 type WorkflowNode = Node<WorkflowNodeData>;
@@ -19,7 +25,7 @@ function getReachableNodeIds(nodes: WorkflowNode[], edges: Edge[]): Set<string> 
 
   const reachable = new Set<string>();
   const queue = nodes
-    .filter((n) => n.type === "triggerNode")
+    .filter((n) => n.type === "triggerNode" || n.type === "inputNode")
     .map((n) => n.id);
 
   for (const id of queue) {
@@ -43,11 +49,12 @@ export function validateWorkflow(
   nodes: WorkflowNode[],
   edges: Edge[]
 ): WorkflowValidationResult {
-  if (!nodes.some((n) => n.type === "triggerNode")) {
+  const hasEntry = nodes.some((n) => n.type === "triggerNode" || n.type === "inputNode");
+  if (!hasEntry) {
     return {
       valid: false,
       nodeErrors: {},
-      globalError: "Add a Trigger node to start the workflow."
+      globalError: "Add an Input node to provide data for your workflow."
     };
   }
 
@@ -89,6 +96,52 @@ export function validateWorkflow(
       const data = node.data as LookupNodeData;
       if (!data.query?.trim()) {
         nodeErrors[node.id] = `"${data.label || "Lookup"}" needs a search query before it can run.`;
+      }
+    }
+
+    if (node.type === "inputNode") {
+      const data = node.data as InputNodeData;
+      if (!data.key?.trim()) {
+        nodeErrors[node.id] = `"${data.label || "Input"}" needs a key before it can run.`;
+      } else if ((data.required ?? true) && !data.defaultValue?.trim()) {
+        nodeErrors[node.id] = `"${data.label || "Input"}" (key: ${data.key}) needs a value before it can run.`;
+      }
+    }
+  }
+
+  // Duplicate-key check across all reachable Input nodes.
+  const inputKeyCounts = new Map<string, number>();
+  for (const node of reachableNodes) {
+    if (node.type === "inputNode") {
+      const key = (node.data as InputNodeData).key?.trim();
+      if (key) inputKeyCounts.set(key, (inputKeyCounts.get(key) ?? 0) + 1);
+    }
+  }
+  for (const node of reachableNodes) {
+    if (node.type === "inputNode" && !nodeErrors[node.id]) {
+      const key = (node.data as InputNodeData).key?.trim();
+      if (key && (inputKeyCounts.get(key) ?? 0) > 1) {
+        nodeErrors[node.id] = `Input key "${key}" is used by more than one Input node — keys must be unique.`;
+      }
+    }
+  }
+
+  // Ensure every {{key}} token in AI/Router prompts resolves to a defined Input node.
+  const availableKeys = new Set(
+    reachableNodes
+      .filter((n) => n.type === "inputNode")
+      .map((n) => (n.data as InputNodeData).key?.trim())
+      .filter((k): k is string => Boolean(k))
+  );
+  for (const node of reachableNodes) {
+    if ((node.type === "aiNode" || node.type === "routerNode") && !nodeErrors[node.id]) {
+      const prompt = (node.data as AINodeData | RouterNodeData).prompt ?? "";
+      const missing = [...prompt.matchAll(/\{\{(\w+)\}\}/g)]
+        .map((m) => m[1])
+        .filter((key) => !availableKeys.has(key));
+      if (missing.length > 0) {
+        const data = node.data as AINodeData | RouterNodeData;
+        nodeErrors[node.id] = `"${data.label || "Node"}" references undefined input(s): ${missing.map((k) => `{{${k}}}`).join(", ")}.`;
       }
     }
   }

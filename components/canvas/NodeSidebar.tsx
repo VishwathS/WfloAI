@@ -6,10 +6,10 @@ export const DND_NODE_TYPE_KEY = "application/reactflow";
 
 const NODE_CARDS = [
   {
-    type: "triggerNode",
-    title: "Trigger Node",
-    description: "Start a workflow from a manual event, webhook, or upload.",
-    accentClassName: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+    type: "inputNode",
+    title: "Input",
+    description: "Provide a named value that flows into your workflow steps.",
+    accentClassName: "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200"
   },
   {
     type: "aiNode",

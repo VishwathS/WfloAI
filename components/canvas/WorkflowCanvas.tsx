@@ -26,24 +26,27 @@ import { AINode } from "@/components/canvas/nodes/AINode";
 import { RouterNode } from "@/components/canvas/nodes/RouterNode";
 import { ActionNode } from "@/components/canvas/nodes/ActionNode";
 import { LookupNode } from "@/components/canvas/nodes/LookupNode";
+import { InputNode } from "@/components/canvas/nodes/InputNode";
 import { DeletableEdge } from "@/components/canvas/edges/DeletableEdge";
 import { DND_NODE_TYPE_KEY, NodeSidebar } from "@/components/canvas/NodeSidebar";
 import type {
   ActionNodeData,
   AINodeData,
-  AIActionType,
+  InputNodeData,
   LookupNodeData,
   RouterNodeData,
   TriggerNodeData,
   TriggerType
 } from "@/lib/types";
+import { labelToKey } from "@/lib/utils";
 
 const nodeTypes: NodeTypes = {
   triggerNode: TriggerNode,
   aiNode: AINode,
   routerNode: RouterNode,
   actionNode: ActionNode,
-  lookupNode: LookupNode
+  lookupNode: LookupNode,
+  inputNode: InputNode
 };
 
 const edgeTypes: EdgeTypes = {
@@ -59,7 +62,7 @@ const EDGE_DEFAULTS = {
   style: { stroke: "#6366f1", strokeWidth: 2 }
 };
 
-type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | LookupNodeData>;
+type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData>;
 type CanvasEdge = Edge;
 
 interface WorkflowCanvasProps {
@@ -86,9 +89,17 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
 
     return {
       label: "Workflow start",
-      type: triggerType,
-      inputText: ""
+      type: triggerType
     } satisfies TriggerNodeData;
+  }
+
+  if (type === "inputNode") {
+    const defaultLabel = "Input";
+    return {
+      label: defaultLabel,
+      key: labelToKey(defaultLabel),
+      defaultValue: ""
+    } satisfies InputNodeData;
   }
 
   if (type === "actionNode") {
@@ -113,12 +124,10 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
     } satisfies LookupNodeData;
   }
 
-  const action: AIActionType = "Summarize";
-
   return {
     label: "AI step",
-    action,
-    prompt: "Summarize the input into a concise set of actionable points."
+    outputMode: "text",
+    prompt: ""
   } satisfies AINodeData;
 }
 
@@ -128,10 +137,10 @@ function WorkflowCanvasInner({
   onSave,
   onCancelSave
 }: WorkflowCanvasProps) {
-  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData>();
+  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData>();
   const edges = useEdges();
   const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<
-    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
+    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
   >();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);
@@ -221,7 +230,7 @@ function WorkflowCanvasInner({
         return false;
       }
 
-      if (targetNode.type === "triggerNode") {
+      if (targetNode.type === "triggerNode" || targetNode.type === "inputNode") {
         return false;
       }
 
@@ -273,6 +282,10 @@ function WorkflowCanvasInner({
 
     if (node.type === "routerNode") {
       return "#d97706";
+    }
+
+    if (node.type === "inputNode") {
+      return "#c026d3";
     }
 
     return "#7c3aed";
@@ -351,7 +364,7 @@ function WorkflowCanvasInner({
                 </span>
               </div>
               <p className="mt-4 max-w-md text-xl font-semibold tracking-tight text-white">
-                Drag a Trigger node from the sidebar to start your workflow
+                Drag an Input node from the sidebar to start your workflow
               </p>
             </div>
           </div>

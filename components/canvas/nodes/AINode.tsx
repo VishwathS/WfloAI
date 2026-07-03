@@ -1,37 +1,46 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
-import { AlertTriangle, BrainCircuit, CheckCircle2, Loader2 } from "lucide-react";
-import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import { useIsWorkflowRunning, useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { AIActionType, AINodeData } from "@/lib/types";
 
-function getSchemaPreview(action: AIActionType, outputFields?: string[]): string {
-  switch (action) {
-    case "Summarize": return "{ summary, keyPoints[] }";
-    case "Rewrite": return "{ rewrittenContent }";
-    case "Classify": return "{ category, confidence, reasoning }";
-    case "Extract": return outputFields?.length ? `{ ${outputFields.join(", ")} }` : "{ …fields }";
-    case "Generate": return "{ content }";
-  }
-}
+const ACTION_TYPES: AIActionType[] = ["Summarize", "Rewrite", "Classify", "Extract", "Generate"];
 
 export function AINode({ id, data }: NodeProps<AINodeData>) {
   const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
-  const isRunning = executionState.status === "running";
-  const isComplete = executionState.status === "complete";
-  const isError = executionState.status === "error";
+  const isWorkflowRunning = useIsWorkflowRunning();
+  const [isOutputOpen, setIsOutputOpen] = useState(false);
 
-  const parsedOutput = (() => {
-    if (!isComplete || !executionState.output) return null;
-    try {
-      return JSON.parse(executionState.output) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  })();
+  const status = executionState.status;
+  const isRunning = status === "running";
+  const isComplete = status === "complete";
+  const isError = status === "error";
+
+  useEffect(() => {
+    if (status === "running") setIsOutputOpen(false);
+  }, [status]);
+
+  const showOutput =
+    isRunning ||
+    (status !== "idle" && isWorkflowRunning) ||
+    isOutputOpen;
+
+  const outputMode = data.outputMode ?? (data.action ? "json" : "text");
+
+  function updateData(patch: Partial<AINodeData>) {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? ({ ...node, data: { ...(node.data as AINodeData), ...patch } } as Node<AINodeData>)
+          : node
+      )
+    );
+  }
 
   return (
     <div
@@ -50,56 +59,77 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         className="!h-3 !w-3 !border-2 !border-violet-200 !bg-violet-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center justify-between gap-3 px-4 py-3 text-white ${
+        className={`flex flex-shrink-0 items-center gap-3 px-4 py-3 text-white ${
           isError ? "bg-rose-600" : "bg-violet-600"
         } ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className="flex items-center gap-2">
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isComplete ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : isError ? (
-            <AlertTriangle className="h-4 w-4" />
-          ) : (
-            <BrainCircuit className="h-4 w-4" />
-          )}
-          <div>
-            <p className="text-sm font-semibold">AI Node</p>
-            <p className="text-xs text-violet-50/90">{data.label}</p>
-          </div>
+        {isRunning ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isComplete ? (
+          <CheckCircle2 className="h-4 w-4" />
+        ) : isError ? (
+          <AlertTriangle className="h-4 w-4" />
+        ) : (
+          <BrainCircuit className="h-4 w-4" />
+        )}
+        <div>
+          <p className="text-sm font-semibold">AI Node</p>
+          <p className="text-xs text-violet-50/90">{data.label}</p>
         </div>
-        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-50">
-          {data.action}
-        </span>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-          Prompt
-        </p>
-        <textarea
-          value={data.prompt}
-          onChange={(event) => {
-            const nextPrompt = event.target.value;
-
-            setNodes((nodes) =>
-              nodes.map((node) =>
-                node.id === id
-                  ? ({
-                      ...node,
-                      data: {
-                        ...(node.data as AINodeData),
-                        prompt: nextPrompt
-                      }
-                    } as Node<AINodeData>)
-                  : node
-              )
-            );
-          }}
-          className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
-          placeholder="Tell this AI node what to do with its incoming data."
-        />
-        {data.action === "Extract" ? (
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            Output Mode
+          </p>
+          <div className="flex overflow-hidden rounded-full border border-zinc-700 text-xs">
+            <button
+              type="button"
+              onClick={() => updateData({ outputMode: "text" })}
+              className={`px-3 py-1 transition ${
+                outputMode === "text"
+                  ? "bg-violet-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Text
+            </button>
+            <button
+              type="button"
+              onClick={() => updateData({ outputMode: "json" })}
+              className={`px-3 py-1 transition ${
+                outputMode === "json"
+                  ? "bg-violet-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              JSON
+            </button>
+          </div>
+        </div>
+        {outputMode === "json" ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+              Action Type
+            </p>
+            <select
+              value={data.action ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                updateData({ action: val ? (val as AIActionType) : undefined });
+              }}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
+            >
+              <option value="">Select action…</option>
+              {ACTION_TYPES.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        {outputMode === "json" && data.action === "Extract" ? (
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
               Output Fields
@@ -107,54 +137,43 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
             <input
               type="text"
               value={(data.outputFields ?? []).join(", ")}
-              onChange={(event) => {
-                const nextFields = event.target.value
+              onChange={(e) => {
+                const nextFields = e.target.value
                   .split(",")
                   .map((s) => s.trim())
                   .filter(Boolean);
-                setNodes((nodes) =>
-                  nodes.map((node) =>
-                    node.id === id
-                      ? ({
-                          ...node,
-                          data: { ...(node.data as AINodeData), outputFields: nextFields }
-                        } as Node<AINodeData>)
-                      : node
-                  )
-                );
+                updateData({ outputFields: nextFields });
               }}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
               placeholder="name, email, phone"
             />
           </div>
         ) : null}
-        <p className="font-mono text-[10px] text-zinc-600">
-          → {getSchemaPreview(data.action, data.outputFields)}
-        </p>
-        {isRunning ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Prompt</p>
+        <textarea
+          value={data.prompt}
+          onChange={(e) => updateData({ prompt: e.target.value })}
+          className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30"
+          placeholder="Tell this AI node what to do with its incoming data."
+        />
+        {showOutput ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
               Output
             </p>
             <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
-              {executionState.output || "Streaming response..."}
+              {executionState.output || (isRunning ? "Streaming response…" : "")}
             </div>
           </div>
-        ) : isComplete && executionState.output ? (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-              Output
-            </p>
-            {parsedOutput ? (
-              <pre className="flex-1 min-h-[80px] overflow-auto whitespace-pre-wrap rounded-xl border border-emerald-700/30 bg-zinc-950/70 px-3 py-2 font-mono text-sm leading-6 text-zinc-200">
-                {JSON.stringify(parsedOutput, null, 2)}
-              </pre>
-            ) : (
-              <div className="min-h-[80px] whitespace-pre-wrap rounded-xl border border-zinc-700 bg-zinc-950/70 px-3 py-2 text-sm leading-6 text-zinc-200">
-                {executionState.output}
-              </div>
-            )}
-          </div>
+        ) : null}
+        {!isWorkflowRunning && isComplete && !isOutputOpen ? (
+          <button
+            type="button"
+            onClick={() => setIsOutputOpen(true)}
+            className="flex items-center gap-1.5 self-start rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-700"
+          >
+            View output <ChevronDown className="h-3 w-3" />
+          </button>
         ) : null}
         {isError && executionState.error ? (
           <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>

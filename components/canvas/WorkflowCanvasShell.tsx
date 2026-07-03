@@ -11,6 +11,7 @@ import { useExecution } from "@/hooks/useExecution";
 import type {
   ActionNodeData,
   AINodeData,
+  InputNodeData,
   LookupNodeData,
   RouterNodeData,
   TriggerNodeData
@@ -18,7 +19,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 type CanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData
+  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
 >;
 type CanvasEdge = Edge;
 
@@ -210,7 +211,7 @@ export function WorkflowCanvasShell({
           {runError}
         </div>
       ) : null}
-      <ExecutionProvider nodeStates={visibleNodeStates}>
+      <ExecutionProvider nodeStates={visibleNodeStates} isWorkflowRunning={isRunning}>
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <WorkflowCanvas
             initialNodes={initialNodes}
