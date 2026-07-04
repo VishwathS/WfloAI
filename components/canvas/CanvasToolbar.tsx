@@ -36,7 +36,7 @@ export function CanvasToolbar({
       : "All changes saved";
 
   return (
-    <div className="flex flex-col gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
           Canvas

@@ -39,7 +39,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
         isComplete
           ? "border-emerald-400/55"
           : isError
@@ -56,7 +56,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
         className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
       >
         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-blue-100"
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-blue-200"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />

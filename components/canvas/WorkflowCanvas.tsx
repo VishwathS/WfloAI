@@ -297,7 +297,7 @@ function WorkflowCanvasInner({
   const showEmptyState = isReady && nodes.length === 0;
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-white">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-slate-50">
       <NodeSidebar />
       <div className="relative min-h-0 flex-1">
         <ReactFlow
@@ -323,15 +323,15 @@ function WorkflowCanvasInner({
           onDrop={onDrop}
           minZoom={0.35}
           maxZoom={1.8}
-          className="bg-white"
+          className="bg-slate-50"
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="#e5e7eb" />
+          <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="#94a3b8" />
           <MiniMap
             pannable
             zoomable
             nodeColor={miniMapNodeColor}
-            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-gray-200 !bg-white"
+            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-gray-200 !bg-slate-50"
             maskColor="rgba(249, 250, 251, 0.75)"
           />
         </ReactFlow>
@@ -374,7 +374,7 @@ function WorkflowCanvasInner({
         ) : null}
       </div>
       {!isReady ? (
-        <div className="pointer-events-none absolute inset-0 bg-white" />
+        <div className="pointer-events-none absolute inset-0 bg-slate-50" />
       ) : null}
     </div>
   );

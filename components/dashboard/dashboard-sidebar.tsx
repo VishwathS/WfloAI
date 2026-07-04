@@ -17,7 +17,7 @@ export async function DashboardSidebar() {
             <Bot className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-base font-semibold tracking-tight text-gray-900">FlowAI</p>
+            <p className="text-base font-semibold tracking-tight text-gray-900">WfloAI</p>
             <p className="text-[10px] uppercase tracking-[0.24em] text-gray-400">
               AI workflow studio
             </p>

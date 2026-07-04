@@ -39,7 +39,7 @@ export function LoginCard({ nextPath = "/" }: LoginCardProps) {
     <Card className="w-full max-w-md border-white/10 bg-white/95 shadow-2xl shadow-sky-950/20">
       <CardHeader className="space-y-3">
         <p className="text-sm font-medium uppercase tracking-[0.24em] text-sky-600">
-          FlowAI
+          WfloAI
         </p>
         <div>
           <CardTitle className="text-3xl text-slate-950">Sign in</CardTitle>

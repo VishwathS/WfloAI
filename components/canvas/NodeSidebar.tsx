@@ -9,31 +9,36 @@ const NODE_CARDS = [
     type: "inputNode",
     title: "Input",
     description: "Provide a named value that flows into your workflow steps.",
-    accentClassName: "border-fuchsia-300/60 bg-fuchsia-50 text-fuchsia-700"
+    accentClassName: "border-fuchsia-300/60 bg-fuchsia-50 text-fuchsia-700",
+    borderClass: "border-fuchsia-300"
   },
   {
     type: "aiNode",
     title: "AI Node",
     description: "Transform incoming context with prompts and model-driven actions.",
-    accentClassName: "border-violet-300/60 bg-violet-50 text-violet-700"
+    accentClassName: "border-violet-300/60 bg-violet-50 text-violet-700",
+    borderClass: "border-violet-300"
   },
   {
     type: "routerNode",
     title: "Router Node",
     description: "Branch execution by deciding whether a condition is true or false.",
-    accentClassName: "border-amber-300/60 bg-amber-50 text-amber-700"
+    accentClassName: "border-amber-300/60 bg-amber-50 text-amber-700",
+    borderClass: "border-amber-300"
   },
   {
     type: "actionNode",
     title: "Action Node",
     description: "Finish the flow by saving, logging, or displaying the result.",
-    accentClassName: "border-blue-300/60 bg-blue-50 text-blue-700"
+    accentClassName: "border-blue-300/60 bg-blue-50 text-blue-700",
+    borderClass: "border-blue-300"
   },
   {
     type: "lookupNode",
     title: "Lookup Node",
     description: "Search the web via Tavily and pass results downstream.",
-    accentClassName: "border-cyan-300/60 bg-cyan-50 text-cyan-700"
+    accentClassName: "border-cyan-300/60 bg-cyan-50 text-cyan-700",
+    borderClass: "border-cyan-300"
   }
 ] as const;
 
@@ -65,7 +70,7 @@ export function NodeSidebar() {
               type="button"
               draggable
               onDragStart={(event) => handleDragStart(event, card.type)}
-              className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:border-gray-300 hover:bg-gray-50"
+              className={`w-full rounded-2xl border bg-white p-4 text-left shadow-[0_1px_6px_rgba(0,0,0,0.05)] transition hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:bg-gray-50 ${card.borderClass}`}
             >
               <div
                 className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${card.accentClassName}`}
