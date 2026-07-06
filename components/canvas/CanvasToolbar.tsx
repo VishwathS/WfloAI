@@ -1,8 +1,13 @@
 "use client";
 
-import { History, Loader2, Maximize2, Minimize2, Play, Save, Zap } from "lucide-react";
+import { Clock, History, Loader2, Maximize2, Minimize2, Play, Save, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+export interface TriggerSummary {
+  enabledCount: number;
+  nextRunAt: string | null;
+}
 
 interface CanvasToolbarProps {
   workflowName: string;
@@ -11,10 +16,22 @@ interface CanvasToolbarProps {
   isFullscreen: boolean;
   hasUnsavedChanges: boolean;
   historyOpen: boolean;
+  triggerSummary: TriggerSummary;
+  settingsOpen: boolean;
   onSave: () => void;
   onRun: () => void;
   onToggleFullscreen: () => void;
   onToggleHistory: () => void;
+  onToggleSettings: () => void;
+}
+
+function formatNextRun(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 export function CanvasToolbar({
@@ -24,10 +41,13 @@ export function CanvasToolbar({
   isFullscreen,
   hasUnsavedChanges,
   historyOpen,
+  triggerSummary,
+  settingsOpen,
   onSave,
   onRun,
   onToggleFullscreen,
-  onToggleHistory
+  onToggleHistory,
+  onToggleSettings
 }: CanvasToolbarProps) {
   const statusLabel = isSaving
     ? "Saving changes"
@@ -47,10 +67,26 @@ export function CanvasToolbar({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500">
-          <Zap className="h-3.5 w-3.5" />
-          Manual
-        </div>
+        <button
+          type="button"
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500 transition hover:bg-gray-50",
+            settingsOpen && "border-violet-200 bg-violet-50 text-violet-700"
+          )}
+          onClick={onToggleSettings}
+        >
+          {triggerSummary.enabledCount > 0 && triggerSummary.nextRunAt ? (
+            <>
+              <Clock className="h-3.5 w-3.5" />
+              Next run · {formatNextRun(triggerSummary.nextRunAt)}
+            </>
+          ) : (
+            <>
+              <Zap className="h-3.5 w-3.5" />
+              No triggers
+            </>
+          )}
+        </button>
         <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
           <span
             className={`h-2.5 w-2.5 rounded-full ${

@@ -35,6 +35,7 @@ export default async function DashboardPage() {
   const workflows = (data ?? []) as Workflow[];
   const workflowIds = workflows.map((workflow) => workflow.id);
   let lastRunMap = new Map<string, string>();
+  let nextRunMap = new Map<string, string>();
 
   if (workflowIds.length > 0) {
     const { data: executionLogRows, error: executionLogError } = await supabase
@@ -64,9 +65,30 @@ export default async function DashboardPage() {
     }
   }
 
+  if (workflowIds.length > 0) {
+    const { data: scheduleRows } = await supabase
+      .from("workflow_schedules")
+      .select("workflow_id, next_run_at")
+      .in("workflow_id", workflowIds)
+      .eq("enabled", true)
+      .not("next_run_at", "is", null)
+      .order("next_run_at", { ascending: true });
+
+    nextRunMap = (scheduleRows ?? []).reduce<Map<string, string>>((accumulator, row) => {
+      const scheduleRow = row as { workflow_id: string; next_run_at: string };
+
+      if (!accumulator.has(scheduleRow.workflow_id)) {
+        accumulator.set(scheduleRow.workflow_id, scheduleRow.next_run_at);
+      }
+
+      return accumulator;
+    }, new Map<string, string>());
+  }
+
   const workflowsWithLastRun = workflows.map<WorkflowWithLastRun>((workflow) => ({
     ...workflow,
-    last_run_at: lastRunMap.get(workflow.id) ?? null
+    last_run_at: lastRunMap.get(workflow.id) ?? null,
+    next_run_at: nextRunMap.get(workflow.id) ?? null
   }));
   const workflowCount = workflowsWithLastRun.length;
   const latestWorkflow = workflowsWithLastRun[0];

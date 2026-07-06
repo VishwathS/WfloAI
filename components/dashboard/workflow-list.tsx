@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { ArrowRight, Clock, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { WorkflowWithLastRun } from "@/lib/types";
@@ -169,6 +169,12 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
                   ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
                   : "Last run: Never"}
               </p>
+              {workflow.next_run_at ? (
+                <p className="mt-0.5 flex items-center gap-1 text-sm text-violet-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  Next run: {formatTimestamp(workflow.next_run_at)}
+                </p>
+              ) : null}
             </div>
 
             <p className="hidden shrink-0 text-sm text-gray-400 sm:block">

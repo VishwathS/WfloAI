@@ -115,6 +115,24 @@ export interface ExecutionLogRow {
 
 export interface WorkflowWithLastRun extends Workflow {
   last_run_at: string | null;
+  next_run_at: string | null;
+}
+
+export type ScheduleFrequency = "daily" | "weekdays" | "weekly" | "custom";
+
+export interface WorkflowSchedule {
+  id: string;
+  workflow_id: string;
+  user_id: string;
+  name: string;
+  enabled: boolean;
+  cron_expression: string;
+  timezone: string;
+  input_values: Record<string, string>;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface WorkflowRun {

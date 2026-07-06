@@ -21,6 +21,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **RLS-enforced multi-tenancy** — users see only their own data at the DB level
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 - **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
+- **Scheduled triggers** — Inngest-powered background execution; multiple named cron schedules per workflow stored in `workflow_schedules`; Workflow Settings sidebar (toolbar trigger pill) manages them; scheduled runs persist to `workflow_runs` like manual runs; per-schedule Run now button
 
 ---
 
@@ -52,7 +53,7 @@ No Redux, Zustand, or other state managers. State is React hooks + React Context
 ### Supabase client usage
 - Use `lib/supabase/server.ts → createServerSupabaseClient()` in Server Components and API routes
 - Use `lib/supabase.ts → createBrowserSupabaseClient()` in Client Components
-- Never use the service role key or bypass RLS
+- Never use the service role key in request-scoped code. The only permitted consumer of `lib/supabase/admin.ts → createAdminSupabaseClient()` is the Inngest execution path (`lib/inngest/functions.ts`), which runs with no user session. Admin-client code must re-verify ownership in application code (the workflow row's `user_id` must match the schedule owner carried in the event) and must always write rows with the schedule owner's `user_id` so RLS-scoped reads stay correct
 
 ### Execution engine
 
@@ -68,7 +69,7 @@ Two executor files live in `lib/execution/`:
 - New node types must be handled in **both** `executor.ts` and `serverExecutor.ts` before the `throw new Error('Unsupported node type')` fallback in each
 
 ### API routes
-- All routes in `app/api/` must call `supabase.auth.getUser()` before any operation and return 401 if unauthenticated
+- All routes in `app/api/` must call `supabase.auth.getUser()` before any operation and return 401 if unauthenticated — exception: `app/api/inngest/route.ts` is Inngest's webhook endpoint; its auth is request-signature verification via `INNGEST_SIGNING_KEY` in production (the local dev server runs unsigned)
 - Validate all incoming payloads — use guard functions (`isValidGraph`, `isValidNodeResults`) before writing to DB
 - `/api/execute` streams via `ReadableStream` with `text/plain` content-type — do not change this without updating `requestAIText()` in `executor.ts`
 - `/api/workflows/[id]/execute` is the primary run endpoint — streams SSE (`text/event-stream`), executes the full graph server-side via `serverExecutor.ts`, persists `workflow_runs`
@@ -160,6 +161,26 @@ interface WorkflowRun {
   created_at: string;            // ISO UTC, default now()
 }
 ```
+
+### `WorkflowSchedule` (DB table: `public.workflow_schedules`)
+```ts
+interface WorkflowSchedule {
+  id: string;                          // uuid, PK
+  workflow_id: string;                 // uuid, FK → workflows (cascade delete); many schedules per workflow
+  user_id: string;                     // uuid, FK → auth.users (cascade delete)
+  name: string;                        // user-facing label, e.g. "Morning Post"
+  enabled: boolean;
+  cron_expression: string;             // 5-field cron, canonical representation
+  timezone: string;                    // IANA name, e.g. "America/Los_Angeles"
+  input_values: Record<string, string>; // optional overrides for Input node defaultValues, keyed by Input key
+  last_run_at: string | null;          // ISO UTC, set when the poller claims the schedule
+  next_run_at: string | null;          // ISO UTC; null when disabled
+  created_at: string;
+  updated_at: string;                  // auto-updated by DB trigger
+}
+```
+
+Future trigger types (webhook, gmail, slack, calendar) get their own tables (`workflow_webhooks`, …) — each needs different metadata; there is no generic trigger table. Future: `workflow_versions` — schedules currently execute the latest saved graph, so an edit silently changes automation behavior; pinning schedules to a graph version would fix that.
 
 ### RouterNode edge convention
 Router nodes have exactly two output handles: `"true"` and `"false"`. The executor filters outgoing edges by matching `edge.sourceHandle` to the AI's response string. Any future conditional node type must follow this same handle-naming convention.
@@ -340,6 +361,38 @@ If `conditionField` and `conditionValue` are set on a RouterNode, the executor c
 - Highlights violet when the sidebar is open
 - When sidebar is open, `ExecutionLog` shifts left by 320px (`right-[324px]`) and narrows accordingly
 
+### Scheduled triggers (Inngest)
+
+Triggers are **workflow-level metadata**, not canvas nodes. Manual is not a trigger object — it is just the Run button; a workflow with zero enabled schedules shows "No triggers" in the toolbar pill.
+
+**Two execution paths share the same executor:**
+```
+Manual:    Browser → POST /api/workflows/[id]/execute (SSE) → executeWorkflow → insert workflow_runs
+Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCompletion (wraps executeWorkflow, no SSE) → insert workflow_runs
+```
+
+**Files:**
+- `lib/inngest/client.ts` — Inngest client, typed `workflow/schedule.due` event
+- `lib/inngest/functions.ts` — `checkDueSchedules` (cron `* * * * *`, retries 0) + `runScheduledWorkflow` (event-triggered, retries 1, per-workflow concurrency 1)
+- `app/api/inngest/route.ts` — `serve()` endpoint, `maxDuration = 300`
+- `lib/execution/runToCompletion.ts` — accumulates execution events into a `CollectedRun` without SSE; mirrors the accumulation in the execute route (kept duplicated so the SSE route stays untouched)
+- `lib/schedule/cron.ts` — `computeNextRunAt` (cron-parser, IANA tz), preset↔cron mapping, `describeCron`
+- `lib/supabase/admin.ts` — service-role client; Inngest path only
+- `app/api/workflows/[id]/schedules` — GET list / POST create; `[scheduleId]` PATCH/DELETE; `[scheduleId]/run` POST emits the same `workflow/schedule.due` event (Run now)
+
+**Poller mechanics (do not weaken):**
+- Query: `enabled = true AND next_run_at <= now()`, served by the partial index `workflow_schedules_due_idx`
+- Claim: compare-and-swap `UPDATE … WHERE id = ? AND next_run_at = <observed> AND enabled` — exactly one winner per occurrence; `next_run_at` is advanced from `now` at claim time, so overdue schedules fire once (no backfill)
+- Fan-out: one `workflow/schedule.due` event per claimed schedule; the runner serializes per workflow via `concurrency { key: workflowId, limit: 1 }`
+- Node-level failures never throw out of `runWorkflowToCompletion` — they become a `status: "error"` run row; Inngest retries only fire on infra throws, and the execute/persist step split means retries never re-spend AI tokens
+- Validation failures persist an error run (visible in Run History) and do not auto-disable the schedule
+
+**input_values:** applied in the runner before validation — Input nodes whose `key` appears in `schedule.input_values` get their `defaultValue` replaced (immutably). No UI edits this yet; it defaults to `{}`.
+
+**Schedule UI:** `components/canvas/WorkflowSettingsSidebar.tsx` (Workflow Settings → Schedules section; future trigger types become sibling sections). Opened via the toolbar trigger pill in `CanvasToolbar` (shows "Next run · …" when a schedule is enabled). Settings and History sidebars share the right-edge slot — opening one closes the other.
+
+**Env vars:** `SUPABASE_SERVICE_ROLE_KEY` (required, server-only), `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` (production only — the local dev server `npx inngest-cli dev` runs unsigned and auto-discovers `/api/inngest`).
+
 ### Lookup Node
 
 **Configuration schema (`LookupNodeData`):**
@@ -405,7 +458,7 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `graph` JSONB shape matches `WorkflowGraph` in `lib/types.ts` | No schema migration layer — a mismatch silently corrupts the canvas on load |
 | `sourceHandle: "true" \| "false"` on RouterNode edges | Executor matches these strings exactly; any other value silently drops that branch |
 | Node type string literals consistent across canvas, executor, and DB | Mismatch causes nodes to be skipped silently during execution |
-| RLS policies on `workflows`, `execution_logs`, and `workflow_runs` | Only DB-level access control — weakening them exposes all users' data |
+| RLS policies on `workflows`, `execution_logs`, `workflow_runs`, and `workflow_schedules` | Only DB-level access control — weakening them exposes all users' data |
 | `workflow_runs` INSERT policy subquery on `workflows` | Prevents users from inserting runs for workflows they don't own, even if they guess a workflow UUID |
 | `/api/execute` streams `text/plain` chunks | `requestAIText()` reads raw chunks; changing format breaks AI node streaming |
 | `updateSession()` in middleware on every request | Without it, sessions don't refresh and users get logged out unexpectedly |
@@ -414,3 +467,6 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |
 | `extractJson()` strips fences before `JSON.parse()` in both executors | Claude occasionally wraps JSON in code fences despite instructions; without stripping, all AI nodes fail JSON validation |
 | `"Structured output:\n"` prefix written by `buildParentContext()` | `cleanOutput()` in `NodeOutputDisplay` matches this exact string — changing the prefix breaks display in the canvas, execution log, and run history sidebar |
+| CAS claim in `checkDueSchedules` (`UPDATE … WHERE next_run_at = <observed>`) | Only duplicate-run protection — replacing it with a plain UPDATE lets concurrent polls fire the same occurrence twice |
+| `createAdminSupabaseClient()` used only in `lib/inngest/functions.ts` | Service role bypasses RLS; any request-scoped use would let a forged request read/write other users' data |
+| `runScheduledWorkflow` split into execute + persist `step.run`s | Inngest retries replay memoized steps — merging them makes a persistence retry re-run the whole AI chain and double-spend tokens |

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Edge, Node } from "reactflow";
-import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
+import { CanvasToolbar, type TriggerSummary } from "@/components/canvas/CanvasToolbar";
 import { ExecutionLog } from "@/components/canvas/ExecutionLog";
 import { RunHistorySidebar } from "@/components/canvas/RunHistorySidebar";
+import { WorkflowSettingsSidebar } from "@/components/canvas/WorkflowSettingsSidebar";
 import { WorkflowCanvas } from "@/components/canvas/WorkflowCanvas";
 import { ExecutionProvider } from "@/components/canvas/execution-context";
 import { useExecution } from "@/hooks/useExecution";
@@ -68,6 +69,11 @@ export function WorkflowCanvasShell({
   const [isExecutionCleared, setIsExecutionCleared] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [triggerSummary, setTriggerSummary] = useState<TriggerSummary>({
+    enabledCount: 0,
+    nextRunAt: null
+  });
   const [runRefreshTrigger, setRunRefreshTrigger] = useState(0);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestGraphRef = useRef({
@@ -91,6 +97,26 @@ export function WorkflowCanvasShell({
       }
     };
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/workflows/${workflowId}/schedules`)
+      .then((res) => res.json())
+      .then((data: { schedules?: { enabled: boolean; next_run_at: string | null }[] }) => {
+        const schedules = data.schedules ?? [];
+        const nextRunAt =
+          schedules
+            .filter((s) => s.enabled && s.next_run_at)
+            .map((s) => s.next_run_at as string)
+            .sort()[0] ?? null;
+        setTriggerSummary({
+          enabledCount: schedules.filter((s) => s.enabled).length,
+          nextRunAt
+        });
+      })
+      .catch(() => {
+        // toolbar pill falls back to "No triggers"
+      });
+  }, [workflowId]);
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -196,10 +222,19 @@ export function WorkflowCanvasShell({
         isFullscreen={isFullscreen}
         hasUnsavedChanges={hasUnsavedChanges}
         historyOpen={historyOpen}
+        triggerSummary={triggerSummary}
+        settingsOpen={settingsOpen}
         onSave={handleManualSave}
         onRun={handleRun}
         onToggleFullscreen={() => setIsFullscreen((currentValue) => !currentValue)}
-        onToggleHistory={() => setHistoryOpen((v) => !v)}
+        onToggleHistory={() => {
+          setHistoryOpen((v) => !v);
+          setSettingsOpen(false);
+        }}
+        onToggleSettings={() => {
+          setSettingsOpen((v) => !v);
+          setHistoryOpen(false);
+        }}
       />
       {saveError ? (
         <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">
@@ -227,14 +262,22 @@ export function WorkflowCanvasShell({
               refreshTrigger={runRefreshTrigger}
             />
           ) : null}
+          {settingsOpen ? (
+            <WorkflowSettingsSidebar
+              workflowId={workflowId}
+              open={settingsOpen}
+              onClose={() => setSettingsOpen(false)}
+              onSchedulesChanged={setTriggerSummary}
+            />
+          ) : null}
           <ExecutionLog
             nodes={draftNodes}
             nodeStates={visibleNodeStates}
             isRunning={isRunning}
             onClear={() => setIsExecutionCleared(true)}
-            rightClass={historyOpen ? "right-[324px]" : "right-4"}
+            rightClass={historyOpen || settingsOpen ? "right-[324px]" : "right-4"}
             widthStyle={
-              historyOpen
+              historyOpen || settingsOpen
                 ? "min(760px, calc(100% - 632px))"
                 : "min(760px, calc(100% - 312px))"
             }
