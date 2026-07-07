@@ -6,38 +6,46 @@ import type { NodeExecutionState } from "@/lib/execution/types";
 interface ExecutionContextValue {
   nodeStates: Record<string, NodeExecutionState>;
   isWorkflowRunning: boolean;
+  isRunSettled: boolean;
 }
 
 const ExecutionContext = createContext<ExecutionContextValue>({
   nodeStates: {},
-  isWorkflowRunning: false
+  isWorkflowRunning: false,
+  isRunSettled: false
 });
 
 export function ExecutionProvider({
   children,
   nodeStates,
-  isWorkflowRunning
+  isWorkflowRunning,
+  isRunSettled
 }: {
   children: React.ReactNode;
   nodeStates: Record<string, NodeExecutionState>;
   isWorkflowRunning: boolean;
+  isRunSettled: boolean;
 }) {
   return (
-    <ExecutionContext.Provider value={{ nodeStates, isWorkflowRunning }}>
+    <ExecutionContext.Provider value={{ nodeStates, isWorkflowRunning, isRunSettled }}>
       {children}
     </ExecutionContext.Provider>
   );
 }
 
 export function useNodeExecutionState(nodeId: string): NodeExecutionState {
-  const { nodeStates } = useContext(ExecutionContext);
+  const { nodeStates, isRunSettled } = useContext(ExecutionContext);
 
-  return (
-    nodeStates[nodeId] ?? {
-      status: "idle",
-      output: ""
-    }
-  );
+  const state = nodeStates[nodeId] ?? {
+    status: "idle" as const,
+    output: ""
+  };
+
+  if (isRunSettled && (state.status === "complete" || state.status === "error")) {
+    return { ...state, status: "idle" };
+  }
+
+  return state;
 }
 
 export function useNodeStates(): Record<string, NodeExecutionState> {

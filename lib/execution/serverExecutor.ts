@@ -170,7 +170,7 @@ async function requestAIText(
   const client = new Anthropic({ apiKey });
   const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [{ role: "user", content: buildPrompt(prompt, context, schema) }]
   });
 
@@ -184,6 +184,13 @@ async function requestAIText(
     stream.on("end", resolve);
     stream.on("error", reject);
   });
+
+  const finalMsg = await stream.finalMessage();
+  if (finalMsg.stop_reason === "max_tokens") {
+    const warning = "\n\n⚠️ Output truncated: the model reached the maximum token limit. The response may be incomplete.";
+    output += warning;
+    onEvent?.({ type: "node:output", nodeId, chunk: warning });
+  }
 
   if (schema) {
     output = extractJson(output);

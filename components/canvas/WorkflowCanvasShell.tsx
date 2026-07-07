@@ -87,7 +87,7 @@ export function WorkflowCanvasShell({
     nodes: sanitizeNodes(initialNodes),
     edges: initialEdges
   });
-  const { run, isRunning, nodeStates, runError } = useExecution(
+  const { run, isRunning, isRunSettled, nodeStates, runError } = useExecution(
     workflowId,
     draftNodes,
     draftEdges,
@@ -253,7 +253,11 @@ export function WorkflowCanvasShell({
           {runError}
         </div>
       ) : null}
-      <ExecutionProvider nodeStates={visibleNodeStates} isWorkflowRunning={isRunning}>
+      <ExecutionProvider
+        nodeStates={visibleNodeStates}
+        isWorkflowRunning={isRunning}
+        isRunSettled={isRunSettled}
+      >
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <WorkflowCanvas
             initialNodes={initialNodes}

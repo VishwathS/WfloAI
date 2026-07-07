@@ -170,7 +170,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
             </div>
           </div>
         ) : null}
-        {!isWorkflowRunning && isComplete && !isOutputOpen ? (
+        {!isWorkflowRunning && !isRunning && !isError && executionState.output && !isOutputOpen ? (
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}

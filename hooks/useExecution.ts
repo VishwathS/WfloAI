@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "reactflow";
 import { validateWorkflow } from "@/lib/execution/validate";
 import type { ExecutionEvent, ExecutionLogEntry, NodeExecutionState } from "@/lib/execution/types";
@@ -29,6 +29,9 @@ const IDLE_STATE: NodeExecutionState = {
   output: ""
 };
 
+const SETTLE_DELAY_SUCCESS_MS = 1500;
+const SETTLE_DELAY_ERROR_MS = 4000;
+
 export function useExecution(
   workflowId: string,
   nodes: WorkflowCanvasNode[],
@@ -36,9 +39,19 @@ export function useExecution(
   onRunSaved?: () => void
 ) {
   const [isRunning, setIsRunning] = useState(false);
+  const [isRunSettled, setIsRunSettled] = useState(false);
   const [nodeStates, setNodeStates] = useState<Record<string, NodeExecutionState>>({});
   const [runError, setRunError] = useState<string | null>(null);
   const executionResultsRef = useRef<Record<string, ExecutionLogEntry>>({});
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (settleTimeoutRef.current) {
+        clearTimeout(settleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const hydratedNodeStates = useMemo(() => {
     return nodes.reduce<Record<string, NodeExecutionState>>((accumulator, node) => {
@@ -160,6 +173,12 @@ export function useExecution(
 
     setRunError(null);
 
+    if (settleTimeoutRef.current) {
+      clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = null;
+    }
+    setIsRunSettled(false);
+
     const validation = validateWorkflow(nodes, edges);
     if (!validation.valid) {
       if (validation.globalError) {
@@ -228,12 +247,21 @@ export function useExecution(
       // network error; node states already reflect any partial progress
     } finally {
       setIsRunning(false);
+
+      const hasErroredNode = Object.values(executionResultsRef.current).some(
+        (result) => result.status === "error"
+      );
+      settleTimeoutRef.current = setTimeout(
+        () => setIsRunSettled(true),
+        hasErroredNode ? SETTLE_DELAY_ERROR_MS : SETTLE_DELAY_SUCCESS_MS
+      );
     }
   }
 
   return {
     run,
     isRunning,
+    isRunSettled,
     nodeStates: hydratedNodeStates,
     runError
   };

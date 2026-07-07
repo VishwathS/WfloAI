@@ -92,7 +92,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
             </div>
           </div>
         ) : null}
-        {!isWorkflowRunning && isComplete && !isOutputOpen ? (
+        {!isWorkflowRunning && !isRunning && !isError && executionState.output && !isOutputOpen ? (
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}

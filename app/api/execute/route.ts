@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const client = new Anthropic({ apiKey });
   const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [
       {
         role: "user",
@@ -81,6 +81,13 @@ export async function POST(request: Request) {
 
       stream.on("text", (textDelta) => {
         controller.enqueue(encoder.encode(textDelta));
+      });
+
+      stream.on("message", (message) => {
+        if (message.stop_reason === "max_tokens") {
+          const warning = "\n\n⚠️ Output truncated: the model reached the maximum token limit. The response may be incomplete.";
+          controller.enqueue(encoder.encode(warning));
+        }
       });
 
       stream.on("error", (error) => {
