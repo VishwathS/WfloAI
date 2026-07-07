@@ -29,11 +29,13 @@ import { RouterNode } from "@/components/canvas/nodes/RouterNode";
 import { ActionNode } from "@/components/canvas/nodes/ActionNode";
 import { LookupNode } from "@/components/canvas/nodes/LookupNode";
 import { InputNode } from "@/components/canvas/nodes/InputNode";
+import { FileInputNode } from "@/components/canvas/nodes/FileInputNode";
 import { DeletableEdge } from "@/components/canvas/edges/DeletableEdge";
 import { DND_NODE_TYPE_KEY, NodeSidebar } from "@/components/canvas/NodeSidebar";
 import type {
   ActionNodeData,
   AINodeData,
+  FileInputNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -48,7 +50,8 @@ const nodeTypes: NodeTypes = {
   routerNode: RouterNode,
   actionNode: ActionNode,
   lookupNode: LookupNode,
-  inputNode: InputNode
+  inputNode: InputNode,
+  fileInputNode: FileInputNode
 };
 
 const edgeTypes: EdgeTypes = {
@@ -64,7 +67,15 @@ const EDGE_DEFAULTS = {
   style: { stroke: "#6366f1", strokeWidth: 2.5 }
 };
 
-type CanvasNode = Node<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData>;
+type CanvasNodeData =
+  | TriggerNodeData
+  | AINodeData
+  | RouterNodeData
+  | ActionNodeData
+  | LookupNodeData
+  | InputNodeData
+  | FileInputNodeData;
+type CanvasNode = Node<CanvasNodeData>;
 type CanvasEdge = Edge;
 
 interface WorkflowCanvasProps {
@@ -104,6 +115,12 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
     } satisfies InputNodeData;
   }
 
+  if (type === "fileInputNode") {
+    return {
+      label: "File Input"
+    } satisfies FileInputNodeData;
+  }
+
   if (type === "actionNode") {
     return {
       label: "Save result",
@@ -139,11 +156,9 @@ function WorkflowCanvasInner({
   onSave,
   onCancelSave
 }: WorkflowCanvasProps) {
-  const nodes = useNodes<TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData>();
+  const nodes = useNodes<CanvasNodeData>();
   const edges = useEdges();
-  const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<
-    TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
-  >();
+  const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<CanvasNodeData>();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -232,7 +247,11 @@ function WorkflowCanvasInner({
         return false;
       }
 
-      if (targetNode.type === "triggerNode" || targetNode.type === "inputNode") {
+      if (
+        targetNode.type === "triggerNode" ||
+        targetNode.type === "inputNode" ||
+        targetNode.type === "fileInputNode"
+      ) {
         return false;
       }
 
@@ -288,6 +307,10 @@ function WorkflowCanvasInner({
 
     if (node.type === "inputNode") {
       return "#c026d3";
+    }
+
+    if (node.type === "fileInputNode") {
+      return "#ea580c";
     }
 
     return "#7c3aed";

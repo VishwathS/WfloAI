@@ -12,6 +12,7 @@ import { useExecution } from "@/hooks/useExecution";
 import type {
   ActionNodeData,
   AINodeData,
+  FileInputNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -20,7 +21,13 @@ import type {
 import { cn } from "@/lib/utils";
 
 type CanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
+  | TriggerNodeData
+  | AINodeData
+  | RouterNodeData
+  | ActionNodeData
+  | LookupNodeData
+  | InputNodeData
+  | FileInputNodeData
 >;
 type CanvasEdge = Edge;
 

@@ -60,13 +60,27 @@ export interface InputNodeData {
   kind?: InputNodeKind;
 }
 
+export interface FileInputNodeData {
+  label: string;
+  fileId?: string;
+  filename?: string;
+  fileType?: string;
+  fileSize?: number;
+  pageCount?: number;
+  textLength?: number;
+  // Transient: injected server-side before execution by resolveFileInputs().
+  // Canvas code must never read or write this field.
+  resolvedText?: string;
+}
+
 export type WorkflowNodeData =
   | TriggerNodeData
   | AINodeData
   | RouterNodeData
   | ActionNodeData
   | LookupNodeData
-  | InputNodeData;
+  | InputNodeData
+  | FileInputNodeData;
 
 export interface WorkflowNode<TData = WorkflowNodeData> {
   id: string;

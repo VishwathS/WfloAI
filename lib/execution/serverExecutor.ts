@@ -4,6 +4,7 @@ import type {
   ActionNodeData,
   AIActionType,
   AINodeData,
+  FileInputNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -13,7 +14,13 @@ import type { ExecutionEvent, NodeExecutionResult } from "@/lib/execution/types"
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 
 type WorkflowCanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
+  | TriggerNodeData
+  | AINodeData
+  | RouterNodeData
+  | ActionNodeData
+  | LookupNodeData
+  | InputNodeData
+  | FileInputNodeData
 >;
 
 interface TavilyResult {
@@ -68,7 +75,9 @@ function collectNamedInputs(
 
   const reachable = new Set<string>();
   const queue = nodes
-    .filter((n) => n.type === "triggerNode" || n.type === "inputNode")
+    .filter(
+      (n) => n.type === "triggerNode" || n.type === "inputNode" || n.type === "fileInputNode"
+    )
     .map((n) => n.id);
   for (const id of queue) reachable.add(id);
 
@@ -298,7 +307,8 @@ export async function executeWorkflow(
   }
 
   for (const node of orderedNodes) {
-    const isEntryNode = node.type === "triggerNode" || node.type === "inputNode";
+    const isEntryNode =
+      node.type === "triggerNode" || node.type === "inputNode" || node.type === "fileInputNode";
     const activeIncomingEdges =
       isEntryNode ? [] : activeIncomingEdgesByNodeId.get(node.id) ?? [];
 
@@ -324,6 +334,18 @@ export async function executeWorkflow(
       } else if (node.type === "inputNode") {
         await delay(200);
         result = { output: (node.data as InputNodeData).defaultValue ?? "" };
+      } else if (node.type === "fileInputNode") {
+        const data = node.data as FileInputNodeData;
+        if (!data.fileId) {
+          throw new Error(`"${data.label || "File Input"}" needs an uploaded file.`);
+        }
+        if (data.resolvedText === undefined) {
+          throw new Error(
+            `"${data.label || "File Input"}" — the uploaded file no longer exists. Re-upload it.`
+          );
+        }
+        await delay(200);
+        result = { output: data.resolvedText };
       } else if (node.type === "routerNode") {
         result = await executeRouterNode(node, parentContext, namedInputs);
       } else if (node.type === "actionNode") {

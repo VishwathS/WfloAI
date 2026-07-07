@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { executeWorkflow } from "@/lib/execution/serverExecutor";
+import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
 import type { ExecutionEvent, ExecutionLogEntry } from "@/lib/execution/types";
 import type { WorkflowGraph, WorkflowNodeData } from "@/lib/types";
 import type { Node, Edge } from "reactflow";
@@ -39,7 +40,11 @@ export async function POST(_request: Request, { params }: RouteContext) {
 
   // WorkflowNode/WorkflowEdge are structurally compatible with reactflow's Node/Edge;
   // cast needed because they come from different type declarations.
-  const rfNodes = nodes as unknown as Node<WorkflowNodeData>[];
+  const rfNodes = await resolveFileInputs(
+    nodes as unknown as Node<WorkflowNodeData>[],
+    supabase,
+    user.id
+  );
   const rfEdges = edges as unknown as Edge[];
 
   const validation = validateWorkflow(rfNodes, rfEdges);

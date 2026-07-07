@@ -11,7 +11,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Google OAuth** via Supabase Auth with cookie-based sessions
 - **Dashboard** — list all workflows with last-run timestamp, delete
 - **Canvas editor** — React Flow canvas with drag-and-drop node creation
-- **Five node types** — Trigger, AI, Router, Action, Lookup
+- **Seven node types** — Trigger, Input, File Input, AI, Router, Action, Lookup
 - **Auto-save** — 700ms debounced PATCH to `/api/workflows/[id]` on every canvas change
 - **Workflow execution** — server-side topological traversal via `POST /api/workflows/[id]/execute`; streams SSE events to the client in real time; run persisted to `workflow_runs` server-side after completion
 - **Router node** — AI-evaluated conditional branching (true/false paths)
@@ -22,6 +22,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 - **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
 - **Scheduled triggers** — Inngest-powered background execution; multiple named cron schedules per workflow stored in `workflow_schedules`; Workflow Settings sidebar (toolbar trigger pill) manages them; scheduled runs persist to `workflow_runs` like manual runs; per-schedule Run now button
+- **File Input node** — upload PDF/DOCX/TXT/MD/CSV into a workflow; browser uploads directly to the private `workflow-files` Supabase Storage bucket, then `POST /api/workflows/[id]/files` extracts text once (unpdf/mammoth/TextDecoder) and stores it in `workflow_files`; during execution the node outputs the extracted text like any other input; scheduled runs use the latest uploaded version; scanned/image PDFs are rejected with a clear error (no OCR in V1)
 
 ---
 
@@ -123,6 +124,16 @@ type AINodeData       = { label: string; action: AIActionType; prompt: string; o
 type RouterNodeData   = { label: string; prompt: string; conditionField?: string; conditionValue?: string }
 type ActionNodeData   = { label: string; action: "Save Output" | "Log Result" | "Display" }
 type LookupNodeData   = { label: string; query: string; maxResults: number }
+type FileInputNodeData = {
+  label: string;
+  fileId?: string;       // references workflow_files.id
+  filename?: string;
+  fileType?: string;     // mime type
+  fileSize?: number;     // bytes
+  pageCount?: number;    // PDFs only
+  textLength?: number;   // extracted character count
+  resolvedText?: string; // transient — injected server-side pre-execution by resolveFileInputs(); canvas code must never read or write it
+}
 ```
 
 ### `ExecutionLogRow` (DB table: `public.execution_logs`)
@@ -180,6 +191,24 @@ interface WorkflowSchedule {
 }
 ```
 
+### `WorkflowFile` (DB table: `public.workflow_files`)
+```ts
+interface WorkflowFile {
+  id: string;             // uuid, PK — equals the fileId stored in FileInputNodeData
+  workflow_id: string;    // uuid, FK → workflows (cascade delete)
+  user_id: string;        // uuid, FK → auth.users (cascade delete)
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  page_count: number | null;   // PDFs only
+  storage_path: string;   // {user_id}/{workflow_id}/{fileId} in the workflow-files bucket
+  extracted_text: string; // capped at MAX_EXTRACTED_CHARS (200k)
+  created_at: string;     // ISO UTC
+}
+```
+
+Raw bytes live in the private `workflow-files` Storage bucket at `storage_path`; storage RLS policies allow access only when the first path folder equals `auth.uid()`. Files are immutable — Replace uploads a new file and deletes the old one. Deleting a workflow cascades the rows but leaves storage objects orphaned (private, unreferenced; cleanup sweep is a future task).
+
 Future trigger types (webhook, gmail, slack, calendar) get their own tables (`workflow_webhooks`, …) — each needs different metadata; there is no generic trigger table. Future: `workflow_versions` — schedules currently execute the latest saved graph, so an edit silently changes automation behavior; pinning schedules to a graph version would fix that.
 
 ### RouterNode edge convention
@@ -194,7 +223,7 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 - **No premature abstractions.** Three similar lines is better than a premature helper.
 - **No `any`.** Use proper types from `lib/types.ts`; extend that file when needed.
 - **Tailwind only** for styling. No CSS modules, no inline `style` props.
-- **Node type strings are literals:** `"triggerNode"`, `"aiNode"`, `"routerNode"`, `"actionNode"`, `"lookupNode"`. These must match across React Flow node registration, the executor switch, and the DB-stored graph.
+- **Node type strings are literals:** `"triggerNode"`, `"aiNode"`, `"routerNode"`, `"actionNode"`, `"lookupNode"`, `"inputNode"`, `"fileInputNode"`. These must match across React Flow node registration, the executor switch, and the DB-stored graph.
 - **Execution events** are typed in `lib/execution/types.ts` — extend the union there; never use raw string event types.
 - Import paths use the `@/` alias (mapped to project root).
 - Never put secrets in `NEXT_PUBLIC_` env vars. Client-accessible vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` only.
@@ -208,7 +237,7 @@ Router nodes have exactly two output handles: `"true"` and `"false"`. The execut
 2. Create the React Flow node component in `components/canvas/nodes/`
 3. Register it in `nodeTypes` in `WorkflowCanvas.tsx`
 4. Handle it in **both** `executor.ts` and `serverExecutor.ts` before the `throw new Error('Unsupported node type')` fallback in each
-5. Add it to the draggable library in `NodeSidebar.tsx`
+5. Add it to the draggable library in `NodeSidebar.tsx` — every `NODE_CARDS` entry needs a `category` (`"Sources" | "AI" | "Logic" | "Actions"`); the sidebar renders cards grouped by these categories. Future source-type nodes (HTTP, Gmail, Drive, Calendar, Webhooks) belong in `Sources`
 6. Update `isValidConnection` in `WorkflowCanvas.tsx` if it needs connection constraints
 
 ### Node visual design
@@ -254,6 +283,7 @@ className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-
 | `actionNode` | `blue` | `TerminalSquare` |
 | `lookupNode` | `cyan` | `Search` |
 | `inputNode` | `fuchsia` | `Inbox` |
+| `fileInputNode` | `orange` | `FileText` |
 
 **Form inputs inside the node:**
 - Background: `bg-gray-50`, border: `border-gray-200`
@@ -393,6 +423,25 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 
 **Env vars:** `SUPABASE_SERVICE_ROLE_KEY` (required, server-only), `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` (production only — the local dev server `npx inngest-cli dev` runs unsigned and auto-discovers `/api/inngest`).
 
+### File Input node
+
+**Upload flow (direct-to-Storage — no multipart through API routes):**
+1. `FileInputNode.tsx` pre-checks extension + per-type size limit (from `lib/files/constants.ts`), generates `fileId = crypto.randomUUID()`
+2. Browser uploads raw bytes via `createBrowserSupabaseClient().storage.from("workflow-files").upload("{userId}/{workflowId}/{fileId}", file)` — storage RLS authorizes the write
+3. Client POSTs `{ fileId, filename }` to `/api/workflows/[id]/files`; the server verifies workflow ownership, constructs the storage path itself (never trusts a client-supplied path), downloads the object, re-checks size, extracts text (`lib/extraction/extractText.ts`), and inserts the `workflow_files` row. Any failure removes the storage object and persists nothing
+4. Node stores `{ fileId, filename, fileType, fileSize, pageCount, textLength }` in `node.data`; persistence rides the normal 700ms auto-save
+
+**Size limits** (product-level, defined ONLY in `lib/files/constants.ts`): 20 MB for PDF/DOCX, 5 MB for TXT/MD/CSV, 200k-char extraction cap. Client checks are advisory; the route re-verifies from actual byte length.
+
+**Scanned-PDF guard:** after PDF extraction, trimmed text shorter than `max(40, 10 × pageCount)` chars → 422 "scanned or image-based" error, nothing persisted. No OCR in V1.
+
+**Execution (pre-resolve pattern):** executors have no DB access, so both run paths resolve file text before calling `executeWorkflow`:
+- Manual: `execute/route.ts` calls `resolveFileInputs(nodes, supabase, user.id)` (user-scoped client, RLS applies)
+- Scheduled: `lib/inngest/functions.ts` calls `resolveFileInputs(nodes, adminClient, event.data.userId)` — the `user_id` filter inside the query is the ownership guard, since the admin client bypasses RLS and the graph JSONB is user-writable
+`resolveFileInputs` injects `extracted_text` as transient `data.resolvedText`; the executor case outputs it directly. A missing row (deleted file, stale `fileId`) surfaces as a descriptive node error, never a crash.
+
+**Scheduled runs use the latest uploaded version** of the file (the graph stores only `fileId`, and schedules execute the latest saved graph). The node UI states this explicitly.
+
 ### Lookup Node
 
 **Configuration schema (`LookupNodeData`):**
@@ -470,3 +519,7 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | CAS claim in `checkDueSchedules` (`UPDATE … WHERE next_run_at = <observed>`) | Only duplicate-run protection — replacing it with a plain UPDATE lets concurrent polls fire the same occurrence twice |
 | `createAdminSupabaseClient()` used only in `lib/inngest/functions.ts` | Service role bypasses RLS; any request-scoped use would let a forged request read/write other users' data |
 | `runScheduledWorkflow` split into execute + persist `step.run`s | Inngest retries replay memoized steps — merging them makes a persistence retry re-run the whole AI chain and double-spend tokens |
+| `resolvedText` on fileInputNode injected server-side pre-execution only | Canvas code must never read/write it; if it leaked into the saved graph, stale file text would silently override the current upload |
+| `user_id` filter in `resolveFileInputs` on the Inngest path | The admin client bypasses RLS and graph JSONB is user-writable — removing the filter lets a forged `fileId` read another user's file text |
+| File size limits live only in `lib/files/constants.ts` | Client and server both import them; a second definition lets the checks drift apart |
+| Server constructs the storage path in `/api/workflows/[id]/files` | Accepting a client-supplied path would allow reads/writes outside the user's `{user_id}/` prefix |

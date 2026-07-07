@@ -1,6 +1,7 @@
 import type { Edge, Node } from "reactflow";
 import type {
   AINodeData,
+  FileInputNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -25,7 +26,9 @@ function getReachableNodeIds(nodes: WorkflowNode[], edges: Edge[]): Set<string> 
 
   const reachable = new Set<string>();
   const queue = nodes
-    .filter((n) => n.type === "triggerNode" || n.type === "inputNode")
+    .filter(
+      (n) => n.type === "triggerNode" || n.type === "inputNode" || n.type === "fileInputNode"
+    )
     .map((n) => n.id);
 
   for (const id of queue) {
@@ -49,7 +52,9 @@ export function validateWorkflow(
   nodes: WorkflowNode[],
   edges: Edge[]
 ): WorkflowValidationResult {
-  const hasEntry = nodes.some((n) => n.type === "triggerNode" || n.type === "inputNode");
+  const hasEntry = nodes.some(
+    (n) => n.type === "triggerNode" || n.type === "inputNode" || n.type === "fileInputNode"
+  );
   if (!hasEntry) {
     return {
       valid: false,
@@ -96,6 +101,13 @@ export function validateWorkflow(
       const data = node.data as LookupNodeData;
       if (!data.query?.trim()) {
         nodeErrors[node.id] = `"${data.label || "Lookup"}" needs a search query before it can run.`;
+      }
+    }
+
+    if (node.type === "fileInputNode") {
+      const data = node.data as FileInputNodeData;
+      if (!data.fileId) {
+        nodeErrors[node.id] = `"${data.label || "File Input"}" needs an uploaded file before it can run.`;
       }
     }
 

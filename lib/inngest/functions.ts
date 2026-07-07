@@ -4,6 +4,7 @@ import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { computeNextRunAt } from "@/lib/schedule/cron";
 import { validateWorkflow } from "@/lib/execution/validate";
+import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
 import { runWorkflowToCompletion, type CollectedRun } from "@/lib/execution/runToCompletion";
 import type { InputNodeData, WorkflowGraph, WorkflowNodeData } from "@/lib/types";
 
@@ -145,10 +146,13 @@ export const runScheduledWorkflow = inngest.createFunction(
       }
 
       const { nodes, edges } = workflow.graph as WorkflowGraph;
-      const rfNodes = applyInputOverrides(
+      const overriddenNodes = applyInputOverrides(
         nodes as unknown as Node<WorkflowNodeData>[],
         (schedule.input_values ?? {}) as Record<string, string>
       );
+      // The admin client bypasses RLS, so the owner filter inside resolveFileInputs
+      // is the only guard against a forged graph referencing another user's file.
+      const rfNodes = await resolveFileInputs(overriddenNodes, supabase, event.data.userId);
       const rfEdges = edges as unknown as Edge[];
 
       const validation = validateWorkflow(rfNodes, rfEdges);

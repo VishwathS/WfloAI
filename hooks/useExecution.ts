@@ -7,6 +7,7 @@ import type { ExecutionEvent, ExecutionLogEntry, NodeExecutionState } from "@/li
 import type {
   ActionNodeData,
   AINodeData,
+  FileInputNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -14,7 +15,13 @@ import type {
 } from "@/lib/types";
 
 type WorkflowCanvasNode = Node<
-  TriggerNodeData | AINodeData | RouterNodeData | ActionNodeData | LookupNodeData | InputNodeData
+  | TriggerNodeData
+  | AINodeData
+  | RouterNodeData
+  | ActionNodeData
+  | LookupNodeData
+  | InputNodeData
+  | FileInputNodeData
 >;
 
 const IDLE_STATE: NodeExecutionState = {
