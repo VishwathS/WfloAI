@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CreateWorkflowButton } from "@/components/dashboard/create-workflow-button";
+import { TemplateGallery } from "@/components/dashboard/template-gallery";
 import { WorkflowList } from "@/components/dashboard/workflow-list";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ExecutionLogRow, Workflow, WorkflowWithLastRun } from "@/lib/types";
@@ -144,30 +145,7 @@ export default async function DashboardPage() {
 
       <WorkflowList workflows={workflowsWithLastRun} />
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Templates</h2>
-          <p className="mt-0.5 text-sm text-gray-400">Coming soon</p>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { name: "Email Summarizer", desc: "Summarize incoming emails into concise bullet points automatically." },
-            { name: "Lead Qualifier", desc: "Route and score inbound leads using AI branching logic." },
-            { name: "Content Generator", desc: "Generate marketing copy from a simple prompt and brief." }
-          ].map((template) => (
-            <div
-              key={template.name}
-              className="cursor-not-allowed select-none rounded-2xl border border-dashed border-gray-200 bg-white p-6 opacity-60"
-            >
-              <p className="font-medium text-gray-900">{template.name}</p>
-              <p className="mt-1 text-sm text-gray-500">{template.desc}</p>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Coming soon
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <TemplateGallery />
     </div>
   );
 }

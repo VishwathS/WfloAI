@@ -1,0 +1,72 @@
+"use client";
+
+import { useState } from "react";
+import { TEMPLATES } from "@/lib/templates/definitions";
+import type { TemplateCategory } from "@/lib/templates/types";
+import { UseTemplateButton } from "@/components/dashboard/use-template-button";
+
+const CATEGORIES: TemplateCategory[] = Array.from(
+  new Set(TEMPLATES.map((template) => template.category))
+);
+
+export function TemplateGallery() {
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory | "All">("All");
+
+  const visibleTemplates =
+    activeCategory === "All"
+      ? TEMPLATES
+      : TEMPLATES.filter((template) => template.category === activeCategory);
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Templates</h2>
+        <p className="mt-0.5 text-sm text-gray-400">
+          Start faster with a pre-built workflow — clone one and make it yours.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(["All", ...CATEGORIES] as const).map((category) => (
+          <button
+            key={category}
+            type="button"
+            onClick={() => setActiveCategory(category)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeCategory === category
+                ? "bg-violet-600 text-white"
+                : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleTemplates.map((template) => (
+          <div
+            key={template.id}
+            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                {template.category}
+              </span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                {template.complexity}
+              </span>
+            </div>
+            <p className="mt-3 text-base font-semibold text-gray-900">{template.name}</p>
+            <p className="mt-1 flex-1 text-sm leading-relaxed text-gray-500">
+              {template.description}
+            </p>
+            <div className="mt-4">
+              <UseTemplateButton template={template} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
