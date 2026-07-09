@@ -39,24 +39,24 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-xl border bg-white shadow-card ${
         isComplete
-          ? "border-emerald-400/55"
+          ? "border-emerald-400"
           : isError
-            ? "border-rose-400/50"
-            : "border-blue-400"
+            ? "border-rose-400"
+            : "border-blue-300"
       }`}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !border-2 !border-blue-200 !bg-blue-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-blue-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-blue-200"
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-blue-50"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
@@ -70,21 +70,21 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">Action</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-blue-600"}`}>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             {data.label}
           </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
           Action
         </p>
-        <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+        <div className="inline-flex self-start rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
           {data.action}
         </div>
         {showOutput ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
               Output
             </p>
             <div className="max-h-[200px] overflow-y-auto">
@@ -96,7 +96,7 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}
-            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50"
+            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
             View output <ChevronDown className="h-3 w-3" />
           </button>

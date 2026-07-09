@@ -56,7 +56,6 @@ function WorkflowDeleteButton({
         type="button"
         variant="ghost"
         size="sm"
-        className="rounded-full px-4"
         onClick={() => setIsConfirming(false)}
         disabled={isPending}
       >
@@ -66,7 +65,6 @@ function WorkflowDeleteButton({
         type="button"
         variant="destructive"
         size="sm"
-        className="rounded-full px-4"
         disabled={isPending}
         onClick={() => {
           startTransition(async () => {
@@ -83,7 +81,7 @@ function WorkflowDeleteButton({
       type="button"
       variant="ghost"
       size="sm"
-      className="rounded-full px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
       onClick={() => setIsConfirming(true)}
     >
       <Trash2 className="mr-2 h-4 w-4" />
@@ -118,14 +116,14 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
     return (
       <section className="space-y-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Workflow library
           </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
             No workflows yet
           </h2>
         </div>
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-8 py-10 text-center">
           <p className="text-sm text-gray-500">
             Start with a blank workflow and begin shaping your first AI-powered automation.
           </p>
@@ -144,10 +142,10 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
     <section className="space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Workflow library
           </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
             Pick up where you left off
           </h2>
         </div>
@@ -156,37 +154,34 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white divide-y divide-gray-100">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card divide-y divide-gray-100">
         {items.map((workflow) => (
           <div
             key={workflow.id}
-            className="flex flex-wrap items-center gap-3 px-5 py-4 transition hover:bg-gray-50 sm:flex-nowrap"
+            className="flex flex-wrap items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50 sm:flex-nowrap"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-gray-900">{workflow.name}</p>
-              <p className="mt-0.5 text-sm text-gray-500">
+              <p className="truncate text-sm font-medium text-gray-900">{workflow.name}</p>
+              <p className="mt-0.5 text-xs text-gray-500">
                 {workflow.last_run_at
                   ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
                   : "Last run: Never"}
               </p>
               {workflow.next_run_at ? (
-                <p className="mt-0.5 flex items-center gap-1 text-sm text-violet-600">
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-violet-600">
                   <Clock className="h-3.5 w-3.5" />
                   Next run: {formatTimestamp(workflow.next_run_at)}
                 </p>
               ) : null}
             </div>
 
-            <p className="hidden shrink-0 text-sm text-gray-400 sm:block">
+            <p className="hidden shrink-0 text-xs text-gray-400 sm:block">
               Updated {formatRelativeTime(workflow.updated_at)}
             </p>
 
             <Link
               href={`/workflows/${workflow.id}`}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "shrink-0 rounded-full border-violet-200 px-4 text-violet-700 hover:border-violet-300 hover:bg-violet-50"
-              )}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0")}
             >
               Open
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />

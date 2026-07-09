@@ -18,7 +18,7 @@ export function SignOutButton() {
   return (
     <Button
       variant="outline"
-      className="w-full justify-start border-white/10 bg-white/8 text-slate-100 hover:bg-white/14 hover:text-white"
+      className="w-full justify-start"
       onClick={handleSignOut}
     >
       <LogOut className="mr-2 h-4 w-4" />

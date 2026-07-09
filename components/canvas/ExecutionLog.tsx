@@ -46,18 +46,18 @@ function formatDuration(durationMs?: number) {
 
 function statusClassName(status: NodeExecutionState["status"]) {
   if (status === "complete") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "bg-emerald-50 text-emerald-700";
   }
 
   if (status === "running") {
-    return "border-violet-200 bg-violet-50 text-violet-700";
+    return "bg-violet-50 text-violet-700";
   }
 
   if (status === "error") {
-    return "border-rose-200 bg-rose-50 text-rose-700";
+    return "bg-rose-50 text-rose-700";
   }
 
-  return "border-gray-200 bg-gray-100 text-gray-500";
+  return "bg-gray-100 text-gray-600";
 }
 
 export function ExecutionLog({
@@ -110,14 +110,14 @@ export function ExecutionLog({
 
   return (
     <div
-      className={`absolute bottom-4 ${rightClass ?? "right-4"} z-20 overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-lg transition-all duration-300 ${
+      className={`absolute bottom-4 ${rightClass ?? "right-4"} z-20 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-panel transition-all duration-300 ${
         isOpen ? "max-h-[320px]" : "max-h-[58px]"
       }`}
       style={{ width: widthStyle ?? "min(760px, calc(100% - 312px))" }}
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Execution log
           </p>
           <p className="mt-1 text-sm text-gray-500">
@@ -131,7 +131,7 @@ export function ExecutionLog({
             type="button"
             variant="ghost"
             size="sm"
-            className="rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full"
             onClick={onClear}
             disabled={isRunning || entries.length === 0}
           >
@@ -142,7 +142,7 @@ export function ExecutionLog({
             type="button"
             variant="ghost"
             size="icon"
-            className="rounded-full text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-full"
             onClick={() => setIsOpen((currentValue) => !currentValue)}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -185,7 +185,7 @@ export function ExecutionLog({
                     </div>
                     <div>
                       <span
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${statusClassName(
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${statusClassName(
                           state.status
                         )}`}
                       >

@@ -16,19 +16,19 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
+      className={`relative flex h-full flex-col min-w-[220px] overflow-hidden rounded-xl border bg-white shadow-card ${
         isComplete
-          ? "border-emerald-400/60"
+          ? "border-emerald-400"
           : isError
-            ? "border-rose-400/50"
-            : "border-emerald-400"
+            ? "border-rose-400"
+            : "border-emerald-300"
       }`}
     >
       <div
-        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-emerald-200"
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-emerald-50"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
@@ -42,7 +42,7 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">Trigger</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-emerald-600"}`}>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             {data.label}
           </p>
         </div>
@@ -55,7 +55,7 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-emerald-200 !bg-emerald-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-emerald-500"
       />
       <div
         className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"

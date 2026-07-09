@@ -22,7 +22,7 @@ function normalizeGraph(graph: Workflow["graph"]) {
     ? graph.edges.map((edge) => ({
         ...edge,
         type: "smoothstep",
-        animated: true
+        animated: false
       }))
     : [];
 
@@ -53,27 +53,22 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
   const graph = normalizeGraph(workflow.graph);
 
   return (
-    <div className="space-y-5 p-4 lg:p-6">
-      <div className="flex flex-col gap-4 rounded-[24px] border border-gray-200 bg-white px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <Link
-            href="/"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "h-8 w-fit px-0 text-sm text-gray-600 hover:text-gray-900"
-            )}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to dashboard
-          </Link>
-        </div>
-        <div className="min-w-0 flex-1 space-y-2 sm:max-w-3xl">
-          <WorkflowTitleEditor workflowId={workflow.id} initialName={workflow.name} />
-          <p className="text-sm leading-6 text-gray-500">
-            Arrange triggers, AI steps, and terminal actions visually, then save the
-            workflow graph back to Supabase.
-          </p>
-        </div>
+    <div className="flex h-[calc(100vh-2rem)] min-h-[600px] flex-col gap-3 p-4 lg:px-6 lg:pt-4">
+      <div className="min-w-0">
+        <Link
+          href="/"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "h-7 w-fit px-0 text-xs text-gray-500 hover:bg-transparent hover:text-gray-900"
+          )}
+        >
+          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+          Back to dashboard
+        </Link>
+        <WorkflowTitleEditor workflowId={workflow.id} initialName={workflow.name} />
+        <p className="mt-0.5 text-sm text-gray-500">
+          Arrange triggers, AI steps, and actions visually.
+        </p>
       </div>
 
       <WorkflowCanvasShell

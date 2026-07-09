@@ -42,11 +42,7 @@ async function createWorkflow() {
 export function CreateWorkflowButton() {
   return (
     <form action={createWorkflow}>
-      <Button
-        type="submit"
-        size="lg"
-        className="h-11 rounded-full bg-violet-600 px-6 text-[15px] font-semibold text-white shadow-none hover:bg-violet-700"
-      >
+      <Button type="submit">
         <Plus className="mr-2 h-4 w-4" />
         New workflow
       </Button>

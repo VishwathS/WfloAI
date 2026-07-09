@@ -10,15 +10,15 @@ export async function DashboardSidebar() {
   } = await supabase.auth.getUser();
 
   return (
-    <aside className="flex flex-col gap-5 rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
+    <aside className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
+      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
             <Bot className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-base font-semibold tracking-tight text-gray-900">WfloAI</p>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-gray-400">
+            <p className="text-sm font-semibold tracking-tight text-gray-900">WfloAI</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
               AI workflow studio
             </p>
           </div>
@@ -28,16 +28,16 @@ export async function DashboardSidebar() {
       <nav className="space-y-1">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-3.5 py-2.5 text-sm font-medium text-violet-700 transition hover:bg-violet-100"
+          className="flex items-center gap-3 rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition-colors hover:bg-violet-100"
         >
           <LayoutGrid className="h-4 w-4" />
           Dashboard
         </Link>
       </nav>
 
-      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
+      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Builder mode
           </p>
           <Workflow className="h-4 w-4 text-violet-400" />
@@ -47,9 +47,9 @@ export async function DashboardSidebar() {
         </p>
       </div>
 
-      <div className="rounded-[20px] border border-gray-100 bg-gray-50 p-3.5">
+      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-xl bg-violet-100 p-2 text-violet-600">
+          <div className="mt-0.5 rounded-lg bg-violet-100 p-2 text-violet-600">
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="space-y-1">

@@ -45,24 +45,24 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-xl border bg-white shadow-card ${
         isComplete
-          ? "border-emerald-400/55"
+          ? "border-emerald-400"
           : isError
-            ? "border-rose-400/50"
-            : "border-violet-400"
+            ? "border-rose-400"
+            : "border-violet-300"
       }`}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !border-2 !border-violet-200 !bg-violet-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-violet-500"
       />
       <div
-        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-violet-200"
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-violet-50"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-600" />
@@ -76,14 +76,14 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">AI Node</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-violet-600"}`}>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             {data.label}
           </p>
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
             Output Mode
           </p>
           <div className="flex overflow-hidden rounded-full border border-gray-200 text-xs">
@@ -113,7 +113,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         </div>
         {outputMode === "json" ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
               Action Type
             </p>
             <select
@@ -122,7 +122,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
                 const val = e.target.value;
                 updateData({ action: val ? (val as AIActionType) : undefined });
               }}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
             >
               <option value="">Select action…</option>
               {ACTION_TYPES.map((a) => (
@@ -135,7 +135,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         ) : null}
         {outputMode === "json" && data.action === "Extract" ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
               Output Fields
             </p>
             <input
@@ -148,24 +148,24 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
                   .filter(Boolean);
                 updateData({ outputFields: nextFields });
               }}
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
               placeholder="name, email, phone"
             />
           </div>
         ) : null}
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Prompt</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Prompt</p>
         <textarea
           value={data.prompt}
           onChange={(e) => updateData({ prompt: e.target.value })}
-          className="flex-1 min-h-[120px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+          className="flex-1 min-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
           placeholder="Tell this AI node what to do with its incoming data."
         />
         {showOutput ? (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
               Output
             </p>
-            <div className="min-h-[110px] whitespace-pre-wrap rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
+            <div className="min-h-[110px] whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
               {executionState.output || (isRunning ? "Streaming response…" : "")}
             </div>
           </div>
@@ -174,7 +174,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
           <button
             type="button"
             onClick={() => setIsOutputOpen(true)}
-            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50"
+            className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
             View output <ChevronDown className="h-3 w-3" />
           </button>
@@ -186,7 +186,7 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-violet-200 !bg-violet-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-violet-500"
       />
       <div
         className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"

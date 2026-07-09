@@ -32,19 +32,19 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[240px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
+      className={`relative flex h-full flex-col min-w-[240px] overflow-hidden rounded-xl border bg-white shadow-card ${
         isComplete
-          ? "border-emerald-400/60"
+          ? "border-emerald-400"
           : isError
-            ? "border-rose-400/50"
-            : "border-fuchsia-400"
+            ? "border-rose-400"
+            : "border-fuchsia-300"
       }`}
     >
       <div
-        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-fuchsia-200"
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-fuchsia-50"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-fuchsia-600" />
@@ -58,7 +58,7 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">Input</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-fuchsia-600"}`}>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             Information for this workflow
           </p>
         </div>
@@ -66,38 +66,38 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Label</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Label</p>
           <input
             type="text"
             value={data.label}
             onChange={(e) => handleLabelChange(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/25"
             placeholder="e.g. Company Name"
           />
           {data.key ? (
-            <p className="font-mono text-[11px] text-fuchsia-400/80">{`{{${data.key}}}`}</p>
+            <p className="font-mono text-[11px] text-fuchsia-500">{`{{${data.key}}}`}</p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Value</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Value</p>
           <textarea
             value={data.defaultValue}
             onChange={(e) => updateData({ defaultValue: e.target.value })}
-            className="flex-1 min-h-[72px] w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
+            className="flex-1 min-h-[72px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/25"
             placeholder="Paste or type anything this workflow needs…"
           />
         </div>
 
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
 
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-fuchsia-200 !bg-fuchsia-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-fuchsia-500"
       />
       <div
         className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"

@@ -56,22 +56,17 @@ export function CanvasToolbar({
       : "All changes saved";
 
   return (
-    <div className="flex flex-col gap-4 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
-          Canvas
-        </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+    <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-4 py-2">
+      {isFullscreen ? (
+        <span className="mr-2 min-w-0 truncate text-sm font-semibold text-gray-900">
           {workflowName}
-        </h2>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
+        </span>
+      ) : null}
         <button
           type="button"
           className={cn(
-            "flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500 transition hover:bg-gray-50",
-            settingsOpen && "border-violet-200 bg-violet-50 text-violet-700"
+            "flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900",
+            settingsOpen && "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 hover:text-violet-700"
           )}
           onClick={onToggleSettings}
         >
@@ -87,18 +82,18 @@ export function CanvasToolbar({
             </>
           )}
         </button>
-        <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">
           <span
-            className={`h-2.5 w-2.5 rounded-full ${
+            className={`h-2 w-2 rounded-full ${
               hasUnsavedChanges || isSaving ? "bg-amber-400" : "bg-emerald-400"
             }`}
           />
           {statusLabel}
         </div>
+      <div className="ml-auto flex flex-wrap items-center gap-2">
         <Button
           type="button"
-          variant="secondary"
-          className="rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+          variant="outline"
           onClick={onSave}
           disabled={isSaving}
         >
@@ -107,8 +102,6 @@ export function CanvasToolbar({
         </Button>
         <Button
           type="button"
-          variant="outline"
-          className="rounded-full border-transparent bg-violet-600 text-white hover:bg-violet-700"
           onClick={onRun}
           disabled={isRunning}
         >
@@ -123,8 +116,7 @@ export function CanvasToolbar({
           type="button"
           variant="outline"
           className={cn(
-            "rounded-full border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
-            historyOpen && "border-violet-200 bg-violet-50 text-violet-700"
+            historyOpen && "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 hover:text-violet-700"
           )}
           onClick={onToggleHistory}
         >
@@ -134,7 +126,6 @@ export function CanvasToolbar({
         <Button
           type="button"
           variant="outline"
-          className="rounded-full border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
           onClick={onToggleFullscreen}
         >
           {isFullscreen ? (

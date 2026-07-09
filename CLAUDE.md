@@ -246,20 +246,20 @@ All node components share a consistent visual template. Follow this pattern when
 
 **Root container:**
 ```jsx
-className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
-  isComplete ? "border-emerald-400/55" : isError ? "border-rose-400/50" : "border-{color}-400"
+className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-xl border bg-white shadow-card ${
+  isComplete ? "border-emerald-400" : isError ? "border-rose-400" : "border-{color}-300"
 }`}
 ```
-- `border-2` — 2px border on all sides
-- Idle: `border-{color}-400` — accent-colored, fully opaque
-- Complete: `border-emerald-400/55` — green at 55% opacity
-- Error: `border-rose-400/50` — red at 50% opacity
+- 1px border on all sides
+- Idle: `border-{color}-300` — soft accent tint
+- Complete: `border-emerald-400`; Error: `border-rose-400` (fully opaque, no alpha)
+- `shadow-card` is defined in `tailwind.config.ts` (`0 1px 2px rgba(16,16,20,0.04)`); floating panels use `shadow-panel`
 
 **Header (always white background):**
 ```jsx
-<div className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}>
-  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-    isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-{color}-100"
+<div className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}>
+  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+    isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-{color}-50"
   }`}>
     {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin text-{color}-600" />
     : isComplete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
@@ -268,10 +268,12 @@ className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-
   </div>
   <div>
     <p className="text-sm font-semibold text-gray-900">Node Title</p>
-    <p className={`text-xs ${isError ? "text-rose-600" : "text-{color}-600"}`}>{data.label}</p>
+    <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>{data.label}</p>
   </div>
 </div>
 ```
+
+**Handles:** `!h-2.5 !w-2.5 !border-2 !border-white !bg-{color}-500` (RouterNode true/false output handles use emerald/rose fills). Error text inside nodes is always `text-rose-600`.
 
 **Accent color per node type:**
 
@@ -286,14 +288,16 @@ className={`relative flex h-full flex-col min-w-[...px] overflow-hidden rounded-
 | `fileInputNode` | `orange` | `FileText` |
 
 **Form inputs inside the node:**
-- Background: `bg-gray-50`, border: `border-gray-200`
-- Focus: `focus:border-{color}-400 focus:ring-2 focus:ring-{color}-500/20`
+- Background: `bg-gray-50`, border: `border-gray-200`, radius: `rounded-lg`
+- Focus: `focus:border-{color}-400 focus:ring-2 focus:ring-{color}-500/25`
 - Text: `text-gray-900`, placeholder: `placeholder:text-gray-400`
 
-**Section labels:**
+**Section labels (used app-wide for eyebrows/labels):**
 ```jsx
-<p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Label</p>
+<p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Label</p>
 ```
+
+**Global typography:** Inter loaded via `next/font/google` in `app/layout.tsx` (`--font-sans`, wired to Tailwind `fontFamily.sans`). Page titles `text-xl font-semibold tracking-tight`; panel titles `text-sm font-semibold`; radius scale: shells `rounded-2xl`, cards/nodes `rounded-xl`, inputs `rounded-lg`, pills `rounded-full`.
 
 ### Node resizing
 

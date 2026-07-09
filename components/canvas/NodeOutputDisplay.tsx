@@ -42,17 +42,17 @@ export function NodeOutputDisplay({ output }: { output: string }) {
 
   if (!parsed) {
     return (
-      <div className="whitespace-pre-wrap rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm leading-6 text-gray-700">
+      <div className="whitespace-pre-wrap rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-sm leading-6 text-gray-700">
         {cleaned || "No output captured."}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3">
+    <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
       {Object.entries(parsed).map(([key, value]) => (
         <div key={key}>
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400">
             {labelCase(key)}
           </p>
           {Array.isArray(value) ? (

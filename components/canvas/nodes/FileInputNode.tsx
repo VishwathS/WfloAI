@@ -163,19 +163,19 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-3xl border-2 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] ${
+      className={`relative flex h-full flex-col min-w-[260px] overflow-hidden rounded-xl border bg-white shadow-card ${
         isComplete
-          ? "border-emerald-400/60"
+          ? "border-emerald-400"
           : isError
-            ? "border-rose-400/50"
-            : "border-orange-400"
+            ? "border-rose-400"
+            : "border-orange-300"
       }`}
     >
       <div
-        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3 ${isRunning ? "animate-pulse" : ""}`}
+        className={`flex flex-shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-2.5 ${isRunning ? "animate-pulse" : ""}`}
       >
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-orange-100"
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isError ? "bg-rose-100" : isComplete ? "bg-emerald-100" : "bg-orange-50"
         }`}>
           {isRunning ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-600" />
@@ -189,7 +189,7 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">File Input</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-orange-600"}`}>
+          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             {data.label || "Document for this workflow"}
           </p>
         </div>
@@ -205,7 +205,7 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
         />
 
         {isUploading ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-orange-300 bg-orange-50/50 px-3 py-6">
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-orange-300 bg-orange-50/50 px-3 py-6">
             <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
             <p className="max-w-full truncate text-xs font-medium text-gray-600">
               Uploading {uploadingName}…
@@ -213,14 +213,14 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
           </div>
         ) : hasFile ? (
           <div className="flex flex-col gap-3">
-            <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-orange-500" />
                 <p className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">
                   {data.filename}
                 </p>
                 {extension ? (
-                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700">
+                  <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-orange-700">
                     {extension}
                   </span>
                 ) : null}
@@ -243,14 +243,14 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
               >
                 <RefreshCw className="h-3 w-3" /> Replace
               </button>
               <button
                 type="button"
                 onClick={() => void handleRemove()}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50"
               >
                 <Trash2 className="h-3 w-3" /> Remove
               </button>
@@ -264,10 +264,10 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-orange-300 bg-orange-50/50 px-3 py-6 transition hover:bg-orange-50"
+            className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-orange-300 bg-orange-50/50 px-3 py-6 transition-colors hover:bg-orange-50"
           >
             <UploadCloud className="h-5 w-5 text-orange-500" />
-            <p className="text-xs font-semibold text-gray-700">Upload a file</p>
+            <p className="text-xs font-medium text-gray-700">Upload a file</p>
             <p className="text-[11px] text-gray-400">PDF, DOCX, TXT, MD, CSV · up to 20 MB</p>
           </button>
         )}
@@ -277,14 +277,14 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
         ) : null}
 
         {isError && executionState.error ? (
-          <p className="text-xs leading-5 text-rose-300">{executionState.error}</p>
+          <p className="text-xs leading-5 text-rose-600">{executionState.error}</p>
         ) : null}
       </div>
 
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-orange-200 !bg-orange-500"
+        className="!h-2.5 !w-2.5 !border-2 !border-white !bg-orange-500"
       />
       <div
         className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize"

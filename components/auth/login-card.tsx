@@ -36,14 +36,14 @@ export function LoginCard({ nextPath = "/" }: LoginCardProps) {
   }
 
   return (
-    <Card className="w-full max-w-md border-white/10 bg-white/95 shadow-2xl shadow-sky-950/20">
+    <Card className="w-full max-w-md shadow-panel">
       <CardHeader className="space-y-3">
-        <p className="text-sm font-medium uppercase tracking-[0.24em] text-sky-600">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-violet-600">
           WfloAI
         </p>
         <div>
-          <CardTitle className="text-3xl text-slate-950">Sign in</CardTitle>
-          <CardDescription className="mt-2 text-slate-600">
+          <CardTitle className="text-2xl tracking-tight text-gray-900">Sign in</CardTitle>
+          <CardDescription className="mt-2 text-gray-600">
             Continue with Google to access your workflows and start building AI-powered
             automations.
           </CardDescription>

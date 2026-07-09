@@ -41,9 +41,8 @@ export function WorkflowTitleEditor({
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="relative max-w-xl flex-1">
-        <PencilLine className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <div className="flex items-center gap-3">
+      <div className="relative flex min-w-0 max-w-xl flex-1 items-center gap-2">
         <Input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -55,12 +54,13 @@ export function WorkflowTitleEditor({
               event.currentTarget.blur();
             }
           }}
-          className="h-14 rounded-2xl border-slate-300 pl-11 text-3xl font-semibold tracking-tight text-slate-950"
+          className="h-auto rounded-lg border-transparent bg-transparent px-1 py-0.5 text-3xl font-semibold tracking-tight text-gray-900 shadow-none transition-colors hover:bg-gray-50 focus-visible:border-gray-200 focus-visible:bg-white"
           aria-label="Workflow name"
         />
+        <PencilLine className="pointer-events-none h-4 w-4 shrink-0 text-gray-400" />
       </div>
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Check className="h-4 w-4 text-emerald-500" />
+      <div className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
+        <Check className="h-3.5 w-3.5 text-emerald-500" />
         {isPending ? "Saving..." : "Saved automatically"}
       </div>
     </div>

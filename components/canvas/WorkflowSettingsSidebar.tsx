@@ -103,9 +103,9 @@ function formStateFromSchedule(schedule: WorkflowSchedule): ScheduleFormState {
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20";
+  "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30";
 
-const sectionLabelClass = "text-xs font-semibold uppercase tracking-[0.22em] text-gray-400";
+const sectionLabelClass = "text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400";
 
 export function WorkflowSettingsSidebar({
   workflowId,
@@ -259,10 +259,10 @@ export function WorkflowSettingsSidebar({
     <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-hidden border-l border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Workflow settings
           </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-gray-900">Triggers</h2>
+          <h2 className="mt-1 text-sm font-semibold text-gray-900">Triggers</h2>
         </div>
         <Button
           type="button"
@@ -281,7 +281,7 @@ export function WorkflowSettingsSidebar({
           {!isEditing ? (
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-violet-600 transition hover:bg-violet-50"
+              className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-violet-600 transition-colors hover:bg-violet-50"
               onClick={() => openEditor("new")}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -391,7 +391,7 @@ export function WorkflowSettingsSidebar({
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 rounded-full border-transparent bg-violet-600 text-white hover:bg-violet-700"
+                className="flex-1"
                 disabled={isSaving}
                 onClick={() => void handleSubmit()}
               >
@@ -428,10 +428,10 @@ export function WorkflowSettingsSidebar({
                       {schedule.name}
                     </span>
                     <span
-                      className={`ml-auto mr-6 inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                      className={`ml-auto mr-6 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         schedule.enabled
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-gray-200 bg-gray-50 text-gray-500"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {schedule.enabled ? "On" : "Off"}

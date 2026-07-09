@@ -101,11 +101,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
-      <section className="rounded-[24px] border border-gray-200 bg-gradient-to-br from-white to-violet-50/40 px-8 py-10 shadow-sm">
-        <p className="text-2xl font-semibold text-gray-900">
-          Good {timeOfDay}, {displayName} 👋
+      <section className="rounded-2xl border border-gray-200 bg-white px-8 py-8 shadow-card">
+        <p className="text-xl font-semibold tracking-tight text-gray-900">
+          Good {timeOfDay}, {displayName}
         </p>
-        <p className="mt-2 text-base font-medium text-gray-600">
+        <p className="mt-2 text-sm text-gray-600">
           Build AI-native automations visually.
         </p>
         <p className="mt-0.5 text-sm text-gray-400">
@@ -117,22 +117,22 @@ export default async function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Library
           </p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
+          <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums text-gray-900">
             {workflowCount} {workflowCount === 1 ? "workflow" : "workflows"}
           </p>
           <p className="mt-2 text-sm leading-6 text-gray-500">
             Everything you are building lives here, ready to be edited or expanded.
           </p>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Recent activity
           </p>
-          <p className="mt-3 text-lg font-semibold text-gray-900">
+          <p className="mt-3 text-base font-semibold text-gray-900">
             {latestWorkflow ? formatTimestamp(latestWorkflow.updated_at) : "No activity yet"}
           </p>
           <p className="mt-2 text-sm leading-6 text-gray-500">

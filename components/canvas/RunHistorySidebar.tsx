@@ -67,10 +67,10 @@ export function RunHistorySidebar({
     <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-hidden border-l border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
             Run history
           </p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-gray-900">Past runs</h2>
+          <h2 className="mt-1 text-sm font-semibold text-gray-900">Past runs</h2>
         </div>
         <Button
           type="button"
@@ -110,10 +110,10 @@ export function RunHistorySidebar({
                         {formatTimestamp(run.created_at)}
                       </span>
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           run.status === "success"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-rose-200 bg-rose-50 text-rose-700"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-rose-50 text-rose-700"
                         }`}
                       >
                         {run.status === "success" ? "Success" : "Error"}

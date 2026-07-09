@@ -216,10 +216,10 @@ export function WorkflowCanvasShell({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-gray-300 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)]",
+        "flex flex-col overflow-hidden border border-gray-200 bg-white shadow-card",
         isFullscreen
           ? "fixed inset-0 z-50 rounded-none border-none shadow-none !mt-0"
-          : "h-[calc(100vh-8rem)] min-h-[760px] rounded-[30px]"
+          : "flex-1 min-h-0 rounded-xl"
       )}
     >
       <CanvasToolbar

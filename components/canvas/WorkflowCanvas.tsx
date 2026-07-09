@@ -21,7 +21,7 @@ import {
   type ReactFlowInstance
 } from "reactflow";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Hand, Minus, MousePointer2, Plus, Scan } from "lucide-react";
 import "reactflow/dist/style.css";
 import { TriggerNode } from "@/components/canvas/nodes/TriggerNode";
 import { AINode } from "@/components/canvas/nodes/AINode";
@@ -58,13 +58,13 @@ const edgeTypes: EdgeTypes = {
   smoothstep: DeletableEdge
 };
 
-const CONNECTION_LINE_STYLE = { stroke: "#6366f1", strokeWidth: 2.5 } as const;
+const CONNECTION_LINE_STYLE = { stroke: "#8b5cf6", strokeWidth: 1.75 } as const;
 
 const EDGE_DEFAULTS = {
   type: "smoothstep" as const,
-  animated: true,
+  animated: false,
   deletable: true,
-  style: { stroke: "#6366f1", strokeWidth: 2.5 }
+  style: { stroke: "#8b5cf6", strokeWidth: 1.75 }
 };
 
 type CanvasNodeData =
@@ -158,7 +158,7 @@ function WorkflowCanvasInner({
 }: WorkflowCanvasProps) {
   const nodes = useNodes<CanvasNodeData>();
   const edges = useEdges();
-  const { setNodes, setEdges, zoomIn, zoomOut } = useReactFlow<CanvasNodeData>();
+  const { setNodes, setEdges, zoomIn, zoomOut, fitView } = useReactFlow<CanvasNodeData>();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -320,7 +320,7 @@ function WorkflowCanvasInner({
   const showEmptyState = isReady && nodes.length === 0;
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-slate-50">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-gray-50">
       <NodeSidebar />
       <div className="relative min-h-0 flex-1">
         <ReactFlow
@@ -346,19 +346,50 @@ function WorkflowCanvasInner({
           onDrop={onDrop}
           minZoom={0.35}
           maxZoom={1.8}
-          className="bg-slate-50"
+          className="bg-gray-50"
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} color="#94a3b8" />
+          <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#d4d4d8" />
           <MiniMap
             pannable
             zoomable
             nodeColor={miniMapNodeColor}
-            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-2xl !border !border-gray-200 !bg-slate-50"
+            className="!bottom-5 !right-5 !left-auto !h-[120px] !w-[180px] !rounded-xl !border !border-gray-200 !bg-gray-50"
             maskColor="rgba(249, 250, 251, 0.75)"
           />
         </ReactFlow>
-        <div className="absolute bottom-5 right-[184px] z-10 flex overflow-hidden rounded-full border border-gray-200 bg-white shadow-md">
+        <div className="absolute left-3 top-3 z-10 flex overflow-hidden rounded-lg border border-gray-200 bg-white shadow-card">
+          <button
+            type="button"
+            disabled
+            className="flex h-8 w-8 cursor-default items-center justify-center text-gray-300"
+            aria-label="Pointer tool (coming soon)"
+            title="Pointer"
+          >
+            <MousePointer2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            disabled
+            className="flex h-8 w-8 cursor-default items-center justify-center border-l border-gray-100 text-gray-300"
+            aria-label="Hand tool (coming soon)"
+            title="Hand"
+          >
+            <Hand className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center border-l border-gray-100 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            onClick={() => {
+              void fitView();
+            }}
+            aria-label="Fit view"
+            title="Fit view"
+          >
+            <Scan className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="absolute bottom-5 right-[184px] z-10 flex overflow-hidden rounded-full border border-gray-200 bg-white shadow-card">
           <button
             type="button"
             className="flex h-8 w-8 items-center justify-center text-gray-700 transition hover:bg-gray-100"
@@ -382,14 +413,14 @@ function WorkflowCanvasInner({
         </div>
         {showEmptyState ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="rounded-[28px] border border-gray-200 bg-white px-8 py-7 text-center shadow-sm">
-              <div className="flex items-center justify-center gap-3 text-violet-500">
-                <ArrowLeft className="h-5 w-5 animate-[pulse_1.8s_ease-in-out_infinite]" />
-                <span className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-500">
+            <div className="rounded-xl border border-dashed border-gray-300 bg-white/80 px-8 py-7 text-center shadow-card">
+              <div className="flex items-center justify-center gap-2 text-gray-400">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
                   Start here
                 </span>
               </div>
-              <p className="mt-4 max-w-md text-xl font-semibold tracking-tight text-gray-900">
+              <p className="mt-3 max-w-md text-base font-semibold tracking-tight text-gray-900">
                 Drag an Input node from the sidebar to start your workflow
               </p>
             </div>
@@ -397,7 +428,7 @@ function WorkflowCanvasInner({
         ) : null}
       </div>
       {!isReady ? (
-        <div className="pointer-events-none absolute inset-0 bg-slate-50" />
+        <div className="pointer-events-none absolute inset-0 bg-gray-50" />
       ) : null}
     </div>
   );
