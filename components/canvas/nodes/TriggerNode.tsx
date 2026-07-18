@@ -1,12 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, Loader2, Zap } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { TriggerNodeData } from "@/lib/types";
 
-export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
+export const TriggerNode = memo(function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
@@ -63,4 +64,4 @@ export function TriggerNode({ id, data }: NodeProps<TriggerNodeData>) {
       />
     </div>
   );
-}
+});

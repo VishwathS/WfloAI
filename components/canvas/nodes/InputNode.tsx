@@ -1,13 +1,15 @@
 "use client";
 
+import { memo } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, Inbox, Loader2 } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { InputNodeData } from "@/lib/types";
 import { labelToKey } from "@/lib/utils";
 
-export function InputNode({ id, data }: NodeProps<InputNodeData>) {
+export const InputNode = memo(function InputNode({ id, data }: NodeProps<InputNodeData>) {
   const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
@@ -25,9 +27,12 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
     );
   }
 
-  function handleLabelChange(label: string) {
-    updateData({ label, key: labelToKey(label) });
-  }
+  const labelField = useBufferedField(data.label, (label) =>
+    updateData({ label, key: labelToKey(label) })
+  );
+  const valueField = useBufferedField(data.defaultValue, (defaultValue) =>
+    updateData({ defaultValue })
+  );
 
   return (
     <div
@@ -69,8 +74,11 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Label</p>
           <input
             type="text"
-            value={data.label}
-            onChange={(e) => handleLabelChange(e.target.value)}
+            value={labelField.value}
+            onChange={labelField.onChange}
+            onFocus={labelField.onFocus}
+            onBlur={labelField.onBlur}
+            onKeyDown={labelField.onEnterKeyDown}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/25"
             placeholder="e.g. Company Name"
           />
@@ -82,8 +90,10 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Value</p>
           <textarea
-            value={data.defaultValue}
-            onChange={(e) => updateData({ defaultValue: e.target.value })}
+            value={valueField.value}
+            onChange={valueField.onChange}
+            onFocus={valueField.onFocus}
+            onBlur={valueField.onBlur}
             className="flex-1 min-h-[72px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/25"
             placeholder="Paste or type anything this workflow needs…"
           />
@@ -105,4 +115,4 @@ export function InputNode({ id, data }: NodeProps<InputNodeData>) {
       />
     </div>
   );
-}
+});

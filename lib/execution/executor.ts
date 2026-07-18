@@ -125,6 +125,10 @@ function buildParentContext(
   return parentOutputs.join("\n\n");
 }
 
+function stripStructuredPrefix(raw: string): string {
+  return raw.replace(/^Structured output:\n/m, "");
+}
+
 async function requestAIText(
   prompt: string,
   context: string,
@@ -247,10 +251,10 @@ async function executeRouterNode(
 
   if (data.conditionField && typeof data.conditionValue === "string") {
     try {
-      const parsed = JSON.parse(context) as Record<string, unknown>;
+      const parsed = JSON.parse(stripStructuredPrefix(context)) as Record<string, unknown>;
       if (parsed[data.conditionField] !== undefined) {
         const matched = String(parsed[data.conditionField]) === data.conditionValue;
-        return { output: context, route: matched ? "true" : "false" };
+        return { output: stripStructuredPrefix(context), route: matched ? "true" : "false" };
       }
     } catch {
       // context is not JSON — fall through to AI routing
@@ -269,7 +273,7 @@ Respond with exactly one word: true or false. No punctuation, no explanation.`;
     throw new Error('Router node must respond with only "true" or "false".');
   }
 
-  return { output: context, route: normalizedDecision };
+  return { output: stripStructuredPrefix(context), route: normalizedDecision };
 }
 
 export async function executeWorkflow(
@@ -344,7 +348,7 @@ export async function executeWorkflow(
         result = await executeRouterNode(node, parentContext, namedInputs);
       } else if (node.type === "actionNode") {
         await delay(300);
-        result = { output: parentContext || "Output saved." };
+        result = { output: stripStructuredPrefix(parentContext) || "Output saved." };
       } else if (node.type === "aiNode") {
         result = await executeAINode(node, parentContext, onEvent, namedInputs);
       } else if (node.type === "lookupNode") {
@@ -353,18 +357,20 @@ export async function executeWorkflow(
         throw new Error(`Unsupported node type: ${node.type}`);
       }
 
-      outputsByNodeId.set(node.id, result.output);
-      executedNodeIds.add(node.id);
-
       if (node.type === "routerNode") {
-        appendActiveEdges(
-          edges.filter(
-            (edge) => edge.source === node.id && edge.sourceHandle === result.route
-          )
+        const branchEdges = edges.filter(
+          (edge) => edge.source === node.id && edge.sourceHandle === result.route
         );
+        if (branchEdges.length === 0) {
+          result.output += `\n\n⚠️ Routed to "${result.route}", but nothing is connected to the ${result.route} branch — the workflow stopped here.`;
+        }
+        appendActiveEdges(branchEdges);
       } else {
         appendActiveEdges(edges.filter((edge) => edge.source === node.id));
       }
+
+      outputsByNodeId.set(node.id, result.output);
+      executedNodeIds.add(node.id);
 
       await onEvent({
         type: "node:complete",

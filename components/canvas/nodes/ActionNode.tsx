@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Handle, Position, type NodeProps, useEdges } from "reactflow";
 import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, TerminalSquare } from "lucide-react";
 import { useIsWorkflowRunning, useNodeExecutionState, useNodeStates } from "@/components/canvas/execution-context";
@@ -8,7 +8,7 @@ import { useNodeResize } from "@/hooks/useNodeResize";
 import type { ActionNodeData } from "@/lib/types";
 import { NodeOutputDisplay } from "@/components/canvas/NodeOutputDisplay";
 
-export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
+export const ActionNode = memo(function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isWorkflowRunning = useIsWorkflowRunning();
@@ -111,4 +111,4 @@ export function ActionNode({ id, data }: NodeProps<ActionNodeData>) {
       />
     </div>
   );
-}
+});

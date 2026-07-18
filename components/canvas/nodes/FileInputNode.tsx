@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { memo, useRef, useState, type ChangeEvent } from "react";
 import { useParams } from "next/navigation";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import {
@@ -33,7 +33,7 @@ interface UploadResponse {
   error?: string;
 }
 
-export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
+export const FileInputNode = memo(function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
   const params = useParams<{ id: string }>();
   const workflowId = params.id;
   const { setNodes } = useReactFlow();
@@ -292,4 +292,4 @@ export function FileInputNode({ id, data }: NodeProps<FileInputNodeData>) {
       />
     </div>
   );
-}
+});

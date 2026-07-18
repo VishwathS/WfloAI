@@ -1,18 +1,30 @@
 "use client";
 
+import { memo } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, Loader2, Search } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { LookupNodeData } from "@/lib/types";
 
-export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
+export const LookupNode = memo(function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
   const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
+
+  const queryField = useBufferedField(data.query, (query) =>
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? ({ ...node, data: { ...(node.data as LookupNodeData), query } } as Node<LookupNodeData>)
+          : node
+      )
+    )
+  );
 
   return (
     <div
@@ -63,23 +75,10 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
           Query
         </p>
         <textarea
-          value={data.query}
-          onChange={(event) => {
-            const nextQuery = event.target.value;
-            setNodes((nodes) =>
-              nodes.map((node) =>
-                node.id === id
-                  ? ({
-                      ...node,
-                      data: {
-                        ...(node.data as LookupNodeData),
-                        query: nextQuery
-                      }
-                    } as Node<LookupNodeData>)
-                  : node
-              )
-            );
-          }}
+          value={queryField.value}
+          onChange={queryField.onChange}
+          onFocus={queryField.onFocus}
+          onBlur={queryField.onBlur}
           className="flex-1 min-h-[80px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/25"
           placeholder="{{input}} or e.g. Latest AI coding tools"
         />
@@ -136,4 +135,4 @@ export function LookupNode({ id, data }: NodeProps<LookupNodeData>) {
       />
     </div>
   );
-}
+});

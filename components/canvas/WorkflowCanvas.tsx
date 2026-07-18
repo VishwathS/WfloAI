@@ -12,6 +12,7 @@ import {
   useEdges,
   useNodes,
   useReactFlow,
+  useStore,
   type Connection,
   type Edge,
   type EdgeTypes,
@@ -20,7 +21,15 @@ import {
   type NodeTypes,
   type ReactFlowInstance
 } from "reactflow";
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type MutableRefObject
+} from "react";
 import { ArrowLeft, Hand, Minus, MousePointer2, Plus, Scan } from "lucide-react";
 import "reactflow/dist/style.css";
 import { TriggerNode } from "@/components/canvas/nodes/TriggerNode";
@@ -83,6 +92,7 @@ interface WorkflowCanvasProps {
   initialEdges: CanvasEdge[];
   onSave: (nodes: CanvasNode[], edges: CanvasEdge[]) => void;
   onCancelSave: () => void;
+  getGraphRef: MutableRefObject<(() => { nodes: CanvasNode[]; edges: CanvasEdge[] }) | null>;
 }
 
 function withAnimatedEdges(edges: CanvasEdge[]) {
@@ -150,29 +160,20 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
   } satisfies AINodeData;
 }
 
-function WorkflowCanvasInner({
-  initialNodes,
-  initialEdges,
-  onSave,
-  onCancelSave
-}: WorkflowCanvasProps) {
+// Subscribes to node/edge changes in isolation so per-edit store updates re-render only this
+// null component instead of the whole canvas tree (sidebar, minimap, toolbar).
+function GraphChangeSaver({
+  reactFlowRef,
+  isDraggingRef,
+  saveSnapshotRef
+}: {
+  reactFlowRef: MutableRefObject<ReactFlowInstance | null>;
+  isDraggingRef: MutableRefObject<boolean>;
+  saveSnapshotRef: MutableRefObject<(nodes: CanvasNode[], edges: CanvasEdge[]) => void>;
+}) {
   const nodes = useNodes<CanvasNodeData>();
   const edges = useEdges();
-  const { setNodes, setEdges, zoomIn, zoomOut, fitView } = useReactFlow<CanvasNodeData>();
-  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const hasMountedRef = useRef(false);
-  const isDraggingRef = useRef(false);
-  const saveSnapshotRef = useRef(onSave);
-  const cancelSaveRef = useRef(onCancelSave);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    saveSnapshotRef.current = onSave;
-  }, [onSave]);
-
-  useEffect(() => {
-    cancelSaveRef.current = onCancelSave;
-  }, [onCancelSave]);
 
   // Fires for node adds, deletes, edge adds/deletes — NOT used for drag (handled by onNodeDragStop).
   // useEffect is async so it always fires after onNodeDragStart sets isDraggingRef, making the
@@ -191,7 +192,33 @@ function WorkflowCanvasInner({
       reactFlowRef.current.getNodes() as CanvasNode[],
       reactFlowRef.current.getEdges()
     );
-  }, [nodes, edges]);
+  }, [nodes, edges, reactFlowRef, isDraggingRef, saveSnapshotRef]);
+
+  return null;
+}
+
+function WorkflowCanvasInner({
+  initialNodes,
+  initialEdges,
+  onSave,
+  onCancelSave,
+  getGraphRef
+}: WorkflowCanvasProps) {
+  const isCanvasEmpty = useStore((state) => state.nodeInternals.size === 0);
+  const { setNodes, setEdges, zoomIn, zoomOut, fitView } = useReactFlow<CanvasNodeData>();
+  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
+  const isDraggingRef = useRef(false);
+  const saveSnapshotRef = useRef(onSave);
+  const cancelSaveRef = useRef(onCancelSave);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    saveSnapshotRef.current = onSave;
+  }, [onSave]);
+
+  useEffect(() => {
+    cancelSaveRef.current = onCancelSave;
+  }, [onCancelSave]);
 
   const onNodeDragStart = useCallback(
     () => {
@@ -317,10 +344,15 @@ function WorkflowCanvasInner({
   }, []);
 
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 0.9 }), []);
-  const showEmptyState = isReady && nodes.length === 0;
+  const showEmptyState = isReady && isCanvasEmpty;
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden bg-gray-50">
+      <GraphChangeSaver
+        reactFlowRef={reactFlowRef}
+        isDraggingRef={isDraggingRef}
+        saveSnapshotRef={saveSnapshotRef}
+      />
       <NodeSidebar />
       <div className="relative min-h-0 flex-1">
         <ReactFlow
@@ -334,6 +366,10 @@ function WorkflowCanvasInner({
           defaultViewport={defaultViewport}
           onInit={(instance) => {
             reactFlowRef.current = instance;
+            getGraphRef.current = () => ({
+              nodes: instance.getNodes() as CanvasNode[],
+              edges: instance.getEdges()
+            });
             setIsReady(true);
           }}
           onNodeDragStart={onNodeDragStart}

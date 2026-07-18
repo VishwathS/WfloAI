@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { NodeExecutionState } from "@/lib/execution/types";
 
 interface ExecutionContextValue {
@@ -26,11 +26,12 @@ export function ExecutionProvider({
   isWorkflowRunning: boolean;
   isRunSettled: boolean;
 }) {
-  return (
-    <ExecutionContext.Provider value={{ nodeStates, isWorkflowRunning, isRunSettled }}>
-      {children}
-    </ExecutionContext.Provider>
+  const value = useMemo(
+    () => ({ nodeStates, isWorkflowRunning, isRunSettled }),
+    [nodeStates, isWorkflowRunning, isRunSettled]
   );
+
+  return <ExecutionContext.Provider value={value}>{children}</ExecutionContext.Provider>;
 }
 
 export function useNodeExecutionState(nodeId: string): NodeExecutionState {

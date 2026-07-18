@@ -1,18 +1,38 @@
 "use client";
 
+import { memo } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, CheckCircle2, GitBranch, Loader2 } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { RouterNodeData } from "@/lib/types";
 
-export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
+export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
   const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
   const isRunning = executionState.status === "running";
   const isComplete = executionState.status === "complete";
   const isError = executionState.status === "error";
+
+  function updateData(patch: Partial<RouterNodeData>) {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? ({ ...node, data: { ...(node.data as RouterNodeData), ...patch } } as Node<RouterNodeData>)
+          : node
+      )
+    );
+  }
+
+  const promptField = useBufferedField(data.prompt, (prompt) => updateData({ prompt }));
+  const conditionFieldField = useBufferedField(data.conditionField ?? "", (raw) =>
+    updateData({ conditionField: raw || undefined })
+  );
+  const conditionValueField = useBufferedField(data.conditionValue ?? "", (conditionValue) =>
+    updateData({ conditionValue })
+  );
 
   return (
     <div
@@ -69,24 +89,10 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
           )}
         </div>
         <textarea
-          value={data.prompt}
-          onChange={(event) => {
-            const nextPrompt = event.target.value;
-
-            setNodes((nodes) =>
-              nodes.map((node) =>
-                node.id === id
-                  ? ({
-                      ...node,
-                      data: {
-                        ...(node.data as RouterNodeData),
-                        prompt: nextPrompt
-                      }
-                    } as Node<RouterNodeData>)
-                  : node
-              )
-            );
-          }}
+          value={promptField.value}
+          onChange={promptField.onChange}
+          onFocus={promptField.onFocus}
+          onBlur={promptField.onBlur}
           className="flex-1 min-h-[72px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
           placeholder="Is this email urgent?"
         />
@@ -97,39 +103,21 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
           <div className="flex gap-2">
             <input
               type="text"
-              value={data.conditionField ?? ""}
-              onChange={(event) => {
-                const nextField = event.target.value;
-                setNodes((nodes) =>
-                  nodes.map((node) =>
-                    node.id === id
-                      ? ({
-                          ...node,
-                          data: { ...(node.data as RouterNodeData), conditionField: nextField || undefined }
-                        } as Node<RouterNodeData>)
-                      : node
-                  )
-                );
-              }}
+              value={conditionFieldField.value}
+              onChange={conditionFieldField.onChange}
+              onFocus={conditionFieldField.onFocus}
+              onBlur={conditionFieldField.onBlur}
+              onKeyDown={conditionFieldField.onEnterKeyDown}
               className="w-1/2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
               placeholder="field"
             />
             <input
               type="text"
-              value={data.conditionValue ?? ""}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setNodes((nodes) =>
-                  nodes.map((node) =>
-                    node.id === id
-                      ? ({
-                          ...node,
-                          data: { ...(node.data as RouterNodeData), conditionValue: nextValue }
-                        } as Node<RouterNodeData>)
-                      : node
-                  )
-                );
-              }}
+              value={conditionValueField.value}
+              onChange={conditionValueField.onChange}
+              onFocus={conditionValueField.onFocus}
+              onBlur={conditionValueField.onBlur}
+              onKeyDown={conditionValueField.onEnterKeyDown}
               className="w-1/2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
               placeholder="value"
             />
@@ -167,4 +155,4 @@ export function RouterNode({ id, data }: NodeProps<RouterNodeData>) {
       />
     </div>
   );
-}
+});

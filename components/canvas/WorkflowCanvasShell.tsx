@@ -8,6 +8,7 @@ import { RunHistorySidebar } from "@/components/canvas/RunHistorySidebar";
 import { WorkflowSettingsSidebar } from "@/components/canvas/WorkflowSettingsSidebar";
 import { WorkflowCanvas } from "@/components/canvas/WorkflowCanvas";
 import { ExecutionProvider } from "@/components/canvas/execution-context";
+import { flushAllBufferedFields } from "@/hooks/useBufferedField";
 import { useExecution } from "@/hooks/useExecution";
 import type {
   ActionNodeData,
@@ -49,18 +50,6 @@ function sanitizeNodes(nodes: CanvasNode[]): CanvasNode[] {
   }) => rest as CanvasNode);
 }
 
-function areGraphsEqual(
-  leftNodes: CanvasNode[],
-  leftEdges: CanvasEdge[],
-  rightNodes: CanvasNode[],
-  rightEdges: CanvasEdge[]
-) {
-  return (
-    JSON.stringify(leftNodes) === JSON.stringify(rightNodes) &&
-    JSON.stringify(leftEdges) === JSON.stringify(rightEdges)
-  );
-}
-
 export function WorkflowCanvasShell({
   workflowId,
   workflowName,
@@ -69,8 +58,7 @@ export function WorkflowCanvasShell({
 }: WorkflowCanvasShellProps) {
   const [draftNodes, setDraftNodes] = useState(() => sanitizeNodes(initialNodes));
   const [draftEdges, setDraftEdges] = useState(initialEdges);
-  const [savedNodes, setSavedNodes] = useState(() => sanitizeNodes(initialNodes));
-  const [savedEdges, setSavedEdges] = useState(initialEdges);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isExecutionCleared, setIsExecutionCleared] = useState(false);
@@ -83,10 +71,7 @@ export function WorkflowCanvasShell({
   });
   const [runRefreshTrigger, setRunRefreshTrigger] = useState(0);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestGraphRef = useRef({
-    nodes: sanitizeNodes(initialNodes),
-    edges: initialEdges
-  });
+  const getGraphRef = useRef<(() => { nodes: CanvasNode[]; edges: CanvasEdge[] }) | null>(null);
   const { run, isRunning, isRunSettled, nodeStates, runError } = useExecution(
     workflowId,
     draftNodes,
@@ -94,7 +79,6 @@ export function WorkflowCanvasShell({
     () => setRunRefreshTrigger((n) => n + 1)
   );
 
-  const hasUnsavedChanges = !areGraphsEqual(draftNodes, draftEdges, savedNodes, savedEdges);
   const visibleNodeStates = isExecutionCleared ? {} : nodeStates;
 
   useEffect(() => {
@@ -166,9 +150,9 @@ export function WorkflowCanvasShell({
         throw new Error("Failed to save workflow graph.");
       }
 
-      latestGraphRef.current = { nodes, edges };
-      setSavedNodes(nodes);
-      setSavedEdges(edges);
+      if (!saveTimeoutRef.current) {
+        setHasUnsavedChanges(false);
+      }
     } catch {
       setSaveError("Unable to save the latest canvas changes.");
     } finally {
@@ -187,30 +171,48 @@ export function WorkflowCanvasShell({
     const cleanNodes = sanitizeNodes(nodes);
     setDraftNodes(cleanNodes);
     setDraftEdges(edges);
-    latestGraphRef.current = { nodes: cleanNodes, edges };
     setIsExecutionCleared(false);
+    setHasUnsavedChanges(true);
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
       void persistGraph(cleanNodes, edges);
     }, 700);
   }
 
-  function handleManualSave() {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+  // Buffered field edits and the debounced save may both be in flight; commit the
+  // buffers into the React Flow store, then persist straight from the store so
+  // Run/Save never act on a stale graph.
+  async function flushAndPersist() {
+    flushAllBufferedFields();
+    cancelPendingSave();
+
+    const graph = getGraphRef.current?.();
+    if (!graph) {
+      return null;
     }
 
-    void persistGraph(latestGraphRef.current.nodes, latestGraphRef.current.edges);
+    const cleanGraph = { nodes: sanitizeNodes(graph.nodes), edges: graph.edges };
+    await persistGraph(cleanGraph.nodes, cleanGraph.edges);
+    return cleanGraph;
   }
 
-  function handleRun() {
+  function handleManualSave() {
+    void flushAndPersist();
+  }
+
+  async function handleRun() {
     setIsExecutionCleared(false);
-    void run();
+
+    // The execute endpoint runs the persisted graph; run() also validates the
+    // fresh graph rather than a stale render's nodes.
+    const graph = await flushAndPersist();
+
+    void run(graph ?? undefined);
   }
 
   return (
@@ -264,6 +266,7 @@ export function WorkflowCanvasShell({
             initialEdges={initialEdges}
             onSave={scheduleSave}
             onCancelSave={cancelPendingSave}
+            getGraphRef={getGraphRef}
           />
           {historyOpen ? (
             <RunHistorySidebar

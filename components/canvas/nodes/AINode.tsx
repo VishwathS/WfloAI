@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from "reactflow";
 import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { useIsWorkflowRunning, useNodeExecutionState } from "@/components/canvas/execution-context";
+import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
 import type { AIActionType, AINodeData } from "@/lib/types";
 
 const ACTION_TYPES: AIActionType[] = ["Summarize", "Rewrite", "Classify", "Extract", "Generate"];
 
-export function AINode({ id, data }: NodeProps<AINodeData>) {
+export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) {
   const { setNodes } = useReactFlow();
   const { containerRef, onResizePointerDown } = useNodeResize(id);
   const executionState = useNodeExecutionState(id);
@@ -41,6 +42,18 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
       )
     );
   }
+
+  const promptField = useBufferedField(data.prompt, (prompt) => updateData({ prompt }));
+  const outputFieldsField = useBufferedField(
+    (data.outputFields ?? []).join(", "),
+    (raw) => {
+      const nextFields = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      updateData({ outputFields: nextFields });
+    }
+  );
 
   return (
     <div
@@ -140,14 +153,11 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
             </p>
             <input
               type="text"
-              value={(data.outputFields ?? []).join(", ")}
-              onChange={(e) => {
-                const nextFields = e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                updateData({ outputFields: nextFields });
-              }}
+              value={outputFieldsField.value}
+              onChange={outputFieldsField.onChange}
+              onFocus={outputFieldsField.onFocus}
+              onBlur={outputFieldsField.onBlur}
+              onKeyDown={outputFieldsField.onEnterKeyDown}
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
               placeholder="name, email, phone"
             />
@@ -155,8 +165,10 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
         ) : null}
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">Prompt</p>
         <textarea
-          value={data.prompt}
-          onChange={(e) => updateData({ prompt: e.target.value })}
+          value={promptField.value}
+          onChange={promptField.onChange}
+          onFocus={promptField.onFocus}
+          onBlur={promptField.onBlur}
           className="flex-1 min-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
           placeholder="Tell this AI node what to do with its incoming data."
         />
@@ -194,4 +206,4 @@ export function AINode({ id, data }: NodeProps<AINodeData>) {
       />
     </div>
   );
-}
+});

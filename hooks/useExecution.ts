@@ -166,7 +166,7 @@ export function useExecution(
     }
   }
 
-  async function run() {
+  async function run(graph?: { nodes: WorkflowCanvasNode[]; edges: Edge[] }) {
     if (isRunning) {
       return;
     }
@@ -179,7 +179,7 @@ export function useExecution(
     }
     setIsRunSettled(false);
 
-    const validation = validateWorkflow(nodes, edges);
+    const validation = validateWorkflow(graph?.nodes ?? nodes, graph?.edges ?? edges);
     if (!validation.valid) {
       if (validation.globalError) {
         setRunError(validation.globalError);
