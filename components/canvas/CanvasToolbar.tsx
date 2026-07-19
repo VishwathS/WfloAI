@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, History, Loader2, Maximize2, Minimize2, Play, Save, Zap } from "lucide-react";
+import { Clock, History, Loader2, Maximize2, Minimize2, Play, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -62,26 +62,35 @@ export function CanvasToolbar({
           {workflowName}
         </span>
       ) : null}
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900",
-            settingsOpen && "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 hover:text-violet-700"
-          )}
-          onClick={onToggleSettings}
-        >
-          {triggerSummary.enabledCount > 0 && triggerSummary.nextRunAt ? (
-            <>
-              <Clock className="h-3.5 w-3.5" />
-              Next run · {formatNextRun(triggerSummary.nextRunAt)}
-            </>
-          ) : (
-            <>
-              <Zap className="h-3.5 w-3.5" />
-              No triggers
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/70 py-1 pl-2.5 pr-1">
+          <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-gray-400">
+            Triggers
+          </span>
+          <button
+            type="button"
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900",
+              settingsOpen &&
+                "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 hover:text-violet-700"
+            )}
+            onClick={onToggleSettings}
+          >
+            {triggerSummary.enabledCount > 0 ? (
+              <>
+                <Clock className="h-3.5 w-3.5" />
+                {triggerSummary.nextRunAt
+                  ? `Next run · ${formatNextRun(triggerSummary.nextRunAt)}`
+                  : "Scheduled"}
+                {triggerSummary.enabledCount > 1 ? ` (${triggerSummary.enabledCount})` : ""}
+              </>
+            ) : (
+              <>
+                <Plus className="h-3.5 w-3.5" />
+                Add trigger
+              </>
+            )}
+          </button>
+        </div>
         <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600">
           <span
             className={`h-2 w-2 rounded-full ${

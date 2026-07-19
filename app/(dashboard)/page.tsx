@@ -3,7 +3,7 @@ import { CreateWorkflowButton } from "@/components/dashboard/create-workflow-but
 import { TemplateGallery } from "@/components/dashboard/template-gallery";
 import { WorkflowList } from "@/components/dashboard/workflow-list";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { ExecutionLogRow, Workflow, WorkflowWithLastRun } from "@/lib/types";
+import type { Workflow, WorkflowWithLastRun } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -35,35 +35,33 @@ export default async function DashboardPage() {
 
   const workflows = (data ?? []) as Workflow[];
   const workflowIds = workflows.map((workflow) => workflow.id);
-  let lastRunMap = new Map<string, string>();
+  type LastRun = { created_at: string; status: "success" | "error" };
+  let lastRunMap = new Map<string, LastRun>();
   let nextRunMap = new Map<string, string>();
 
   if (workflowIds.length > 0) {
-    const { data: executionLogRows, error: executionLogError } = await supabase
-      .from("execution_logs")
-      .select("workflow_id, ran_at")
+    const { data: runRows, error: runError } = await supabase
+      .from("workflow_runs")
+      .select("workflow_id, created_at, status")
       .in("workflow_id", workflowIds)
-      .order("ran_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
-    if (executionLogError) {
-      const isMissingExecutionLogsTable =
-        executionLogError.message.includes("public.execution_logs") ||
-        executionLogError.message.includes("execution_logs");
-
-      if (!isMissingExecutionLogsTable) {
-        throw new Error(executionLogError.message);
-      }
-    } else {
-      lastRunMap = (executionLogRows ?? []).reduce<Map<string, string>>((accumulator, row) => {
-        const logRow = row as Pick<ExecutionLogRow, "workflow_id" | "ran_at">;
-
-        if (!accumulator.has(logRow.workflow_id)) {
-          accumulator.set(logRow.workflow_id, logRow.ran_at);
-        }
-
-        return accumulator;
-      }, new Map<string, string>());
+    if (runError) {
+      throw new Error(runError.message);
     }
+
+    lastRunMap = (runRows ?? []).reduce<Map<string, LastRun>>((accumulator, row) => {
+      const runRow = row as { workflow_id: string } & LastRun;
+
+      if (!accumulator.has(runRow.workflow_id)) {
+        accumulator.set(runRow.workflow_id, {
+          created_at: runRow.created_at,
+          status: runRow.status
+        });
+      }
+
+      return accumulator;
+    }, new Map<string, LastRun>());
   }
 
   if (workflowIds.length > 0) {
@@ -88,7 +86,8 @@ export default async function DashboardPage() {
 
   const workflowsWithLastRun = workflows.map<WorkflowWithLastRun>((workflow) => ({
     ...workflow,
-    last_run_at: lastRunMap.get(workflow.id) ?? null,
+    last_run_at: lastRunMap.get(workflow.id)?.created_at ?? null,
+    last_run_status: lastRunMap.get(workflow.id)?.status ?? null,
     next_run_at: nextRunMap.get(workflow.id) ?? null
   }));
   const workflowCount = workflowsWithLastRun.length;

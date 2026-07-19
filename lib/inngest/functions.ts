@@ -180,6 +180,7 @@ export const runScheduledWorkflow = inngest.createFunction(
         final_output: run.final_output,
         node_outputs: run.node_outputs,
         error: run.error,
+        trigger: "scheduled",
         started_at: run.started_at,
         completed_at: run.completed_at
       });

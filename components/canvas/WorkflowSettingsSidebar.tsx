@@ -278,7 +278,7 @@ export function WorkflowSettingsSidebar({
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
         <div className="flex items-center justify-between px-4 pt-4">
           <p className={sectionLabelClass}>Schedules</p>
-          {!isEditing ? (
+          {!isEditing && schedules.length > 0 ? (
             <button
               type="button"
               className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-violet-600 transition-colors hover:bg-violet-50"
@@ -410,8 +410,18 @@ export function WorkflowSettingsSidebar({
             </div>
           </div>
         ) : schedules.length === 0 ? (
-          <div className="px-4 py-8 text-sm text-gray-500">
-            No triggers configured. Runs only when you press Run.
+          <div className="space-y-3 px-4 py-8">
+            <p className="text-sm text-gray-500">
+              This workflow only runs when you press Run. Add a schedule to run it automatically.
+            </p>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-100"
+              onClick={() => openEditor("new")}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add schedule
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

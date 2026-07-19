@@ -17,7 +17,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Topic",
             key: "topic",
-            defaultValue: "",
+            defaultValue: "How AI copilots are changing the way small teams ship software",
             placeholder: "e.g. The future of AI in healthcare"
           }
         },
@@ -51,7 +51,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Content Rewriter",
             action: "Rewrite",
             prompt:
-              "Rewrite the blog post draft from the previous step to be more engaging and SEO-friendly. Preserve all key information and structure.",
+              "Rewrite the blog post draft from the previous step to be more engaging and SEO-friendly. Preserve all key information and structure.\n\nOutput only the final blog post text — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -102,7 +102,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Topic or Idea",
             key: "topic",
-            defaultValue: "",
+            defaultValue: "Lessons from my first year as a solo founder — what I'd do differently",
             placeholder: "e.g. Lessons from my first year as a founder"
           }
         },
@@ -114,7 +114,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "LinkedIn Post Writer",
             action: "Generate",
             prompt:
-              "Write a compelling LinkedIn post about: {{topic}}\n\nRequirements:\n- Hook in the first line\n- 3-5 short paragraphs\n- End with a question to drive engagement\n- Use line breaks for readability\n- No hashtags unless naturally relevant",
+              "Write a compelling LinkedIn post about: {{topic}}\n\nRequirements:\n- Hook in the first line\n- 3-5 short paragraphs\n- End with a question to drive engagement\n- Use line breaks for readability\n- No hashtags unless naturally relevant\n\nOutput only the finished LinkedIn post text, ready to paste — no preamble, headings, or commentary.",
             outputMode: "text"
           }
         },
@@ -155,7 +155,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Original Content",
             key: "originalContent",
-            defaultValue: "",
+            defaultValue:
+              "Why Async Communication Is the Real Superpower of Remote Teams\n\nWhen our team went fully remote three years ago, we assumed the hardest part would be missing whiteboard sessions. We were wrong. The hardest part was unlearning the meeting reflex — the habit of booking a call for every decision.\n\nThe turning point came when we adopted a simple rule: every discussion starts as a written document. Proposals, bug reports, even disagreements get written down first. Meetings only happen when a thread has gone back and forth three times without resolution.\n\nThe results surprised us. Decisions got faster, not slower, because the context lived in one place instead of in someone's memory of a call. New hires ramped up in half the time by reading the decision log. And our two engineers in different time zones stopped feeling like second-class citizens — they could weigh in on anything within their own working hours.\n\nAsync isn't free. Writing well takes effort, and some conversations genuinely need a face. But if your remote team feels slow, the fix probably isn't more meetings — it's better writing.",
             placeholder: "Paste your blog post or article..."
           }
         },
@@ -179,7 +180,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Multi-Format Generator",
             action: "Generate",
             prompt:
-              "Using the condensed content from the previous step, generate three repurposed formats:\n1. Twitter/X thread (5-7 tweets)\n2. LinkedIn post (3-4 paragraphs)\n3. Email newsletter section (150 words)",
+              "Using the condensed content from the previous step, generate three repurposed formats:\n1. Twitter/X thread (5-7 tweets)\n2. LinkedIn post (3-4 paragraphs)\n3. Email newsletter section (150 words)\n\nOutput only the three formats, each under a simple header — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -225,7 +226,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Brand or Niche",
             key: "brand",
-            defaultValue: "",
+            defaultValue: "B2B SaaS startup building AI-powered developer tools",
             placeholder: "e.g. B2B SaaS startup focused on developer tools"
           }
         },
@@ -247,7 +248,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Social Post Creator",
             action: "Generate",
             prompt:
-              "You are a social media manager for: {{brand}}\n\nUsing the trending topics from the previous search step, create one engaging social media post suitable for LinkedIn and Twitter. Make it timely and include a clear call-to-action.",
+              "You are a social media manager for: {{brand}}\n\nUsing the trending topics from the previous search step, create one engaging social media post suitable for LinkedIn and Twitter. Make it timely and include a clear call-to-action.\n\nOutput only the post text, ready to paste — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -293,7 +294,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Target Keyword",
             key: "keyword",
-            defaultValue: "",
+            defaultValue: "best note taking apps",
             placeholder: "e.g. project management software"
           }
         },
@@ -304,7 +305,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Target Audience",
             key: "audience",
-            defaultValue: "",
+            defaultValue: "graduate students and academic researchers",
             placeholder: "e.g. small business owners"
           }
         },
@@ -326,7 +327,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "SEO Brief Generator",
             action: "Generate",
             prompt:
-              "Using the SERP research results from the previous step, create a comprehensive SEO content brief for: {{keyword}}\nTarget audience: {{audience}}\n\nInclude: recommended title, meta description, content outline (H1/H2/H3s), key topics to cover, estimated word count, and semantic keywords to include.",
+              "Using the SERP research results from the previous step, create a comprehensive SEO content brief for: {{keyword}}\nTarget audience: {{audience}}\n\nInclude: recommended title, meta description, content outline (H1/H2/H3s), key topics to cover, estimated word count, and semantic keywords to include.\n\nOutput only the brief itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -377,7 +378,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Competitor Name",
             key: "competitor",
-            defaultValue: "",
+            defaultValue: "Notion",
             placeholder: "e.g. Notion"
           }
         },
@@ -399,7 +400,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Research Synthesizer",
             action: "Generate",
             prompt:
-              "Using the search results from the previous step, create a competitive intelligence brief for {{competitor}}.\n\nInclude: product overview and positioning, key features and differentiators, pricing model, customer sentiment summary, strengths and weaknesses, and strategic implications.",
+              "Using the search results from the previous step, create a competitive intelligence brief for {{competitor}}.\n\nInclude: product overview and positioning, key features and differentiators, pricing model, customer sentiment summary, strengths and weaknesses, and strategic implications.\n\nOutput only the brief itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -445,7 +446,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Startup Idea",
             key: "idea",
-            defaultValue: "",
+            defaultValue: "An AI assistant that automatically drafts, sends, and chases invoices for freelancers",
             placeholder: "e.g. AI tool that auto-categorizes receipts for freelancers"
           }
         },
@@ -479,7 +480,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Validation Report",
             action: "Generate",
             prompt:
-              "Using the viability assessment from the previous step, write a startup idea validation report for: {{idea}}\n\nCover: problem/solution fit, market opportunity, competitive landscape, biggest risks, and 3 suggested next steps.",
+              "Using the viability assessment from the previous step, write a startup idea validation report for: {{idea}}\n\nCover: problem/solution fit, market opportunity, competitive landscape, biggest risks, and 3 suggested next steps.\n\nOutput only the report itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -530,7 +531,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Paper Text or Abstract",
             key: "paperText",
-            defaultValue: "",
+            defaultValue:
+              "Title: Spaced Repetition and Long-Term Retention of Programming Concepts in Novice Learners\n\nAbstract: We investigate whether spaced repetition scheduling improves long-term retention of programming concepts compared with massed practice. In a 12-week study, 184 novice learners were randomly assigned to either a spaced condition (concept reviews at expanding intervals of 1, 3, 7, and 21 days) or a massed condition (equivalent total review time in consecutive sessions). Retention was measured with code-reading and code-writing assessments at 4 and 12 weeks. The spaced condition scored 23% higher on code-reading and 31% higher on code-writing at 12 weeks, with the largest gains on abstract concepts such as recursion and closures. Effects persisted after controlling for prior exposure and total study time. Self-reported difficulty was higher in the spaced condition during weeks 1-4, consistent with the notion of desirable difficulties. Limitations include a single institutional cohort and reliance on voluntary practice compliance verified by platform telemetry. We conclude that spaced scheduling is a low-cost intervention that substantially improves durable learning of programming fundamentals, and we release our scheduling implementation as open source.",
             placeholder: "Paste the full paper or abstract..."
           }
         },
@@ -554,7 +556,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Key Takeaways",
             action: "Generate",
             prompt:
-              "From the paper summary in the previous step, extract 5 bullet-point key takeaways that a busy professional would find most actionable.",
+              "From the paper summary in the previous step, extract 5 bullet-point key takeaways that a busy professional would find most actionable.\n\nOutput only the 5 bullet points — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -600,7 +602,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Industry or Topic",
             key: "industry",
-            defaultValue: "",
+            defaultValue: "generative AI",
             placeholder: "e.g. generative AI, fintech, climate tech"
           }
         },
@@ -622,7 +624,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Digest Writer",
             action: "Summarize",
             prompt:
-              "Using the news search results from the previous step, create a concise weekly industry digest for: {{industry}}\n\nFormat: 3-5 top stories (2-sentence summary each), one 'so what' paragraph on the week's overall theme, and 2 trends to watch.",
+              "Using the news search results from the previous step, create a concise weekly industry digest for: {{industry}}\n\nFormat: 3-5 top stories (2-sentence summary each), one 'so what' paragraph on the week's overall theme, and 2 trends to watch.\n\nOutput only the digest itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -668,7 +670,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Company Name",
             key: "companyName",
-            defaultValue: "",
+            defaultValue: "Stripe",
             placeholder: "e.g. Stripe"
           }
         },
@@ -679,7 +681,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Contact Name and Role",
             key: "contactName",
-            defaultValue: "",
+            defaultValue: "Jane Smith, VP Engineering",
             placeholder: "e.g. Jane Smith, VP Engineering"
           }
         },
@@ -701,7 +703,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Lead Brief Generator",
             action: "Generate",
             prompt:
-              "Using the company research from the previous step, create a sales research brief for reaching {{contactName}} at {{companyName}}.\n\nInclude: company overview (2-3 sentences), recent news or milestones, likely pain points, 3 suggested talking points, and the best outreach angle.",
+              "Using the company research from the previous step, create a sales research brief for reaching {{contactName}} at {{companyName}}.\n\nInclude: company overview (2-3 sentences), recent news or milestones, likely pain points, 3 suggested talking points, and the best outreach angle.\n\nOutput only the brief itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -752,7 +754,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Prospect Name and Role",
             key: "prospect",
-            defaultValue: "",
+            defaultValue: "Sarah Lee, Head of Marketing at Acme Analytics",
             placeholder: "e.g. Sarah Lee, Head of Marketing at Acme"
           }
         },
@@ -763,7 +765,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Your Offer or Product",
             key: "offer",
-            defaultValue: "",
+            defaultValue: "An AI writing assistant that helps marketing teams draft on-brand content in half the time",
             placeholder: "e.g. AI writing assistant for marketing teams"
           }
         },
@@ -785,7 +787,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Email Writer",
             action: "Generate",
             prompt:
-              "Using the prospect research from the previous step, write a personalized cold email to {{prospect}}.\n\nYour offer: {{offer}}\n\nFormat:\nSubject: [compelling subject line, under 8 words]\n\n[Email body under 100 words. Reference something specific about the prospect. One clear value proposition. Soft CTA — not 'schedule a demo'.]",
+              "Using the prospect research from the previous step, write a personalized cold email to {{prospect}}.\n\nYour offer: {{offer}}\n\nFormat:\nSubject: [compelling subject line, under 8 words]\n\n[Email body under 100 words. Reference something specific about the prospect. One clear value proposition. Soft CTA — not 'schedule a demo'.]\n\nOutput only the subject line and email body, ready to paste — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -836,7 +838,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Job Description",
             key: "jobDescription",
-            defaultValue: "",
+            defaultValue:
+              "Senior Frontend Engineer — Larkspur Labs (Remote)\n\nWe're looking for a senior frontend engineer to lead development of our analytics dashboard.\n\nRequirements:\n- 5+ years building production web applications\n- Expert-level React and TypeScript\n- Experience with data visualization (D3, Recharts, or similar)\n- Comfortable owning features end to end, from design review to deploy\n- Strong written communication for a remote-first team\n\nNice to have: Next.js, design-system experience, prior startup experience.",
             placeholder: "Paste the full job description..."
           }
         },
@@ -847,7 +850,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Resume Text",
             key: "resumeText",
-            defaultValue: "",
+            defaultValue:
+              "Maya Chen — Senior Frontend Engineer\nmaya.chen@example.com · Remote (PST)\n\nExperience:\n\nNorthbeam Software — Senior Frontend Engineer (2022-present)\n- Led rebuild of the customer analytics dashboard in React + TypeScript, serving 40k daily users\n- Built a charting layer on Recharts with custom D3 interactions; cut render time 60%\n- Owned features end to end: specs, implementation, review, deploy, and on-call\n- Mentored two mid-level engineers; wrote the team's frontend architecture docs\n\nBrightpath (startup, acquired) — Frontend Engineer (2019-2022)\n- Second frontend hire; shipped the design system used across three products\n- Migrated the app from JavaScript to TypeScript with zero downtime\n\nSkills: React, TypeScript, Next.js, D3, Recharts, Tailwind, testing (Vitest, Playwright), remote async collaboration\n\nEducation: BS Computer Science, UC Davis",
             placeholder: "Paste the candidate's resume..."
           }
         },
@@ -882,7 +886,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Advance Message",
             action: "Generate",
             prompt:
-              "Based on the candidate assessment from the previous step, write a warm professional email to advance this candidate to the next round.\n\nJob description:\n{{jobDescription}}",
+              "Based on the candidate assessment from the previous step, write a warm professional email to advance this candidate to the next round.\n\nJob description:\n{{jobDescription}}\n\nOutput only the email text, ready to send — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -894,7 +898,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Rejection Message",
             action: "Generate",
             prompt:
-              "Based on the candidate assessment from the previous step, write a kind professional rejection email.\n\nJob description:\n{{jobDescription}}",
+              "Based on the candidate assessment from the previous step, write a kind professional rejection email.\n\nJob description:\n{{jobDescription}}\n\nOutput only the email text, ready to send — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -968,7 +972,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Client Name and Company",
             key: "client",
-            defaultValue: "",
+            defaultValue: "John Doe, CEO at BuildRight Construction",
             placeholder: "e.g. John Doe, CEO at BuildRight"
           }
         },
@@ -979,7 +983,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Discovery Call Notes",
             key: "callNotes",
-            defaultValue: "",
+            defaultValue:
+              "Call w/ John, 45 min. BuildRight = mid-size commercial construction, ~120 employees, 3 offices.\n\nPain: project managers drowning in paperwork — change orders tracked in spreadsheets + email, things slip. Two missed change orders last quarter cost them ~$40k. Current tools: Excel, Outlook, an old on-prem project tool nobody likes.\n\nWants: single place to track change orders + approvals, mobile access for site supervisors, audit trail for disputes. Mentioned twice that adoption is his biggest fear — 'my supers won't use anything complicated.'\n\nBudget: said 'somewhere in the 30-50k range for year one' if it demonstrably saves PM time. Decision w/ him + COO (Maria). Wants to move before their busy season starts in September.\n\nNext: send proposal by Friday, include a 2-week pilot option with one project team. Intro call w/ Maria next week. Open question: integration with their accounting system (Sage) — need to check.",
             placeholder: "Paste your raw call notes..."
           }
         },
@@ -1004,7 +1009,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Discovery Summary",
             action: "Generate",
             prompt:
-              "Using the extracted details from the previous step, write a professional client discovery summary for {{client}}.\n\nRaw notes for reference:\n{{callNotes}}\n\nSections: Overview, Key Pain Points, Goals, Budget & Timeline, Agreed Next Steps, Open Questions.",
+              "Using the extracted details from the previous step, write a professional client discovery summary for {{client}}.\n\nRaw notes for reference:\n{{callNotes}}\n\nSections: Overview, Key Pain Points, Goals, Budget & Timeline, Agreed Next Steps, Open Questions.\n\nOutput only the summary document — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -1055,7 +1060,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Customer Feedback",
             key: "feedback",
-            defaultValue: "",
+            defaultValue:
+              "Review (4/5): Love the core scheduling feature — saves me an hour a week. But the mobile app logs me out constantly, super annoying.\n\nSurvey response: The new dashboard is beautiful but I can't find the export button anymore. Why did you move it?\n\nSupport ticket #4821: Calendar sync with Google stopped working after the last update. Events created in the app don't show up in Google Calendar. This is blocking my whole team.\n\nReview (5/5): Best tool in its category. Would pay double. Please add a dark mode though, my eyes beg you.\n\nSurvey response: Pricing feels steep for solo users. A cheaper individual plan would make this a no-brainer.\n\nSupport ticket #4899: App crashes when I try to attach a file larger than 10MB to a task. No error message, just closes.\n\nReview (3/5): Good features but it's getting slow — the project list takes 5+ seconds to load now that we have ~200 projects.",
             placeholder: "Paste survey responses, reviews, or support tickets..."
           }
         },
@@ -1092,7 +1098,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Product Report",
             action: "Generate",
             prompt:
-              "Using the sentiment analysis and extracted issues from the previous steps, write an actionable product feedback report.\n\nRaw feedback for reference:\n{{feedback}}\n\nInclude: Executive Summary, Top Issues (prioritized), Feature Requests, Recommended Actions (3-5), and Metrics to Track.",
+              "Using the sentiment analysis and extracted issues from the previous steps, write an actionable product feedback report.\n\nRaw feedback for reference:\n{{feedback}}\n\nInclude: Executive Summary, Top Issues (prioritized), Feature Requests, Recommended Actions (3-5), and Metrics to Track.\n\nOutput only the report itself — no preamble or commentary.",
             outputMode: "text"
           }
         },
@@ -1148,7 +1154,8 @@ export const TEMPLATES: WorkflowTemplate[] = [
           data: {
             label: "Meeting Notes or Transcript",
             key: "meetingNotes",
-            defaultValue: "",
+            defaultValue:
+              "Product sync — Tuesday, 10:00-10:45. Attendees: Priya (PM), Tom (Eng lead), Alicia (Design).\n\nPriya: Q3 launch is at risk — the billing migration is taking longer than planned. Proposes cutting the usage-analytics widget from the launch scope.\nTom: Agrees. Billing migration needs two more weeks; the widget alone is another three. Says the team can ship billing + core dashboard by Aug 15 if the widget moves to Q4.\nAlicia: Fine with the cut but wants the empty state designed properly so the dashboard doesn't look unfinished. Will have mockups by Friday.\n\nDECISION: Usage-analytics widget moves to Q4. Launch scope = billing migration + core dashboard.\nDECISION: Launch date holds at Aug 15.\n\nTom to update the engineering plan and re-estimate by Thursday.\nAlicia to deliver empty-state mockups by Friday.\nPriya to draft the customer comms about the revised scope and share with the team next Monday.\nOpen question: do we grandfather existing customers on old billing plans or migrate everyone? Priya to check with finance.\n\nNext sync: same time next Tuesday.",
             placeholder: "Paste your meeting notes or transcript..."
           }
         },
@@ -1173,7 +1180,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
             label: "Debrief Writer",
             action: "Generate",
             prompt:
-              "Using the extracted action items and decisions from the previous step, write a clean professional meeting debrief.\n\nRaw notes for reference:\n{{meetingNotes}}\n\nSections: Meeting Summary (3 sentences), Key Decisions, Action Items (with owners and deadlines if mentioned), Open Questions, Follow-up Date.",
+              "Using the extracted action items and decisions from the previous step, write a clean professional meeting debrief.\n\nRaw notes for reference:\n{{meetingNotes}}\n\nSections: Meeting Summary (3 sentences), Key Decisions, Action Items (with owners and deadlines if mentioned), Open Questions, Follow-up Date.\n\nOutput only the debrief document — no preamble or commentary.",
             outputMode: "text"
           }
         },

@@ -43,7 +43,9 @@ export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) 
     );
   }
 
-  const promptField = useBufferedField(data.prompt, (prompt) => updateData({ prompt }));
+  const promptField = useBufferedField(data.prompt, (prompt) =>
+    updateData({ prompt: prompt.replace(/\{\{input\}\}/g, "{{previousOutput}}") })
+  );
   const outputFieldsField = useBufferedField(
     (data.outputFields ?? []).join(", "),
     (raw) => {
@@ -172,6 +174,10 @@ export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) 
           className="flex-1 min-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
           placeholder="Tell this AI node what to do with its incoming data."
         />
+        <p className="text-[11px] leading-4 text-gray-400">
+          Use {"{{inputKey}}"} for Input values · {"{{previousOutput}}"} for the previous
+          node&apos;s output.
+        </p>
         {showOutput ? (
           <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">

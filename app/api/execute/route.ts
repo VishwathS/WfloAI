@@ -9,7 +9,9 @@ interface ExecuteRequestBody {
 }
 
 function buildPrompt(prompt: string, context: string, schema?: string) {
-  const base = `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`;
+  const base = context
+    ? `Context from previous step:\n${context}\n\nInstruction:\n${prompt}`
+    : prompt;
   if (!schema) return base;
   return `${base}\n\nYou MUST respond with ONLY a valid JSON object matching this exact shape:\n${schema}\nNo markdown, no code blocks, no explanation — just the raw JSON object.`;
 }

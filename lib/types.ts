@@ -114,21 +114,9 @@ export interface Workflow {
   updated_at: string;
 }
 
-export interface ExecutionLogRow {
-  id: string;
-  workflow_id: string;
-  user_id: string;
-  ran_at: string;
-  node_results: Array<{
-    nodeId: string;
-    status: "idle" | "running" | "complete" | "error";
-    output: string;
-    durationMs?: number;
-  }>;
-}
-
 export interface WorkflowWithLastRun extends Workflow {
   last_run_at: string | null;
+  last_run_status: "success" | "error" | null;
   next_run_at: string | null;
 }
 
@@ -162,6 +150,7 @@ export interface WorkflowRun {
     durationMs?: number;
   }> | null;
   error: string | null;
+  trigger: "manual" | "scheduled" | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

@@ -162,7 +162,14 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900">{workflow.name}</p>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                {workflow.last_run_status ? (
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      workflow.last_run_status === "success" ? "bg-emerald-400" : "bg-rose-400"
+                    }`}
+                  />
+                ) : null}
                 {workflow.last_run_at
                   ? `Last run: ${formatRelativeTime(workflow.last_run_at)}`
                   : "Last run: Never"}

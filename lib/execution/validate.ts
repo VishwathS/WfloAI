@@ -150,10 +150,17 @@ export function validateWorkflow(
       const prompt = (node.data as AINodeData | RouterNodeData).prompt ?? "";
       const missing = [...prompt.matchAll(/\{\{(\w+)\}\}/g)]
         .map((m) => m[1])
-        .filter((key) => !availableKeys.has(key));
+        .filter((key) => key !== "previousOutput" && !availableKeys.has(key));
       if (missing.length > 0) {
         const data = node.data as AINodeData | RouterNodeData;
-        nodeErrors[node.id] = `"${data.label || "Node"}" references undefined input(s): ${missing.map((k) => `{{${k}}}`).join(", ")}.`;
+        if (missing.includes("input")) {
+          nodeErrors[node.id] =
+            `"${data.label || "Node"}" uses {{input}}, which is deprecated — use {{previousOutput}} for the upstream node's output.`;
+        } else {
+          const available = [...availableKeys, "previousOutput"].map((k) => `{{${k}}}`).join(", ");
+          nodeErrors[node.id] =
+            `"${data.label || "Node"}" references undefined input(s): ${missing.map((k) => `{{${k}}}`).join(", ")}. Available: ${available}.`;
+        }
       }
     }
   }

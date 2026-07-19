@@ -26,7 +26,9 @@ export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<Route
     );
   }
 
-  const promptField = useBufferedField(data.prompt, (prompt) => updateData({ prompt }));
+  const promptField = useBufferedField(data.prompt, (prompt) =>
+    updateData({ prompt: prompt.replace(/\{\{input\}\}/g, "{{previousOutput}}") })
+  );
   const conditionFieldField = useBufferedField(data.conditionField ?? "", (raw) =>
     updateData({ conditionField: raw || undefined })
   );
@@ -96,6 +98,10 @@ export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<Route
           className="flex-1 min-h-[72px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
           placeholder="Is this email urgent?"
         />
+        <p className="text-[11px] leading-4 text-gray-400">
+          Use {"{{inputKey}}"} for Input values · {"{{previousOutput}}"} for the previous
+          node&apos;s output.
+        </p>
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
             JSON Condition (optional)

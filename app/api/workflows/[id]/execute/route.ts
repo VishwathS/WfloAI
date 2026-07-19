@@ -113,6 +113,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
           final_output: finalOutput,
           node_outputs: nodeResults,
           error: runError,
+          trigger: "manual",
           started_at: startedAt,
           completed_at: new Date().toISOString()
         });

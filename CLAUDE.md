@@ -17,7 +17,6 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Router node** — AI-evaluated conditional branching (true/false paths)
 - **Structured node outputs** — AI nodes emit typed JSON per action type; Router node supports optional deterministic field-value branching before AI fallback
 - **Execution log** — collapsible panel showing per-node status, output, duration
-- **Execution persistence** — POST to `/api/workflows/[id]/logs` after each run
 - **RLS-enforced multi-tenancy** — users see only their own data at the DB level
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 - **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
@@ -136,21 +135,8 @@ type FileInputNodeData = {
 }
 ```
 
-### `ExecutionLogRow` (DB table: `public.execution_logs`)
-```ts
-interface ExecutionLogRow {
-  id: string;
-  workflow_id: string;
-  user_id: string;
-  ran_at: string;
-  node_results: Array<{
-    nodeId: string;
-    status: "idle" | "running" | "complete" | "error";
-    output: string;
-    durationMs?: number;
-  }>;
-}
-```
+### `execution_logs` (legacy table — retired)
+The `public.execution_logs` table still exists in the DB (no destructive migration) but nothing reads or writes it anymore. `workflow_runs` is the canonical run store. The old `/api/workflows/[id]/logs` route and `ExecutionLogRow` type were removed.
 
 ### `WorkflowRun` (DB table: `public.workflow_runs`)
 ```ts
@@ -167,6 +153,7 @@ interface WorkflowRun {
     durationMs?: number;
   }> | null;
   error: string | null;          // output of the first errored node, if any
+  trigger: "manual" | "scheduled" | null;  // how the run started; null on legacy rows
   started_at: string | null;     // ISO UTC, captured when execution begins
   completed_at: string | null;   // ISO UTC, captured when workflow:done fires
   created_at: string;            // ISO UTC, default now()
@@ -372,12 +359,12 @@ If `conditionField` and `conditionValue` are set on a RouterNode, the executor c
 
 ### Run history architecture
 
-**How runs are saved:**
-1. `useExecution.ts` captures `startedAtRef.current = new Date().toISOString()` when execution begins
-2. On `workflow:done`, it derives `status` (error if any node errored), `final_output` (last completed node's output), `error` (first errored node's output)
-3. It calls `persistWorkflowRun(...)` which POSTs to `POST /api/workflows/[id]/runs`
-4. After the POST resolves, the optional `onRunSaved` callback is fired
-5. `WorkflowCanvasShell` passes `() => setRunRefreshTrigger(n => n + 1)` as `onRunSaved`
+**How runs are saved (server-side only):**
+1. `POST /api/workflows/[id]/execute` accumulates node results while streaming SSE, then inserts the `workflow_runs` row (with `trigger: "manual"`) before closing the stream
+2. Scheduled runs insert their row (with `trigger: "scheduled"`) in the `persist-run` step of `lib/inngest/functions.ts`
+3. The client never writes runs — `useExecution.ts` fires the optional `onRunSaved` callback after the SSE stream drains (the row is already inserted by then)
+4. `WorkflowCanvasShell` passes `() => setRunRefreshTrigger(n => n + 1)` as `onRunSaved`
+5. The dashboard's "Last run" time + status dot read the latest `workflow_runs` row per workflow
 
 **How the sidebar loads runs:**
 - `RunHistorySidebar` (`components/canvas/RunHistorySidebar.tsx`) has a `useEffect` keyed on `[open, refreshTrigger, workflowId]`
@@ -484,7 +471,7 @@ Search results for "...":
    ...
 ```
 
-**Variable substitution:** `{{input}}` in the query field is replaced with the upstream context at execution time. Scoped to Lookup node only — AI/Router nodes are unaffected.
+**Variable substitution:** `{{previousOutput}}` resolves to the upstream context in AI, Router, and Lookup fields; `{{key}}` resolves to Input node values. When a prompt references `{{previousOutput}}`, the automatic "Context from previous step" block is skipped to avoid duplicating tokens. Legacy `{{input}}` is still accepted at runtime in Lookup queries only; the canvas UI auto-converts it to `{{previousOutput}}` on edit, and validation flags it as deprecated in AI/Router prompts. Variable hints are minimal helper/placeholder text on the AI/Router/Lookup fields; the `{{key}}` tag itself is displayed only on Input nodes (where variables are declared).
 
 **Persistence:** `query` and `maxResults` are stored in `node.data` as part of the workflow graph JSONB. Dimensions persist via `node.style` like all other node types.
 

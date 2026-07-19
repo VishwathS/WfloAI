@@ -129,6 +129,10 @@ function stripStructuredPrefix(raw: string): string {
   return raw.replace(/^Structured output:\n/m, "");
 }
 
+function referencesPreviousOutput(template: string): boolean {
+  return /\{\{previousOutput\}\}/.test(template);
+}
+
 async function requestAIText(
   prompt: string,
   context: string,
@@ -200,7 +204,11 @@ async function executeLookupNode(
   namedInputs: Record<string, string>
 ): Promise<NodeExecutionResult> {
   const data = node.data as LookupNodeData;
-  const query = interpolateTemplate(data.query, { ...namedInputs, input: context }).trim();
+  const query = interpolateTemplate(data.query, {
+    ...namedInputs,
+    previousOutput: context,
+    input: context
+  }).trim();
 
   let response: Response;
 
@@ -238,8 +246,9 @@ async function executeAINode(
   const schema = outputMode === "json" && action
     ? getActionSchema(action, data.outputFields)
     : undefined;
-  const prompt = interpolateTemplate(data.prompt, namedInputs);
-  return { output: await requestAIText(prompt, context, node.id, onEvent, schema) };
+  const prompt = interpolateTemplate(data.prompt, { ...namedInputs, previousOutput: context });
+  const effectiveContext = referencesPreviousOutput(data.prompt) ? "" : context;
+  return { output: await requestAIText(prompt, effectiveContext, node.id, onEvent, schema) };
 }
 
 async function executeRouterNode(
@@ -261,11 +270,12 @@ async function executeRouterNode(
     }
   }
 
-  const prompt = interpolateTemplate(data.prompt, namedInputs);
+  const prompt = interpolateTemplate(data.prompt, { ...namedInputs, previousOutput: context });
   const routerInstruction = `${prompt}
 
 Respond with exactly one word: true or false. No punctuation, no explanation.`;
-  const decision = await requestAIText(routerInstruction, context, node.id);
+  const effectiveContext = referencesPreviousOutput(data.prompt) ? "" : context;
+  const decision = await requestAIText(routerInstruction, effectiveContext, node.id);
   const match = decision.toLowerCase().match(/\b(true|false)\b/);
   const normalizedDecision = match ? match[1] : "";
 

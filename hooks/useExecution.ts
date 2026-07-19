@@ -60,22 +60,6 @@ export function useExecution(
     }, {});
   }, [nodeStates, nodes]);
 
-  async function persistExecutionLog(nodeResults: ExecutionLogEntry[]) {
-    const response = await fetch(`/api/workflows/${workflowId}/logs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        node_results: nodeResults
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to persist execution log.");
-    }
-  }
-
   function handleEvent(event: ExecutionEvent) {
     if (event.type === "node:start") {
       executionResultsRef.current[event.nodeId] = {
@@ -152,17 +136,6 @@ export function useExecution(
         }
       }));
       return;
-    }
-
-    if (event.type === "workflow:done") {
-      const nodeResults = Object.values(executionResultsRef.current).map((result) => ({
-        nodeId: result.nodeId,
-        status: result.status,
-        output: result.output,
-        durationMs: result.durationMs
-      }));
-
-      void persistExecutionLog(nodeResults);
     }
   }
 
