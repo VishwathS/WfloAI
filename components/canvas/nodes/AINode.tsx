@@ -6,6 +6,13 @@ import { AlertTriangle, BrainCircuit, CheckCircle2, ChevronDown, Loader2 } from 
 import { useIsWorkflowRunning, useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import type { AIActionType, AINodeData } from "@/lib/types";
 
 const ACTION_TYPES: AIActionType[] = ["Summarize", "Rewrite", "Classify", "Extract", "Generate"];
@@ -131,21 +138,23 @@ export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) 
             <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
               Action Type
             </p>
-            <select
+            <Select
               value={data.action ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
+              onValueChange={(val) => {
                 updateData({ action: val ? (val as AIActionType) : undefined });
               }}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
             >
-              <option value="">Select action…</option>
-              {ACTION_TYPES.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger accent="violet" aria-label="Action Type">
+                <SelectValue placeholder="Select action…" />
+              </SelectTrigger>
+              <SelectContent>
+                {ACTION_TYPES.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ) : null}
         {outputMode === "json" && data.action === "Extract" ? (

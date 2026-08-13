@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CredentialType } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 interface CredentialSummary {
   id: string;
@@ -181,15 +188,19 @@ export function CredentialsCard() {
             placeholder="Name, e.g. My API key"
           />
           {showTypePicker ? (
-            <select
+            <Select
               value={form.type}
-              onChange={(e) => updateForm({ type: e.target.value as CredentialType })}
-              className={fieldClass}
+              onValueChange={(value) => updateForm({ type: value as CredentialType })}
             >
-              <option value="bearer">Bearer token</option>
-              <option value="basic">Basic auth</option>
-              <option value="api_key">API key header</option>
-            </select>
+              <SelectTrigger aria-label="Credential type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bearer">Bearer token</SelectItem>
+                <SelectItem value="basic">Basic auth</SelectItem>
+                <SelectItem value="api_key">API key header</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
             <p className="text-xs text-gray-500">Type: {TYPE_LABELS[form.type]}</p>
           )}

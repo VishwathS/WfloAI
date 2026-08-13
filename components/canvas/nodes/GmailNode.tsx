@@ -6,6 +6,13 @@ import { AlertTriangle, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import type { GmailActionType, GmailNodeData } from "@/lib/types";
 
 const GMAIL_ACTIONS: GmailActionType[] = [
@@ -108,6 +115,11 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
   const visibleActions = GMAIL_ACTIONS.filter(
     (candidate) => status?.readActionsEnabled !== false || !READ_ACTIONS.has(candidate)
   );
+  // The saved action can outlive its capability (read actions turned off after
+  // the graph was built). Never rewrite data.action to satisfy the dropdown —
+  // keep it listed but disabled and flag it; execution still fails closed.
+  const actionUnavailable = !visibleActions.includes(action);
+  const actionOptions = actionUnavailable ? [...visibleActions, action] : visibleActions;
   const showDisconnected = status !== null && !status.connected;
   const showReconnect = status?.status === "requires_reconnect";
   const showEnableReading =
@@ -178,19 +190,34 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
           </p>
         ) : null}
 
+        {actionUnavailable ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+            &ldquo;{action}&rdquo; is unavailable — email reading is turned off. This step stays
+            saved and will fail until reading is enabled.
+          </p>
+        ) : null}
+
         <div className="flex flex-col gap-1.5">
           <p className={labelClass}>Action</p>
-          <select
+          <Select
             value={action}
-            onChange={(e) => updateData({ action: e.target.value as GmailActionType })}
-            className={fieldClass}
+            onValueChange={(value) => updateData({ action: value as GmailActionType })}
           >
-            {visibleActions.map((candidate) => (
-              <option key={candidate} value={candidate}>
-                {candidate}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger accent="red" aria-label="Action">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {actionOptions.map((candidate) => (
+                <SelectItem
+                  key={candidate}
+                  value={candidate}
+                  disabled={actionUnavailable && candidate === action}
+                >
+                  {candidate}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {action === "Send Email" || action === "Create Draft" ? (

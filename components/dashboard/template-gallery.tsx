@@ -18,7 +18,7 @@ export function TemplateGallery() {
       : TEMPLATES.filter((template) => template.category === activeCategory);
 
   return (
-    <section className="space-y-4">
+    <section id="templates" className="scroll-mt-6 space-y-4 lg:scroll-mt-8">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-gray-900">Templates</h2>
         <p className="mt-0.5 text-sm text-gray-500">

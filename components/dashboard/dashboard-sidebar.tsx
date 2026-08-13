@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Bot, LayoutGrid, Settings, Sparkles, Workflow } from "lucide-react";
+import { Bot, Sparkles, Workflow } from "lucide-react";
+import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -25,22 +25,7 @@ export async function DashboardSidebar() {
         </div>
       </div>
 
-      <nav className="space-y-1">
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition-colors hover:bg-violet-100"
-        >
-          <LayoutGrid className="h-4 w-4" />
-          Dashboard
-        </Link>
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </Link>
-      </nav>
+      <SidebarNav />
 
       <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
         <div className="mb-3 flex items-center justify-between">

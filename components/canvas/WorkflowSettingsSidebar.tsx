@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { CalendarClock, Clock, Loader2, Minus, Play, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { cronToPreset, describeCron, presetToCron } from "@/lib/schedule/cron";
 import type { ScheduleFrequency, WorkflowSchedule } from "@/lib/types";
 
@@ -307,35 +314,43 @@ export function WorkflowSettingsSidebar({
 
             <div className="space-y-1">
               <p className={sectionLabelClass}>Frequency</p>
-              <select
-                className={fieldClass}
+              <Select
                 value={form.frequency}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, frequency: e.target.value as ScheduleFrequency }))
+                onValueChange={(value) =>
+                  setForm((f) => ({ ...f, frequency: value as ScheduleFrequency }))
                 }
               >
-                {FREQUENCY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger aria-label="Frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FREQUENCY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {form.frequency === "weekly" ? (
               <div className="space-y-1">
                 <p className={sectionLabelClass}>Day</p>
-                <select
-                  className={fieldClass}
-                  value={form.weekday}
-                  onChange={(e) => setForm((f) => ({ ...f, weekday: Number(e.target.value) }))}
+                <Select
+                  value={String(form.weekday)}
+                  onValueChange={(value) => setForm((f) => ({ ...f, weekday: Number(value) }))}
                 >
-                  {WEEKDAY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label="Day">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WEEKDAY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={String(option.value)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : null}
 
@@ -362,17 +377,21 @@ export function WorkflowSettingsSidebar({
 
             <div className="space-y-1">
               <p className={sectionLabelClass}>Timezone</p>
-              <select
-                className={fieldClass}
+              <Select
                 value={form.timezone}
-                onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
+                onValueChange={(value) => setForm((f) => ({ ...f, timezone: value }))}
               >
-                {getTimezoneOptions().map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger aria-label="Timezone">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getTimezoneOptions().map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <label className="flex items-center gap-2 pt-1 text-sm text-gray-700">

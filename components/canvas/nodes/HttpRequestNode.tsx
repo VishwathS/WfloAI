@@ -6,6 +6,13 @@ import { AlertTriangle, CheckCircle2, Globe, Loader2, Plus, X } from "lucide-rea
 import { useNodeExecutionState } from "@/components/canvas/execution-context";
 import { useBufferedField } from "@/hooks/useBufferedField";
 import { useNodeResize } from "@/hooks/useNodeResize";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import type {
   CredentialType,
   HttpKeyValue,
@@ -177,17 +184,21 @@ export const HttpRequestNode = memo(function HttpRequestNode({
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
         <div className="flex items-start gap-1.5">
-          <select
+          <Select
             value={data.method}
-            onChange={(e) => updateData({ method: e.target.value as HttpMethod })}
-            className={`${fieldClass} w-[92px] shrink-0`}
+            onValueChange={(value) => updateData({ method: value as HttpMethod })}
           >
-            {HTTP_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {method}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger accent="indigo" aria-label="HTTP method" className="w-[92px] shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HTTP_METHODS.map((method) => (
+                <SelectItem key={method} value={method}>
+                  {method}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <input
             type="text"
             value={urlField.value}
@@ -228,37 +239,46 @@ export const HttpRequestNode = memo(function HttpRequestNode({
 
         <div className="flex flex-col gap-1.5">
           <p className={labelClass}>Authentication</p>
-          <select
+          <Select
             value={data.authType ?? "none"}
-            onChange={(e) =>
+            onValueChange={(value) =>
               updateData({
-                authType: e.target.value as HttpRequestNodeData["authType"],
+                authType: value as HttpRequestNodeData["authType"],
                 credentialId: undefined
               })
             }
-            className={fieldClass}
           >
-            <option value="none">None</option>
-            <option value="bearer">Bearer token</option>
-            <option value="basic">Basic auth</option>
-            <option value="api_key">API key header</option>
-          </select>
+            <SelectTrigger accent="indigo" aria-label="Authentication">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="bearer">Bearer token</SelectItem>
+              <SelectItem value="basic">Basic auth</SelectItem>
+              <SelectItem value="api_key">API key header</SelectItem>
+            </SelectContent>
+          </Select>
           {data.authType !== "none" ? (
             <>
-              <select
+              <Select
                 value={data.credentialId ?? ""}
-                onChange={(e) => updateData({ credentialId: e.target.value || undefined })}
-                className={fieldClass}
+                onValueChange={(value) => updateData({ credentialId: value || undefined })}
               >
-                <option value="">
-                  {credentials === null ? "Loading credentials…" : "Select credential…"}
-                </option>
-                {matchingCredentials.map((credential) => (
-                  <option key={credential.id} value={credential.id}>
-                    {credential.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger accent="indigo" aria-label="Credential">
+                  <SelectValue
+                    placeholder={
+                      credentials === null ? "Loading credentials…" : "Select credential…"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {matchingCredentials.map((credential) => (
+                    <SelectItem key={credential.id} value={credential.id}>
+                      {credential.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {credentialMissing ? (
                 <p className="text-xs text-rose-600">
                   Credential missing — it may have been deleted. Pick another.
