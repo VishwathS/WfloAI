@@ -6,6 +6,7 @@ import { computeNextRunAt } from "@/lib/schedule/cron";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
 import { runWorkflowToCompletion, type CollectedRun } from "@/lib/execution/runToCompletion";
+import { deriveRunId } from "@/lib/integrations/idempotency";
 import type { InputNodeData, WorkflowGraph, WorkflowNodeData } from "@/lib/types";
 
 interface DueSchedule {
@@ -114,6 +115,12 @@ export const runScheduledWorkflow = inngest.createFunction(
     triggers: workflowScheduleDue
   },
   async ({ event, step }) => {
+    // Derived once in the handler scope so the execute step and the persisted
+    // workflow_runs row share it: a retry replays the same event id, keeping
+    // integration idempotency keys stable and letting ledger rows be joined
+    // back to the run they belong to (the manual path sets id the same way).
+    const runId = deriveRunId(event.id ?? `${event.data.scheduleId}:${event.ts ?? 0}`);
+
     const run = await step.run("execute-workflow", async (): Promise<ExecuteStepResult> => {
       const supabase = createAdminSupabaseClient();
 
@@ -163,7 +170,16 @@ export const runScheduledWorkflow = inngest.createFunction(
         return validationErrorRun(message);
       }
 
-      return runWorkflowToCompletion(rfNodes, rfEdges);
+      // runId derives from the Inngest event id: a retried step replays with
+      // the same id, so integration idempotency keys stay stable and a
+      // previously sent email is replayed from the ledger, never re-sent.
+      return runWorkflowToCompletion(rfNodes, rfEdges, {
+        supabase,
+        userId: event.data.userId,
+        workflowId: event.data.workflowId,
+        runId,
+        actionsUsed: { count: 0 }
+      });
     });
 
     if ("skipped" in run) {
@@ -174,6 +190,7 @@ export const runScheduledWorkflow = inngest.createFunction(
       const supabase = createAdminSupabaseClient();
 
       const { error } = await supabase.from("workflow_runs").insert({
+        id: runId,
         workflow_id: event.data.workflowId,
         user_id: event.data.userId,
         status: run.status,

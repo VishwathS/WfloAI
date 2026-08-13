@@ -1,6 +1,7 @@
 import type { Edge, Node } from "reactflow";
 import { executeWorkflow } from "@/lib/execution/serverExecutor";
 import type { ExecutionLogEntry } from "@/lib/execution/types";
+import type { IntegrationContext } from "@/lib/integrations/types";
 import type { WorkflowNodeData } from "@/lib/types";
 
 export interface CollectedRun {
@@ -14,7 +15,8 @@ export interface CollectedRun {
 
 export async function runWorkflowToCompletion(
   nodes: Node<WorkflowNodeData>[],
-  edges: Edge[]
+  edges: Edge[],
+  integrationContext?: IntegrationContext
 ): Promise<CollectedRun> {
   const startedAt = new Date().toISOString();
   const executionResults = new Map<string, ExecutionLogEntry>();
@@ -45,7 +47,7 @@ export async function runWorkflowToCompletion(
         };
         executionResults.set(event.nodeId, { ...cur, status: "error", output: cur.output || event.error });
       }
-    });
+    }, integrationContext);
   } catch {
     // node:error already recorded for the failing node
   }

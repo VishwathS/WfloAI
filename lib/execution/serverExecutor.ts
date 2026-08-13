@@ -5,6 +5,8 @@ import type {
   AIActionType,
   AINodeData,
   FileInputNodeData,
+  GmailNodeData,
+  HttpRequestNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -12,6 +14,9 @@ import type {
 } from "@/lib/types";
 import type { ExecutionEvent, NodeExecutionResult } from "@/lib/execution/types";
 import { topologicalSort } from "@/lib/execution/topologicalSort";
+import { executeGmailAction } from "@/lib/gmail/actions";
+import { executeHttpRequest } from "@/lib/http/executeHttpRequest";
+import type { IntegrationContext } from "@/lib/integrations/types";
 
 type WorkflowCanvasNode = Node<
   | TriggerNodeData
@@ -21,6 +26,8 @@ type WorkflowCanvasNode = Node<
   | LookupNodeData
   | InputNodeData
   | FileInputNodeData
+  | GmailNodeData
+  | HttpRequestNodeData
 >;
 
 interface TavilyResult {
@@ -309,12 +316,16 @@ Respond with exactly one word: true or false. No punctuation, no explanation.`;
 export async function executeWorkflow(
   nodes: WorkflowCanvasNode[],
   edges: Edge[],
-  onEvent: (event: ExecutionEvent) => void
+  onEvent: (event: ExecutionEvent) => void,
+  integrationContext?: IntegrationContext
 ): Promise<void> {
   const orderedNodes = topologicalSort(nodes, edges);
   const namedInputs = collectNamedInputs(orderedNodes, edges);
   const nodeMap = new Map(orderedNodes.map((node) => [node.id, node]));
   const outputsByNodeId = new Map<string, string>();
+  // Server-memory only: Gmail message/thread ids for downstream Read/Reply.
+  // Never rendered, never persisted to node_outputs, never sent to the client.
+  const metadataByNodeId = new Map<string, Record<string, unknown> | undefined>();
   const activeIncomingEdgesByNodeId = new Map<string, Edge[]>();
   const executedNodeIds = new Set<string>();
 
@@ -378,6 +389,60 @@ export async function executeWorkflow(
         result = await executeAINode(node, parentContext, onEvent, namedInputs);
       } else if (node.type === "lookupNode") {
         result = await executeLookupNode(node, parentContext, onEvent, namedInputs);
+      } else if (node.type === "gmailNode") {
+        if (!integrationContext) {
+          throw new Error("Gmail nodes need a server execution context.");
+        }
+        const data = node.data as GmailNodeData;
+        const inputs = { ...namedInputs, previousOutput: parentContext };
+        const interpolate = (value?: string) =>
+          value === undefined ? undefined : interpolateTemplate(value, inputs);
+        const gmailResult = await executeGmailAction(
+          integrationContext,
+          node.id,
+          {
+            action: data.action,
+            to: interpolate(data.to),
+            subject: interpolate(data.subject),
+            body: interpolate(data.body),
+            replyTo: interpolate(data.replyTo),
+            query: interpolate(data.query),
+            maxResults: data.maxResults
+          },
+          activeIncomingEdges.map((edge) => ({
+            nodeId: edge.source,
+            metadata: metadataByNodeId.get(edge.source)
+          }))
+        );
+        onEvent({ type: "node:output", nodeId: node.id, chunk: gmailResult.output });
+        result = { output: gmailResult.output, metadata: gmailResult.metadata };
+      } else if (node.type === "httpRequestNode") {
+        if (!integrationContext) {
+          throw new Error("HTTP Request nodes need a server execution context.");
+        }
+        const data = node.data as HttpRequestNodeData;
+        const inputs = { ...namedInputs, previousOutput: parentContext };
+        const output = await executeHttpRequest(
+          {
+            method: data.method,
+            url: interpolateTemplate(data.url, inputs),
+            queryParams: (data.queryParams ?? []).map((param) => ({
+              key: interpolateTemplate(param.key, inputs),
+              value: interpolateTemplate(param.value, inputs)
+            })),
+            headers: (data.headers ?? []).map((header) => ({
+              key: interpolateTemplate(header.key, inputs),
+              value: interpolateTemplate(header.value, inputs)
+            })),
+            body: data.body ? interpolateTemplate(data.body, inputs) : undefined,
+            authType: data.authType ?? "none",
+            credentialId: data.credentialId
+          },
+          integrationContext,
+          node.id
+        );
+        onEvent({ type: "node:output", nodeId: node.id, chunk: output });
+        result = { output };
       } else {
         throw new Error(`Unsupported node type: ${node.type}`);
       }
@@ -395,6 +460,7 @@ export async function executeWorkflow(
       }
 
       outputsByNodeId.set(node.id, result.output);
+      metadataByNodeId.set(node.id, result.metadata);
       executedNodeIds.add(node.id);
 
       onEvent({

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, LayoutGrid, Sparkles, Workflow } from "lucide-react";
+import { Bot, LayoutGrid, Settings, Sparkles, Workflow } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -32,6 +32,13 @@ export async function DashboardSidebar() {
         >
           <LayoutGrid className="h-4 w-4" />
           Dashboard
+        </Link>
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+        >
+          <Settings className="h-4 w-4" />
+          Settings
         </Link>
       </nav>
 

@@ -363,6 +363,11 @@ export async function executeWorkflow(
         result = await executeAINode(node, parentContext, onEvent, namedInputs);
       } else if (node.type === "lookupNode") {
         result = await executeLookupNode(node, parentContext, onEvent, namedInputs);
+      } else if (node.type === "gmailNode" || node.type === "httpRequestNode") {
+        // Integration nodes are server-execution-only: credentials, Gmail ids,
+        // and idempotency all live server-side. The primary run path
+        // (POST /api/workflows/[id]/execute) handles them.
+        throw new Error("This node runs on the server — use the workflow Run button.");
       } else {
         throw new Error(`Unsupported node type: ${node.type}`);
       }

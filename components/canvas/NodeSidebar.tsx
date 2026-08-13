@@ -33,6 +33,22 @@ const NODE_CARDS = [
     borderClass: "border-cyan-200 hover:border-cyan-300"
   },
   {
+    type: "gmailNode",
+    category: "Sources",
+    title: "Gmail",
+    description: "Send, draft, find, and read email with your connected Gmail account.",
+    accentClassName: "bg-red-50 text-red-700",
+    borderClass: "border-red-200 hover:border-red-300"
+  },
+  {
+    type: "httpRequestNode",
+    category: "Sources",
+    title: "HTTP Request",
+    description: "Call any API with methods, headers, and encrypted credentials.",
+    accentClassName: "bg-indigo-50 text-indigo-700",
+    borderClass: "border-indigo-200 hover:border-indigo-300"
+  },
+  {
     type: "aiNode",
     category: "AI",
     title: "AI Node",

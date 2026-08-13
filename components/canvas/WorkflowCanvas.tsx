@@ -39,12 +39,16 @@ import { ActionNode } from "@/components/canvas/nodes/ActionNode";
 import { LookupNode } from "@/components/canvas/nodes/LookupNode";
 import { InputNode } from "@/components/canvas/nodes/InputNode";
 import { FileInputNode } from "@/components/canvas/nodes/FileInputNode";
+import { GmailNode } from "@/components/canvas/nodes/GmailNode";
+import { HttpRequestNode } from "@/components/canvas/nodes/HttpRequestNode";
 import { DeletableEdge } from "@/components/canvas/edges/DeletableEdge";
 import { DND_NODE_TYPE_KEY, NodeSidebar } from "@/components/canvas/NodeSidebar";
 import type {
   ActionNodeData,
   AINodeData,
   FileInputNodeData,
+  GmailNodeData,
+  HttpRequestNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -60,7 +64,9 @@ const nodeTypes: NodeTypes = {
   actionNode: ActionNode,
   lookupNode: LookupNode,
   inputNode: InputNode,
-  fileInputNode: FileInputNode
+  fileInputNode: FileInputNode,
+  gmailNode: GmailNode,
+  httpRequestNode: HttpRequestNode
 };
 
 const edgeTypes: EdgeTypes = {
@@ -83,7 +89,9 @@ type CanvasNodeData =
   | ActionNodeData
   | LookupNodeData
   | InputNodeData
-  | FileInputNodeData;
+  | FileInputNodeData
+  | GmailNodeData
+  | HttpRequestNodeData;
 type CanvasNode = Node<CanvasNodeData>;
 type CanvasEdge = Edge;
 
@@ -151,6 +159,29 @@ function createNodeDefaults(type: string): CanvasNode["data"] {
       query: "{{input}}",
       maxResults: 5
     } satisfies LookupNodeData;
+  }
+
+  if (type === "gmailNode") {
+    return {
+      label: "Gmail",
+      action: "Send Email",
+      to: "",
+      subject: "",
+      body: "",
+      query: "",
+      maxResults: 5
+    } satisfies GmailNodeData;
+  }
+
+  if (type === "httpRequestNode") {
+    return {
+      label: "HTTP Request",
+      method: "GET",
+      url: "",
+      queryParams: [],
+      headers: [],
+      authType: "none"
+    } satisfies HttpRequestNodeData;
   }
 
   return {
@@ -338,6 +369,14 @@ function WorkflowCanvasInner({
 
     if (node.type === "fileInputNode") {
       return "#ea580c";
+    }
+
+    if (node.type === "gmailNode") {
+      return "#ef4444";
+    }
+
+    if (node.type === "httpRequestNode") {
+      return "#6366f1";
     }
 
     return "#7c3aed";

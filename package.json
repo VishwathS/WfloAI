@@ -9,7 +9,8 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -19,6 +20,7 @@
     "clsx": "^2.1.1",
     "cron-parser": "^5.6.1",
     "inngest": "^4.11.0",
+    "ipaddr.js": "^2.4.0",
     "lucide-react": "^0.511.0",
     "mammoth": "^1.12.0",
     "next": "14.2.35",
@@ -26,6 +28,7 @@
     "react-dom": "^18.3.1",
     "reactflow": "^11.11.4",
     "tailwind-merge": "^2.5.5",
+    "undici": "^8.7.0",
     "unpdf": "^1.6.2"
   },
   "devDependencies": {
@@ -37,6 +40,7 @@
     "eslint-config-next": "14.2.35",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
   }
 }

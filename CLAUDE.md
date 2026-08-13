@@ -21,6 +21,10 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 - **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
 - **Scheduled triggers** — Inngest-powered background execution; multiple named cron schedules per workflow stored in `workflow_schedules`; Workflow Settings sidebar (toolbar trigger pill) manages them; scheduled runs persist to `workflow_runs` like manual runs; per-schedule Run now button
+- **Gmail integration** — connect Gmail once via OAuth in Settings (own Google OAuth client with PKCE, NOT the Supabase login provider); Gmail node with a single Action dropdown (Send Email / Create Draft / Reply to Email / Find Emails / Read Email) whose form changes per action; incremental authorization (send/compose first, `gmail.readonly` via a separate "Enable email reading" flow); tokens AES-256-GCM encrypted at rest; server-execution-only
+- **HTTP Request node** — power-user escape hatch: GET/POST/PUT/PATCH/DELETE with URL, query params, headers, body, and auth via the encrypted per-user credential store (Bearer / Basic / API-key header); DNS-rebinding-safe SSRF guard, manual redirect handling with credential stripping, streaming response cap, secret redaction; server-execution-only
+- **Settings page** (`/settings`) — Gmail connection card (connect / capabilities / enable reading / disconnect) + API credentials card (add / replace-in-place / delete-with-usage-count; secrets write-only)
+- **Integration safety rails** — idempotency ledger (`integration_action_executions`) with atomic claims prevents duplicate sends on retries; per-user quotas; audit log (`integration_audit_events`); unit tests via Vitest (`npm test`)
 - **File Input node** — upload PDF/DOCX/TXT/MD/CSV into a workflow; browser uploads directly to the private `workflow-files` Supabase Storage bucket, then `POST /api/workflows/[id]/files` extracts text once (unpdf/mammoth/TextDecoder) and stores it in `workflow_files`; during execution the node outputs the extracted text like any other input; scheduled runs use the latest uploaded version; scanned/image PDFs are rejected with a clear error (no OCR in V1)
 
 ---
@@ -36,6 +40,8 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 | AI | Anthropic SDK | 0.96 |
 | Styling | Tailwind CSS | 3.4 |
 | Icons | Lucide React | 0.511 |
+| HTTP egress | undici (guarded Agent) + ipaddr.js | 7.x / 2.x |
+| Tests | Vitest (`npm test`, unit tests in `tests/`) | 4.x |
 | Runtime | Node.js | 22.x |
 
 No Redux, Zustand, or other state managers. State is React hooks + React Context + React Flow internal state.
@@ -433,6 +439,36 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 
 **Scheduled runs use the latest uploaded version** of the file (the graph stores only `fileId`, and schedules execute the latest saved graph). The node UI states this explicitly.
 
+### Gmail integration & HTTP Request node
+
+**Server-execution-only.** Both nodes run ONLY in `serverExecutor.ts` (manual runs via `POST /api/workflows/[id]/execute`, scheduled via Inngest). `executor.ts` (browser) throws "This node runs on the server" for them. There are NO `/api/gmail` or `/api/http-request` routes. Consequence: credentials, Gmail message/thread IDs, and idempotency state never reach the browser.
+
+**Execution context.** `executeWorkflow` takes an optional 4th arg `IntegrationContext` (`lib/integrations/types.ts`): `{ supabase, userId, workflowId, runId, actionsUsed }`. Manual path: user-scoped client + a run UUID generated *before* execution (reused as the `workflow_runs` PK). Inngest path: admin client + `event.data.userId` + `deriveRunId(event.id)` — deterministic, so function retries reuse the same idempotency keys.
+
+**Secret storage.** `lib/crypto.ts` — AES-256-GCM, versioned envelope `v1:<iv>:<ciphertext>:<authTag>`, key from `INTEGRATION_TOKEN_KEY` (32-byte base64; **must be backed up** — regenerating it orphans every stored secret). Encrypts Gmail refresh AND access tokens, credential payloads, and the OAuth state cookie. Secrets are write-only: no API returns decrypted values (api_key `headerName` is the only decrypted field exposed — it isn't secret).
+
+**Repository layer.** `lib/integrations/repo.ts` is the ONLY sanctioned access path to `gmail_connections` / `user_credentials`. Every function takes a non-optional `userId` and filters on it — this is the ownership guard on the admin-client path where RLS is bypassed.
+
+**Idempotency (`lib/integrations/idempotency.ts`).** Gmail Send/Draft/Reply and HTTP POST/PUT/PATCH/DELETE claim a row in `integration_action_executions` (key `runId:nodeId`, unique) *before* the external call: upsert-ignoreDuplicates insert (atomic winner), `succeeded` rows replay stored redacted `result_output` without re-executing, `pending`/`unknown` block with "may have already run", `failed` reclaims via conditional UPDATE (single winner). Ambiguous timeouts mark `unknown` and are never auto-retried. Read-only actions (GET, Find, Read) skip the ledger.
+
+**Redaction (`lib/integrations/redact.ts`).** Applied inside `lib/http/` and `lib/gmail/` before any string becomes node output, node error, or ledger content: value-based (every actual credential value used in the execution → `[REDACTED]`) plus recursive key-based redaction for JSON responses. Never log Google token responses.
+
+**HTTP network security (`lib/http/`).** undici `fetch` through a guarded `Agent` whose DNS `lookup` rejects any resolved address that isn't public unicast (loopback/private/link-local/CGNAT/multicast/reserved/metadata; IPv4-mapped IPv6 unmapped and re-checked) — connect-time validation closes the DNS-rebinding TOCTOU gap. Manual redirects (max 3), each destination re-validated; **cross-origin hops strip all credential-derived headers**; 301/302/303 follow as GET without body; HTTPS→HTTP downgrade with credentials/body rejected. Blocked user headers: host, content-length, connection, transfer-encoding, upgrade, proxy-authorization, cookie. Limits in `lib/http/constants.ts` (URL 2048, 32 headers, 4KB header value, 256KB body, 500KB streaming response cap, 10s connect / 30s total). Binary responses return `{status:"Binary response received", contentType, sizeBytes}` — never raw bytes.
+
+**Gmail module (`lib/gmail/`).** `scopes.ts` is the single scope⇄action map. `client.ts` handles token lifecycle: encrypted cache, refresh with optimistic CAS on `access_token_expires_at` (concurrent refreshes → one Google call), `invalid_grant` → `status='requires_reconnect'` (fail fast, never hammer refresh). `mime.ts` is header-injection safe: CR/LF rejected in all header values, recipients parsed with a narrow quoted-string-aware parser (display names dropped), RFC 2047 subject encoding, plain-text only in V1. `infer.ts`: Reply/Read resolve their target email from **typed in-memory metadata of direct parents only** (`metadataByNodeId` in serverExecutor) — never by scanning output text; ambiguity (0 or >1 Gmail parents) fails before any external action. **Reply requires a Read Email node as direct parent** (statically enforced in `validate.ts`); canonical flow: Find → Read → AI Draft → Reply. Find fetches per-message metadata with bounded concurrency (5).
+
+**Quotas (`lib/integrations/limits.ts`).** Single source of limits: 5 concurrent requests/user (in-memory), 60 HTTP mutations/min, 10 Gmail sends/min, 200/day (ledger-derived), 50 external actions/run. Audit events (`lib/integrations/audit.ts`) are best-effort — an audit failure must never fail a successful send.
+
+**Gmail scope & launch strategy.** Initial connect requests `gmail.send gmail.compose` only; "Enable email reading" adds restricted `gmail.readonly` with `include_granted_scopes=true`. `gmail_connections.scopes` stores what Google actually granted. Feature flag `GMAIL_READ_ACTIONS_ENABLED=false` hides Find/Read/Reply (dropdown + execution) so Send/Draft can ship while restricted-scope verification is pending. **Pre-launch checklist:** consent-screen published, verified domain, privacy policy, terms, data-use disclosure, scope justification, restricted-scope verification submitted (possible security assessment). `gmail.readonly` verification is a launch dependency, not a nice-to-have.
+
+**Public-run safety invariant (future).** Public/unauthenticated workflow runs must NOT execute Gmail Send/Reply/Create Draft or mutating HTTP actions by default. When public links ship: explicit owner opt-in, per-link rate limits, execution caps, owner warnings, optional pre-execution approval. Public pages must never expose credential names, connected Gmail addresses, secret-backed headers, or internal metadata.
+
+**Retention (future task).** `integration_action_executions` and `integration_audit_events` grow unbounded; add a periodic Inngest cleanup (audit >90 days; ledger >30 days past completion, never `pending`/`unknown` younger than 7 days).
+
+**New tables** (all RLS per-user, migrations `202607190001–4`): `gmail_connections` (one per user; encrypted tokens, granted scopes, `status active|requires_reconnect`), `user_credentials` (`type bearer|basic|api_key`, `secret_encrypted`), `integration_action_executions` (idempotency ledger + quota source), `integration_audit_events` (no secret values; `result succeeded|failed|blocked|unknown`).
+
+**Env vars:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INTEGRATION_TOKEN_KEY`, `GMAIL_READ_ACTIONS_ENABLED` (all server-only).
+
 ### Lookup Node
 
 **Configuration schema (`LookupNodeData`):**
@@ -514,3 +550,12 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `user_id` filter in `resolveFileInputs` on the Inngest path | The admin client bypasses RLS and graph JSONB is user-writable — removing the filter lets a forged `fileId` read another user's file text |
 | File size limits live only in `lib/files/constants.ts` | Client and server both import them; a second definition lets the checks drift apart |
 | Server constructs the storage path in `/api/workflows/[id]/files` | Accepting a client-supplied path would allow reads/writes outside the user's `{user_id}/` prefix |
+| Gmail/HTTP nodes execute only in `serverExecutor.ts` | Moving them client-side would expose credentials, Gmail IDs, and break idempotency |
+| `lib/integrations/repo.ts` is the only access path to `gmail_connections` / `user_credentials`, with mandatory `userId` filters | The admin client bypasses RLS; the explicit filter is the only cross-user guard on the Inngest path |
+| Idempotency claim before every Gmail send/draft/reply and mutating HTTP call | Removing it lets Inngest retries or concurrent runs send the same email twice |
+| Redaction runs before any integration output/error is emitted or stored | Skipping it leaks bearer tokens echoed by APIs into run history and the ledger |
+| Connect-time DNS guard in `lib/http/ssrfGuard.ts` + manual redirect re-validation | String-only hostname checks are bypassable via DNS rebinding or redirects to internal IPs |
+| CR/LF rejection + narrow address parsing in `lib/gmail/mime.ts` | Interpolated workflow input reaches MIME headers; without it users can inject Bcc/arbitrary headers |
+| `INTEGRATION_TOKEN_KEY` versioned envelope (`v1:`) and key backup | Rotating the key without the version path orphans every stored refresh token and credential |
+| Gmail message/thread IDs stay in `NodeExecutionResult.metadata` (server memory + ledger only) | Putting them in output strings exposes them in UI, AI prompts, run history, and future public pages |
+| Public runs never execute destructive integration actions by default (when public links ship) | Anonymous visitors would send email / fire authenticated HTTP with the owner's credentials |

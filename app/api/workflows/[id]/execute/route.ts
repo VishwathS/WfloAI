@@ -57,6 +57,9 @@ export async function POST(_request: Request, { params }: RouteContext) {
   }
 
   const startedAt = new Date().toISOString();
+  // Generated before execution so integration idempotency keys exist for this
+  // run; reused as the workflow_runs primary key.
+  const runId = crypto.randomUUID();
   const encoder = new TextEncoder();
   const executionResults = new Map<string, ExecutionLogEntry>();
 
@@ -98,6 +101,12 @@ export async function POST(_request: Request, { params }: RouteContext) {
           } catch {
             // client disconnected; execution continues server-side
           }
+        }, {
+          supabase,
+          userId: user.id,
+          workflowId: params.id,
+          runId,
+          actionsUsed: { count: 0 }
         });
 
         const nodeResults = Array.from(executionResults.values());
@@ -107,6 +116,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
         const runError = nodeResults.find((r) => r.status === "error")?.output ?? null;
 
         await supabase.from("workflow_runs").insert({
+          id: runId,
           workflow_id: params.id,
           user_id: user.id,
           status: hasError ? "error" : "success",

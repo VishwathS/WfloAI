@@ -8,6 +8,8 @@ import type {
   ActionNodeData,
   AINodeData,
   FileInputNodeData,
+  GmailNodeData,
+  HttpRequestNodeData,
   InputNodeData,
   LookupNodeData,
   RouterNodeData,
@@ -22,6 +24,8 @@ type WorkflowCanvasNode = Node<
   | LookupNodeData
   | InputNodeData
   | FileInputNodeData
+  | GmailNodeData
+  | HttpRequestNodeData
 >;
 
 const IDLE_STATE: NodeExecutionState = {

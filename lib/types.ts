@@ -73,6 +73,45 @@ export interface FileInputNodeData {
   resolvedText?: string;
 }
 
+export type GmailActionType =
+  | "Send Email"
+  | "Create Draft"
+  | "Reply to Email"
+  | "Find Emails"
+  | "Read Email";
+
+export interface GmailNodeData {
+  label: string;
+  action: GmailActionType;
+  to?: string;
+  subject?: string;
+  body?: string;
+  replyTo?: string;
+  query?: string;
+  maxResults?: number;
+}
+
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export type CredentialType = "bearer" | "basic" | "api_key";
+
+export interface HttpKeyValue {
+  key: string;
+  value: string;
+}
+
+export interface HttpRequestNodeData {
+  label: string;
+  method: HttpMethod;
+  url: string;
+  queryParams: HttpKeyValue[];
+  headers: HttpKeyValue[];
+  body?: string;
+  authType: "none" | CredentialType;
+  // References user_credentials.id — the graph never stores key material.
+  credentialId?: string;
+}
+
 export type WorkflowNodeData =
   | TriggerNodeData
   | AINodeData
@@ -80,7 +119,9 @@ export type WorkflowNodeData =
   | ActionNodeData
   | LookupNodeData
   | InputNodeData
-  | FileInputNodeData;
+  | FileInputNodeData
+  | GmailNodeData
+  | HttpRequestNodeData;
 
 export interface WorkflowNode<TData = WorkflowNodeData> {
   id: string;
@@ -133,6 +174,30 @@ export interface WorkflowSchedule {
   input_values: Record<string, string>;
   last_run_at: string | null;
   next_run_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GmailConnection {
+  id: string;
+  user_id: string;
+  email: string;
+  refresh_token_encrypted: string;
+  access_token_encrypted: string | null;
+  access_token_expires_at: string | null;
+  scopes: string[];
+  status: "active" | "requires_reconnect";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCredential {
+  id: string;
+  user_id: string;
+  name: string;
+  type: CredentialType;
+  // lib/crypto.ts envelope of the JSON secret payload — never sent to clients.
+  secret_encrypted: string;
   created_at: string;
   updated_at: string;
 }
