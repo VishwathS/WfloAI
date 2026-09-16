@@ -9,6 +9,7 @@ import {
 } from "@/lib/gmail/oauth";
 import { upsertGmailConnection } from "@/lib/integrations/repo";
 import { recordAuditEvent } from "@/lib/integrations/audit";
+import { reportError } from "@/lib/observability/report";
 
 interface SealedState {
   nonce: string;
@@ -55,7 +56,10 @@ export async function GET(request: Request) {
   let state: SealedState;
   try {
     state = JSON.parse(decryptSecret(sealedState)) as SealedState;
-  } catch {
+  } catch (error) {
+    // Sealed-state envelope failed to decrypt or parse: tampering, a stale
+    // cookie, or an INTEGRATION_TOKEN_KEY change. All three matter.
+    reportError("gmail.oauth.state_invalid", error, { userId: user.id });
     return redirectToSettings("error");
   }
 
@@ -83,7 +87,10 @@ export async function GET(request: Request) {
 
     await recordAuditEvent(supabase, user.id, "gmail.connected", "succeeded");
     return redirectToSettings("connected");
-  } catch {
+  } catch (error) {
+    // Token exchange, profile fetch or connection upsert failed. Never log the
+    // token response itself — reportError records message and stack only.
+    reportError("gmail.oauth.exchange_failed", error, { userId: user.id });
     await recordAuditEvent(supabase, user.id, "gmail.connected", "failed");
     return redirectToSettings("error");
   }

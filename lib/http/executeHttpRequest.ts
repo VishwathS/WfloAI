@@ -13,6 +13,7 @@ import {
   markActionSucceeded,
   markActionUnknown
 } from "@/lib/integrations/idempotency";
+import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import {
   acquireConcurrencySlot,
   checkHttpMutationQuota,
@@ -384,6 +385,19 @@ export async function executeHttpRequest(
       "http.request.attempted",
       isTimeout ? "unknown" : "failed"
     );
+    if (isMutating) {
+      // Hostname and method only — the error text may echo credential material,
+      // and mapNetworkError is what redacts it for the caller.
+      log("error", LOG_EVENTS.httpMutationFailed, {
+        method: config.method,
+        host: parsedUrl.hostname,
+        outcome: isTimeout ? "unknown" : "failed",
+        nodeId,
+        userId: ctx.userId,
+        workflowId: ctx.workflowId,
+        runId: ctx.runId
+      });
+    }
     throw mapNetworkError(error, parsedUrl.hostname, auth?.secretValues ?? []);
   } finally {
     releaseSlot();

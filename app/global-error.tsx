@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { reportError } from "@/lib/observability/report";
+
 interface GlobalErrorPageProps {
   error: Error & { digest?: string };
   reset: () => void;
@@ -9,6 +12,10 @@ export default function GlobalErrorPage({
   error,
   reset
 }: GlobalErrorPageProps) {
+  useEffect(() => {
+    reportError("client.global_error_boundary", error, { digest: error.digest });
+  }, [error]);
+
   return (
     <html lang="en">
       <body className="bg-gray-50">

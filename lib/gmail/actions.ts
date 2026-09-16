@@ -12,6 +12,7 @@ import { claimAction, markActionFailed, markActionSucceeded, markActionUnknown }
 import { checkGmailSendQuota, consumeRunAction } from "@/lib/integrations/limits";
 import { recordAuditEvent, type AuditAction } from "@/lib/integrations/audit";
 import type { GmailNodeMetadata, IntegrationContext } from "@/lib/integrations/types";
+import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import type { GmailActionType } from "@/lib/types";
 
 export interface ResolvedGmailFields {
@@ -166,6 +167,17 @@ async function runMutating(
     }
     await markActionFailed(ctx.supabase, ctx.runId, nodeId);
     await recordAuditEvent(ctx.supabase, ctx.userId, auditAction, "failed");
+    if (actionType === "gmail.send" || actionType === "gmail.reply") {
+      // Curated context only: the error text can carry provider detail, and the
+      // ledger already holds the redacted result.
+      log("error", LOG_EVENTS.gmailSendFailed, {
+        actionType,
+        nodeId,
+        userId: ctx.userId,
+        workflowId: ctx.workflowId,
+        runId: ctx.runId
+      });
+    }
     throw error;
   }
 }

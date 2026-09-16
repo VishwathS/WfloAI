@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportError } from "@/lib/observability/report";
 
 export type AuditAction =
   | "gmail.connected"
@@ -30,7 +31,11 @@ export async function recordAuditEvent(
       result,
       resource_id: resourceId ?? null
     });
-  } catch {
-    // swallow — auditing is observability, not control flow
+  } catch (error) {
+    // Never rethrow: auditing is observability, not control flow, and a failed
+    // audit write must not turn a successful send into a reported failure.
+    // Reported rather than swallowed, because a silent audit gap is the one
+    // thing an audit log must not have.
+    reportError("audit.write_failed", error, { userId, action, result });
   }
 }

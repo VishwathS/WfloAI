@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
+import { reportError } from "@/lib/observability/report";
 import { GmailReconnectError, refreshAccessToken } from "@/lib/gmail/oauth";
 import {
   getGmailConnection,
@@ -41,8 +42,11 @@ export async function getGmailAccessToken(
         token: decryptSecret(connection.access_token_encrypted),
         scopes: connection.scopes
       };
-    } catch {
+    } catch (error) {
       // Undecryptable cache (key changed) — fall through to a fresh refresh.
+      // Worth surfacing: at scale this means INTEGRATION_TOKEN_KEY rotated and
+      // every cached token is being discarded.
+      reportError("gmail.token_cache.undecryptable", error, { userId });
     }
   }
 
@@ -65,8 +69,9 @@ export async function getGmailAccessToken(
       if (winner?.access_token_encrypted) {
         try {
           return { token: decryptSecret(winner.access_token_encrypted), scopes: winner.scopes };
-        } catch {
+        } catch (error) {
           // fall back to our own freshly refreshed token
+          reportError("gmail.token_cache.undecryptable", error, { userId });
         }
       }
     }

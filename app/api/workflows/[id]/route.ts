@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { WorkflowGraph } from "@/lib/types";
 
@@ -47,7 +48,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.item.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -66,7 +67,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .eq("id", params.id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return apiError("api.workflows.item.update_failed", updateError);
   }
 
   return NextResponse.json({ success: true }, { status: 200 });

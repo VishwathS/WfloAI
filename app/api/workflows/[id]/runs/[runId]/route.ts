@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 interface RouteContext {
@@ -25,7 +26,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (fetchError) {
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    return apiError("api.workflows.runs.item.fetch_failed", fetchError);
   }
 
   if (!run) {
@@ -42,7 +43,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     .eq("id", params.runId);
 
   if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    return apiError("api.workflows.runs.item.delete_failed", deleteError);
   }
 
   return NextResponse.json({ success: true }, { status: 200 });

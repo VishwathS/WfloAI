@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone } from "@/lib/schedule/cron";
 
@@ -65,7 +66,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -83,7 +84,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .order("created_at", { ascending: true });
 
   if (schedulesError) {
-    return NextResponse.json({ error: schedulesError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.schedules_query_failed", schedulesError);
   }
 
   return NextResponse.json({ schedules: schedules ?? [] }, { status: 200 });
@@ -126,7 +127,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -153,7 +154,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     .single();
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.insert_failed", insertError);
   }
 
   return NextResponse.json({ schedule }, { status: 201 });

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/observability/report";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { executeWorkflow } from "@/lib/execution/serverExecutor";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
@@ -29,7 +31,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.execute.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -127,8 +129,13 @@ export async function POST(_request: Request, { params }: RouteContext) {
           started_at: startedAt,
           completed_at: new Date().toISOString()
         });
-      } catch {
-        // node:error already sent for the failing node; stream closes cleanly
+      } catch (error) {
+        // node:error was already streamed for the failing node, so the client
+        // is informed — but the operator never was.
+        reportError("api.workflows.execute.stream_failed", error, {
+          workflowId: params.id,
+          runId
+        });
       } finally {
         try { controller.close(); } catch { /* already closed by client disconnect */ }
       }

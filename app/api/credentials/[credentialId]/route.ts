@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/observability/report";
 import { encryptSecret } from "@/lib/crypto";
 import { buildSecretPayload, isCredentialPayload } from "@/lib/integrations/credentialPayload";
 import { getUserCredential } from "@/lib/integrations/repo";
@@ -21,7 +23,10 @@ async function countWorkflowsUsingCredential(
     .eq("user_id", userId);
 
   if (error) {
-    throw new Error(`Failed to check credential usage: ${error.message}`);
+    // Postgres detail goes to the reporter, not into a thrown message that
+    // could surface in a response body.
+    reportError("api.credentials.item.usage_count_failed", error, { userId });
+    throw new Error("Couldn't check where this credential is used.");
   }
 
   return (data ?? []).filter((row) => {
@@ -76,7 +81,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError("api.credentials.item.update_failed", error);
   }
 
   await recordAuditEvent(supabase, user.id, "credential.replaced", "succeeded", credential.id);
@@ -119,7 +124,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError("api.credentials.item.delete_failed", error);
   }
 
   await recordAuditEvent(supabase, user.id, "credential.deleted", "succeeded", credential.id);

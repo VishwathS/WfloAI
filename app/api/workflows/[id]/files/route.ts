@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { extractTextFromFile } from "@/lib/extraction/extractText";
 import { formatBytes, getFileKind, getMaxBytes } from "@/lib/files/constants";
@@ -34,7 +35,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.files.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -114,7 +115,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   if (insertError) {
     await storage.remove([storagePath]);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return apiError("api.workflows.files.insert_failed", insertError);
   }
 
   return NextResponse.json({

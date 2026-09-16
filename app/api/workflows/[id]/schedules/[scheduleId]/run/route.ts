@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 
@@ -26,7 +27,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError("api.workflows.schedules.run.query_failed", error);
   }
 
   if (!schedule || schedule.workflow_id !== params.id) {

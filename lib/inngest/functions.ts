@@ -2,6 +2,7 @@ import { cron } from "inngest";
 import type { Edge, Node } from "reactflow";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import { computeNextRunAt } from "@/lib/schedule/cron";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
@@ -204,6 +205,19 @@ export const runScheduledWorkflow = inngest.createFunction(
 
       if (error) {
         throw new Error(`Failed to persist workflow run: ${error.message}`);
+      }
+
+      // The failure nobody would otherwise see: a scheduled run that errors,
+      // persists its row, advances next_run_at, and repeats tomorrow. run.error
+      // is already redacted by the integration layer before it reaches here.
+      if (run.status === "error") {
+        log("error", LOG_EVENTS.scheduledRunFailed, {
+          runId,
+          scheduleId: event.data.scheduleId,
+          workflowId: event.data.workflowId,
+          userId: event.data.userId,
+          nodeError: run.error
+        });
       }
     });
 

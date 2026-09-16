@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/observability/report";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { buildSecretPayload, isCredentialPayload } from "@/lib/integrations/credentialPayload";
 import { recordAuditEvent } from "@/lib/integrations/audit";
@@ -24,7 +26,7 @@ export async function GET() {
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError("api.credentials.list_failed", error);
   }
 
   // Secrets are write-only; api_key rows expose only the (non-secret) header name.
@@ -39,8 +41,11 @@ export async function GET() {
         try {
           const secret = JSON.parse(decryptSecret(credential.secret_encrypted)) as ApiKeySecret;
           summary.headerName = secret.headerName;
-        } catch {
+        } catch (error) {
           // Undecryptable envelope (key changed) — omit headerName.
+          reportError("credentials.envelope_undecryptable", error, {
+            credentialId: credential.id
+          });
         }
       }
       return summary;
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError("api.credentials.insert_failed", error);
   }
 
   await recordAuditEvent(supabase, user.id, "credential.created", "succeeded", data.id);

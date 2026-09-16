@@ -1,4 +1,5 @@
 export const GMAIL_OAUTH_STATE_COOKIE = "gmail_oauth_state";
+import { reportError } from "@/lib/observability/report";
 
 export class GmailReconnectError extends Error {
   constructor() {
@@ -88,8 +89,10 @@ export async function revokeToken(token: string): Promise<void> {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ token })
     });
-  } catch {
+  } catch (error) {
     // Best-effort: the row is deleted regardless; Google expires it eventually.
+    // Still reported — a token we believe revoked but is not is worth knowing.
+    reportError("gmail.token_revoke_failed", error);
   }
 }
 

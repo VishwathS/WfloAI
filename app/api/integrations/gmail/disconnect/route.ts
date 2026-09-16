@@ -5,6 +5,7 @@ import { revokeToken } from "@/lib/gmail/oauth";
 import { deleteGmailConnection, getGmailConnection } from "@/lib/integrations/repo";
 import { recordAuditEvent } from "@/lib/integrations/audit";
 import { isSameOrigin } from "@/lib/security/origin";
+import { reportError } from "@/lib/observability/report";
 
 export async function POST(request: Request) {
   // B3: defense in depth behind Supabase's SameSite cookies.
@@ -26,8 +27,9 @@ export async function POST(request: Request) {
   if (connection) {
     try {
       await revokeToken(decryptSecret(connection.refresh_token_encrypted));
-    } catch {
+    } catch (error) {
       // Envelope may be undecryptable after a key change; still delete the row.
+      reportError("gmail.disconnect.revoke_failed", error, { userId: user.id });
     }
     await deleteGmailConnection(supabase, user.id);
   }

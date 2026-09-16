@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone } from "@/lib/schedule/cron";
 import type { WorkflowSchedule } from "@/lib/types";
@@ -66,7 +67,7 @@ async function loadOwnedSchedule(
     .maybeSingle();
 
   if (error) {
-    return { response: NextResponse.json({ error: error.message }, { status: 500 }) };
+    return { response: apiError("api.workflows.schedules.item.query_failed", error) };
   }
 
   if (!schedule || schedule.workflow_id !== params.id) {
@@ -135,7 +136,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.item.update_failed", updateError);
   }
 
   return NextResponse.json({ schedule }, { status: 200 });
@@ -163,7 +164,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     .eq("id", params.scheduleId);
 
   if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    return apiError("api.workflows.schedules.item.delete_failed", deleteError);
   }
 
   return NextResponse.json({ success: true }, { status: 200 });

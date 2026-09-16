@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 interface RouteContext {
@@ -24,7 +25,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .maybeSingle();
 
   if (workflowError) {
-    return NextResponse.json({ error: workflowError.message }, { status: 500 });
+    return apiError("api.workflows.runs.workflow_lookup_failed", workflowError);
   }
 
   if (!workflow) {
@@ -42,7 +43,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     .order("created_at", { ascending: false });
 
   if (runsError) {
-    return NextResponse.json({ error: runsError.message }, { status: 500 });
+    return apiError("api.workflows.runs.runs_query_failed", runsError);
   }
 
   return NextResponse.json({ runs: runs ?? [] }, { status: 200 });

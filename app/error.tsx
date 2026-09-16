@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportError } from "@/lib/observability/report";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -9,7 +10,7 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    console.error(error);
+    reportError("client.error_boundary", error, { digest: error.digest });
   }, [error]);
 
   return (
