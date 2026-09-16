@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Clock, Loader2, Minus, Play, Plus } from "lucide-react";
+import { AlertTriangle, CalendarClock, Clock, Loader2, Minus, Play, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { cronToPreset, describeCron, presetToCron } from "@/lib/schedule/cron";
+import { AUTO_DISABLED_REASON } from "@/lib/schedule/constants";
 import type { ScheduleFrequency, WorkflowSchedule } from "@/lib/types";
 
 export interface ScheduleSummary {
@@ -473,6 +474,16 @@ export function WorkflowSettingsSidebar({
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
                       <Clock className="h-3 w-3" />
                       Next run: {formatNextRun(schedule.next_run_at)}
+                    </p>
+                  ) : null}
+                  {schedule.disabled_reason === AUTO_DISABLED_REASON ? (
+                    <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>
+                        Turned off automatically after{" "}
+                        {schedule.consecutive_failures} failed runs. Check Run History,
+                        fix the workflow, then enable it again.
+                      </span>
                     </p>
                   ) : null}
                 </button>

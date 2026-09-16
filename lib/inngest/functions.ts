@@ -3,6 +3,8 @@ import type { Edge, Node } from "reactflow";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { log, LOG_EVENTS } from "@/lib/observability/logger";
+import { reportError } from "@/lib/observability/report";
+import { AUTO_DISABLED_REASON, SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 import { computeNextRunAt } from "@/lib/schedule/cron";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
@@ -219,6 +221,66 @@ export const runScheduledWorkflow = inngest.createFunction(
           nodeError: run.error
         });
       }
+    });
+
+    // A12: a broken schedule used to fail on schedule forever, notifying
+    // nobody. Tracked and disabled in its own step, deliberately separate from
+    // the CAS claim in checkDueSchedules — that UPDATE is the only
+    // duplicate-run protection in the system and is left untouched.
+    await step.run("track-schedule-health", async () => {
+      const supabase = createAdminSupabaseClient();
+
+      if (run.status !== "error") {
+        // Any success clears the run of failures.
+        await supabase
+          .from("workflow_schedules")
+          .update({ consecutive_failures: 0, disabled_reason: null })
+          .eq("id", event.data.scheduleId)
+          .eq("user_id", event.data.userId);
+        return { failures: 0 };
+      }
+
+      const { data: schedule } = await supabase
+        .from("workflow_schedules")
+        .select("consecutive_failures")
+        .eq("id", event.data.scheduleId)
+        .eq("user_id", event.data.userId)
+        .maybeSingle();
+
+      const failures = (schedule?.consecutive_failures ?? 0) + 1;
+      const shouldDisable = failures >= SCHEDULE_LIMITS.AUTO_DISABLE_AFTER_FAILURES;
+
+      await supabase
+        .from("workflow_schedules")
+        .update({
+          consecutive_failures: failures,
+          ...(shouldDisable
+            ? { enabled: false, next_run_at: null, disabled_reason: AUTO_DISABLED_REASON }
+            : {})
+        })
+        .eq("id", event.data.scheduleId)
+        .eq("user_id", event.data.userId);
+
+      if (shouldDisable) {
+        // Notification goes through Task 02's reporter rather than a second
+        // path: once the operator registers a transport, this becomes a real
+        // alert. Disabling without telling anyone would turn a loud problem
+        // into a quiet one.
+        reportError(
+          "schedule.auto_disabled",
+          new Error(
+            `Schedule disabled after ${failures} consecutive failures.`
+          ),
+          {
+            scheduleId: event.data.scheduleId,
+            workflowId: event.data.workflowId,
+            userId: event.data.userId,
+            consecutiveFailures: failures
+          }
+        );
+      }
+
+      return { failures, disabled: shouldDisable };
     });
 
     return { status: run.status };

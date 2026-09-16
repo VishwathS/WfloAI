@@ -174,6 +174,11 @@ export interface WorkflowSchedule {
   input_values: Record<string, string>;
   last_run_at: string | null;
   next_run_at: string | null;
+  // A12: consecutive error runs; reset by any success. When the run reaches
+  // SCHEDULE_LIMITS.AUTO_DISABLE_AFTER_FAILURES the schedule is disabled and
+  // disabled_reason records why. Null reason means the user disabled it.
+  consecutive_failures: number;
+  disabled_reason: string | null;
   created_at: string;
   updated_at: string;
 }

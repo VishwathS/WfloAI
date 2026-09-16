@@ -1,5 +1,6 @@
 import { CronExpressionParser } from "cron-parser";
 import type { ScheduleFrequency } from "@/lib/types";
+import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 
 export interface SchedulePreset {
   frequency: Exclude<ScheduleFrequency, "custom">;
@@ -47,6 +48,47 @@ export function isValidCronExpression(cronExpression: string, timezone: string):
   } catch {
     return false;
   }
+}
+
+// A12: the floor is checked against the PARSED cron, not the raw string, so
+// `* * * * *` and `*/1 * * * *` are both rejected however they are spelled.
+// Several consecutive gaps are sampled because a single pair can hide a short
+// one — `0,1,30 * * * *` looks like 29 minutes if you only look once.
+const INTERVAL_SAMPLES = 6;
+
+export function minIntervalMinutes(
+  cronExpression: string,
+  timezone: string,
+  from: Date = new Date()
+): number | null {
+  try {
+    const iterator = CronExpressionParser.parse(cronExpression, {
+      tz: timezone,
+      currentDate: from
+    });
+
+    let previous = iterator.next().toDate().getTime();
+    let smallest = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < INTERVAL_SAMPLES; i += 1) {
+      const current = iterator.next().toDate().getTime();
+      smallest = Math.min(smallest, (current - previous) / 60_000);
+      previous = current;
+    }
+
+    return smallest;
+  } catch {
+    return null;
+  }
+}
+
+export function meetsIntervalFloor(
+  cronExpression: string,
+  timezone: string,
+  from: Date = new Date()
+): boolean {
+  const smallest = minIntervalMinutes(cronExpression, timezone, from);
+  return smallest !== null && smallest >= SCHEDULE_LIMITS.MIN_INTERVAL_MINUTES;
 }
 
 export function presetToCron(preset: SchedulePreset): string {

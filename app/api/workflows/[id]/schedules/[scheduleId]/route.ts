@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone } from "@/lib/schedule/cron";
+import { meetsIntervalFloor } from "@/lib/schedule/cron";
+import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 import type { WorkflowSchedule } from "@/lib/types";
 
 interface RouteContext {
@@ -117,6 +119,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid timezone" }, { status: 400 });
   }
 
+  if (!meetsIntervalFloor(cronExpression, timezone)) {
+    return NextResponse.json(
+      {
+        error: `Schedules must run at most once every ${SCHEDULE_LIMITS.MIN_INTERVAL_MINUTES} minutes.`
+      },
+      { status: 400 }
+    );
+  }
+
   if (!isValidCronExpression(cronExpression, timezone)) {
     return NextResponse.json({ error: "Invalid cron expression" }, { status: 400 });
   }
@@ -126,6 +137,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .update({
       name: body.name?.trim() ?? result.schedule.name,
       enabled,
+      // Re-enabling clears the auto-disable reason and the failure run: the
+      // user is deliberately restarting the automation.
+      ...(enabled ? { consecutive_failures: 0, disabled_reason: null } : {}),
       cron_expression: cronExpression,
       timezone,
       input_values: body.input_values ?? result.schedule.input_values,

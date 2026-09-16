@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/observability/apiError";
+import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { computeNextRunAt, isValidCronExpression, isValidTimezone } from "@/lib/schedule/cron";
+import { computeNextRunAt, isValidCronExpression, isValidTimezone, meetsIntervalFloor } from "@/lib/schedule/cron";
 
 interface RouteContext {
   params: {
@@ -120,6 +121,12 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid cron expression" }, { status: 400 });
   }
 
+  // A12: validated against the parsed cron, so every spelling of "every
+  // minute" is rejected, not just the literal one.
+  if (!meetsIntervalFloor(body.cron_expression, body.timezone)) {
+    return NextResponse.json({ error: `Schedules must run at most once every ${SCHEDULE_LIMITS.MIN_INTERVAL_MINUTES} minutes.` }, { status: 400 });
+  }
+
   const { data: workflow, error: workflowError } = await supabase
     .from("workflows")
     .select("id, user_id")
@@ -136,6 +143,44 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   if (workflow.user_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // A12: a per-user cap. The poller's global .limit(50) is a throughput
+  // ceiling on the poller, not a per-user quota.
+  const { count: userScheduleCount, error: userCountError } = await supabase
+    .from("workflow_schedules")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (userCountError) {
+    return apiError("api.workflows.schedules.count_failed", userCountError);
+  }
+
+  if ((userScheduleCount ?? 0) >= SCHEDULE_LIMITS.MAX_SCHEDULES_PER_USER) {
+    return NextResponse.json(
+      {
+        error: `You've reached the limit of ${SCHEDULE_LIMITS.MAX_SCHEDULES_PER_USER} schedules. Delete one before adding another.`
+      },
+      { status: 400 }
+    );
+  }
+
+  const { count: workflowScheduleCount, error: workflowCountError } = await supabase
+    .from("workflow_schedules")
+    .select("id", { count: "exact", head: true })
+    .eq("workflow_id", params.id);
+
+  if (workflowCountError) {
+    return apiError("api.workflows.schedules.count_failed", workflowCountError);
+  }
+
+  if ((workflowScheduleCount ?? 0) >= SCHEDULE_LIMITS.MAX_SCHEDULES_PER_WORKFLOW) {
+    return NextResponse.json(
+      {
+        error: `This workflow already has the maximum of ${SCHEDULE_LIMITS.MAX_SCHEDULES_PER_WORKFLOW} schedules.`
+      },
+      { status: 400 }
+    );
   }
 
   const { data: schedule, error: insertError } = await supabase
