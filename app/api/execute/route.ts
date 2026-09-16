@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AI_QUOTA } from "@/lib/integrations/limits";
 import { consumeQuota, quotaMessage, settleMeteredAction } from "@/lib/integrations/quota";
+import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 
 interface ExecuteRequestBody {
   prompt?: string;
@@ -58,16 +59,20 @@ export async function POST(request: Request) {
   }
 
   const client = new Anthropic({ apiKey });
-  const stream = client.messages.stream({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
-    messages: [
-      {
-        role: "user",
-        content: buildPrompt(body.prompt, context, schema)
-      }
-    ]
-  });
+  const stream = client.messages.stream(
+    {
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      messages: [
+        {
+          role: "user",
+          content: buildPrompt(body.prompt, context, schema)
+        }
+      ]
+    },
+    // A11: bound a hung provider call rather than holding the request open.
+    { signal: AbortSignal.timeout(EXECUTION_LIMITS.AI_TIMEOUT_MS) }
+  );
   const encoder = new TextEncoder();
 
   const readableStream = new ReadableStream<Uint8Array>({

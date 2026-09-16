@@ -12,6 +12,7 @@ import type {
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 import { HTTP_LIMITS, isBlockedHeader } from "@/lib/http/constants";
 import { INTEGRATION_LIMITS } from "@/lib/integrations/limits";
+import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 
 type WorkflowNode = Node<WorkflowNodeData>;
 
@@ -81,6 +82,17 @@ export function validateWorkflow(
       nodeErrors: {},
       globalError:
         "The workflow contains a cycle — remove the circular connection to continue."
+    };
+  }
+
+  // A11: bound graph size before execution begins, so an oversized workflow
+  // fails at validation rather than partway through with tokens already spent.
+  if (reachableNodes.length > EXECUTION_LIMITS.MAX_NODES_PER_RUN) {
+    return {
+      valid: false,
+      nodeErrors: {},
+      globalError:
+        `This workflow has ${reachableNodes.length} connected steps, above the limit of ${EXECUTION_LIMITS.MAX_NODES_PER_RUN} per run. Split it into smaller workflows.`
     };
   }
 

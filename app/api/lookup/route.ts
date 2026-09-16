@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { apiError } from "@/lib/observability/apiError";
 import { LOOKUP_QUOTA } from "@/lib/integrations/limits";
 import { consumeQuota, quotaMessage, settleMeteredAction } from "@/lib/integrations/quota";
+import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 
 interface LookupRequestBody {
   query?: string;
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify({ query: body.query.trim(), max_results: maxResults })
+      body: JSON.stringify({ query: body.query.trim(), max_results: maxResults }),
+      signal: AbortSignal.timeout(EXECUTION_LIMITS.LOOKUP_TIMEOUT_MS)
     });
 
     if (!response.ok) {

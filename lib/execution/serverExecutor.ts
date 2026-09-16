@@ -19,6 +19,7 @@ import { executeHttpRequest } from "@/lib/http/executeHttpRequest";
 import type { IntegrationContext } from "@/lib/integrations/types";
 import { AI_QUOTA, LOOKUP_QUOTA, consumeRunAction } from "@/lib/integrations/limits";
 import { withMeteredCall } from "@/lib/integrations/quota";
+import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 
 type WorkflowCanvasNode = Node<
   | TriggerNodeData
@@ -188,11 +189,16 @@ async function requestAIText(
   }
 
   const client = new Anthropic({ apiKey });
-  const stream = client.messages.stream({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
-    messages: [{ role: "user", content: buildPrompt(prompt, context, schema) }]
-  });
+  // A11: a hung provider call would otherwise hang the whole run until the
+  // platform severs it mid-write.
+  const stream = client.messages.stream(
+    {
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: buildPrompt(prompt, context, schema) }]
+    },
+    { signal: AbortSignal.timeout(EXECUTION_LIMITS.AI_TIMEOUT_MS) }
+  );
 
   let output = "";
 
@@ -254,7 +260,8 @@ async function executeLookupNode(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`
     },
-    body: JSON.stringify({ query, max_results: maxResults })
+    body: JSON.stringify({ query, max_results: maxResults }),
+    signal: AbortSignal.timeout(EXECUTION_LIMITS.LOOKUP_TIMEOUT_MS)
   });
 
   if (!response.ok) {
