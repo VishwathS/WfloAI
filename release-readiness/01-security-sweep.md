@@ -148,6 +148,10 @@ Stop and ask before proceeding if:
 Operator-only. The agent documents; it does not perform.
 
 1. **Google Cloud Console — verify scopes.** APIs & Services → OAuth consent screen → Data access (Scopes). Confirm the listed scopes are exactly what `lib/gmail/scopes.ts` requests after the A15 change, and that **no scope is marked Restricted**. This is the authoritative check; prose in any document, including this one, is not.
-2. **Decide the Create Draft product tradeoff.** A15 costs the Create Draft action in V1. The alternative is a multi-week security assessment before *anyone* can connect Gmail at all. This is the operator's call to make explicitly, not a default to fall into.
+2. ~~**Decide the Create Draft product tradeoff.**~~ **DECIDED — 2026-09-15. Not an open question; this is the release plan's existing decision, recorded here rather than re-opened.**
+
+   **V1 Gmail is Gmail Send using `gmail.send` only.** Create Draft (`gmail.compose`) is deferred alongside Find / Read / Reply and the full restricted-scope / CASA program (MASTER §3.4 D1, §3.5, §8.2). The alternative — keeping Create Draft in V1 — would put a Restricted scope on the initial consent screen and block *anyone* from connecting Gmail until a multi-week security assessment completes, which MASTER states must never become a launch dependency.
+
+   Implemented accordingly: `gmail.compose` is not requested at connect time, and Create Draft is gated off with the other restricted-scope actions. **No action outstanding.**
 3. **Apply the A13 migration** to the remote database once reviewed, using your normal migration process.
 4. **Confirm the headers in production** after deploy with `curl -I` against the real domain — a local check does not prove the host isn't stripping or overriding them.

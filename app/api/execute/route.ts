@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { AI_QUOTA } from "@/lib/integrations/limits";
+import { consumeQuota, quotaMessage, settleMeteredAction } from "@/lib/integrations/quota";
 
 interface ExecuteRequestBody {
   prompt?: string;
@@ -46,6 +48,15 @@ export async function POST(request: Request) {
 
   const context = typeof body.context === "string" ? body.context : "";
   const schema = typeof body.schema === "string" ? body.schema : undefined;
+
+  // A2: this endpoint is authenticated but was otherwise unbounded — a single
+  // user (or script) could drain the operator's Anthropic balance. The quota is
+  // consumed before the provider is called, atomically.
+  const quota = await consumeQuota(supabase, "ai.call", AI_QUOTA);
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quotaMessage(quota, "AI") }, { status: 429 });
+  }
+
   const client = new Anthropic({ apiKey });
   const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
@@ -86,6 +97,10 @@ export async function POST(request: Request) {
       });
 
       stream.on("message", (message) => {
+        void settleMeteredAction(supabase, quota.executionId, "succeeded", {
+          inputUnits: message.usage?.input_tokens,
+          outputUnits: message.usage?.output_tokens
+        });
         if (message.stop_reason === "max_tokens") {
           const warning = "\n\n⚠️ Output truncated: the model reached the maximum token limit. The response may be incomplete.";
           controller.enqueue(encoder.encode(warning));
@@ -93,6 +108,7 @@ export async function POST(request: Request) {
       });
 
       stream.on("error", (error) => {
+        void settleMeteredAction(supabase, quota.executionId, "failed");
         failStream(error);
       });
 

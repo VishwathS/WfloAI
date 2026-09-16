@@ -14,11 +14,7 @@ import {
   markActionUnknown
 } from "@/lib/integrations/idempotency";
 import { log, LOG_EVENTS } from "@/lib/observability/logger";
-import {
-  acquireConcurrencySlot,
-  checkHttpMutationQuota,
-  consumeRunAction
-} from "@/lib/integrations/limits";
+import { checkHttpMutationQuota, consumeRunAction } from "@/lib/integrations/limits";
 import { redactSecrets, redactSensitiveKeys } from "@/lib/integrations/redact";
 import { recordAuditEvent } from "@/lib/integrations/audit";
 import type {
@@ -354,7 +350,6 @@ export async function executeHttpRequest(
     }
   }
 
-  const releaseSlot = acquireConcurrencySlot(ctx.userId);
   let requestSent = false;
 
   try {
@@ -399,7 +394,5 @@ export async function executeHttpRequest(
       });
     }
     throw mapNetworkError(error, parsedUrl.hostname, auth?.secretValues ?? []);
-  } finally {
-    releaseSlot();
   }
 }

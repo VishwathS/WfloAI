@@ -17,6 +17,8 @@ import { topologicalSort } from "@/lib/execution/topologicalSort";
 import { executeGmailAction } from "@/lib/gmail/actions";
 import { executeHttpRequest } from "@/lib/http/executeHttpRequest";
 import type { IntegrationContext } from "@/lib/integrations/types";
+import { AI_QUOTA, LOOKUP_QUOTA, consumeRunAction } from "@/lib/integrations/limits";
+import { withMeteredCall } from "@/lib/integrations/quota";
 
 type WorkflowCanvasNode = Node<
   | TriggerNodeData
@@ -176,7 +178,8 @@ async function requestAIText(
   context: string,
   nodeId: string,
   onEvent?: (event: ExecutionEvent) => void,
-  schema?: string
+  schema?: string,
+  onUsage?: (usage: { inputUnits?: number; outputUnits?: number }) => void
 ) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -203,6 +206,10 @@ async function requestAIText(
   });
 
   const finalMsg = await stream.finalMessage();
+  onUsage?.({
+    inputUnits: finalMsg.usage?.input_tokens,
+    outputUnits: finalMsg.usage?.output_tokens
+  });
   if (finalMsg.stop_reason === "max_tokens") {
     const warning = "\n\n⚠️ Output truncated: the model reached the maximum token limit. The response may be incomplete.";
     output += warning;
@@ -225,7 +232,8 @@ async function executeLookupNode(
   node: WorkflowCanvasNode,
   context: string,
   onEvent: (event: ExecutionEvent) => void,
-  namedInputs: Record<string, string>
+  namedInputs: Record<string, string>,
+  onUsage: (usage: { inputUnits?: number; outputUnits?: number }) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as LookupNodeData;
   const query = interpolateTemplate(data.query, {
@@ -255,7 +263,9 @@ async function executeLookupNode(
   }
 
   const json = (await response.json()) as TavilyResponse;
-  const output = formatLookupResults(json.query ?? query, json.results ?? []);
+  const results = json.results ?? [];
+  onUsage({ outputUnits: results.length });
+  const output = formatLookupResults(json.query ?? query, results);
 
   onEvent({ type: "node:output", nodeId: node.id, chunk: output });
   return { output };
@@ -265,7 +275,8 @@ async function executeAINode(
   node: WorkflowCanvasNode,
   context: string,
   onEvent: (event: ExecutionEvent) => void,
-  namedInputs: Record<string, string>
+  namedInputs: Record<string, string>,
+  onUsage: (usage: { inputUnits?: number; outputUnits?: number }) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as AINodeData;
   const action = data.action;
@@ -275,13 +286,16 @@ async function executeAINode(
     : undefined;
   const prompt = interpolateTemplate(data.prompt, { ...namedInputs, previousOutput: context });
   const effectiveContext = referencesPreviousOutput(data.prompt) ? "" : context;
-  return { output: await requestAIText(prompt, effectiveContext, node.id, onEvent, schema) };
+  return {
+    output: await requestAIText(prompt, effectiveContext, node.id, onEvent, schema, onUsage)
+  };
 }
 
 async function executeRouterNode(
   node: WorkflowCanvasNode,
   context: string,
-  namedInputs: Record<string, string>
+  namedInputs: Record<string, string>,
+  onUsage: (usage: { inputUnits?: number; outputUnits?: number }) => void
 ): Promise<NodeExecutionResult> {
   const data = node.data as RouterNodeData;
 
@@ -302,7 +316,14 @@ async function executeRouterNode(
 
 Respond with exactly one word: true or false. No punctuation, no explanation.`;
   const effectiveContext = referencesPreviousOutput(data.prompt) ? "" : context;
-  const decision = await requestAIText(routerInstruction, effectiveContext, node.id);
+  const decision = await requestAIText(
+    routerInstruction,
+    effectiveContext,
+    node.id,
+    undefined,
+    undefined,
+    onUsage
+  );
   const match = decision.toLowerCase().match(/\b(true|false)\b/);
   const normalizedDecision = match ? match[1] : "";
 
@@ -311,6 +332,15 @@ Respond with exactly one word: true or false. No punctuation, no explanation.`;
   }
 
   return { output: stripStructuredPrefix(context), route: normalizedDecision };
+}
+
+function meterContext(ctx: IntegrationContext, nodeId: string) {
+  return {
+    userId: ctx.userId,
+    workflowId: ctx.workflowId,
+    runId: ctx.runId,
+    nodeId
+  };
 }
 
 export async function executeWorkflow(
@@ -328,6 +358,28 @@ export async function executeWorkflow(
   const metadataByNodeId = new Map<string, Record<string, unknown> | undefined>();
   const activeIncomingEdgesByNodeId = new Map<string, Edge[]>();
   const executedNodeIds = new Set<string>();
+
+  // A2: AI and Lookup nodes reach Anthropic and Tavily directly from here, so
+  // this — not the API routes — is the primary path that has to be metered.
+  // Both run paths supply an IntegrationContext; refusing to run without one
+  // means there is no way to execute a spending node unmetered.
+  async function meterAiCall(
+    nodeId: string,
+    run: (recordUsage: (usage: { inputUnits?: number; outputUnits?: number }) => void) => Promise<NodeExecutionResult>
+  ): Promise<NodeExecutionResult> {
+    if (!integrationContext) {
+      throw new Error("AI nodes need a server execution context.");
+    }
+    consumeRunAction(integrationContext);
+    return withMeteredCall(
+      integrationContext.supabase,
+      "ai.call",
+      AI_QUOTA,
+      meterContext(integrationContext, nodeId),
+      "AI",
+      run
+    );
+  }
 
   function appendActiveEdges(nextEdges: Edge[]) {
     for (const edge of nextEdges) {
@@ -381,14 +433,31 @@ export async function executeWorkflow(
         await delay(200);
         result = { output: data.resolvedText };
       } else if (node.type === "routerNode") {
-        result = await executeRouterNode(node, parentContext, namedInputs);
+        // A Router node is an AI call too — it spends exactly like an AI node.
+        result = await meterAiCall(node.id, (recordUsage) =>
+          executeRouterNode(node, parentContext, namedInputs, recordUsage)
+        );
       } else if (node.type === "actionNode") {
         await delay(300);
         result = { output: stripStructuredPrefix(parentContext) || "Output saved." };
       } else if (node.type === "aiNode") {
-        result = await executeAINode(node, parentContext, onEvent, namedInputs);
+        result = await meterAiCall(node.id, (recordUsage) =>
+          executeAINode(node, parentContext, onEvent, namedInputs, recordUsage)
+        );
       } else if (node.type === "lookupNode") {
-        result = await executeLookupNode(node, parentContext, onEvent, namedInputs);
+        if (!integrationContext) {
+          throw new Error("Lookup nodes need a server execution context.");
+        }
+        consumeRunAction(integrationContext);
+        result = await withMeteredCall(
+          integrationContext.supabase,
+          "lookup.search",
+          LOOKUP_QUOTA,
+          meterContext(integrationContext, node.id),
+          "search",
+          (recordUsage) =>
+            executeLookupNode(node, parentContext, onEvent, namedInputs, recordUsage)
+        );
       } else if (node.type === "gmailNode") {
         if (!integrationContext) {
           throw new Error("Gmail nodes need a server execution context.");

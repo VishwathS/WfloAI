@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import { topologicalSort } from "@/lib/execution/topologicalSort";
 import { HTTP_LIMITS, isBlockedHeader } from "@/lib/http/constants";
+import { INTEGRATION_LIMITS } from "@/lib/integrations/limits";
 
 type WorkflowNode = Node<WorkflowNodeData>;
 
@@ -80,6 +81,21 @@ export function validateWorkflow(
       nodeErrors: {},
       globalError:
         "The workflow contains a cycle — remove the circular connection to continue."
+    };
+  }
+
+  // A2: bound what one run can spend before it starts, so a pathological graph
+  // fails cleanly at validation rather than partway through execution with the
+  // money already gone. Router nodes count — each one is an AI call.
+  const aiCallNodes = reachableNodes.filter(
+    (n) => n.type === "aiNode" || n.type === "routerNode"
+  );
+  if (aiCallNodes.length > INTEGRATION_LIMITS.MAX_AI_NODES_PER_RUN) {
+    return {
+      valid: false,
+      nodeErrors: {},
+      globalError:
+        `This workflow has ${aiCallNodes.length} AI steps (AI and Router nodes), above the limit of ${INTEGRATION_LIMITS.MAX_AI_NODES_PER_RUN} per run. Split it into smaller workflows.`
     };
   }
 

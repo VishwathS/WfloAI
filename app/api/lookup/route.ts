@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiError } from "@/lib/observability/apiError";
+import { LOOKUP_QUOTA } from "@/lib/integrations/limits";
+import { consumeQuota, quotaMessage, settleMeteredAction } from "@/lib/integrations/quota";
 
 interface LookupRequestBody {
   query?: string;
@@ -58,6 +61,12 @@ export async function POST(request: Request) {
 
   const maxResults = typeof body.maxResults === "number" ? Math.min(Math.max(body.maxResults, 1), 10) : 5;
 
+  // A2: same unbounded-spend problem as /api/execute, same durable mechanism.
+  const quota = await consumeQuota(supabase, "lookup.search", LOOKUP_QUOTA);
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quotaMessage(quota, "search") }, { status: 429 });
+  }
+
   let tavilyData: TavilyResponse;
 
   try {
@@ -71,19 +80,27 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      return NextResponse.json(
-        { error: `Tavily error: ${response.status} ${text}` },
-        { status: 502 }
+      await response.text();
+      await settleMeteredAction(supabase, quota.executionId, "failed");
+      return apiError(
+        "api.lookup.provider_failed",
+        new Error(`Tavily returned ${response.status}`),
+        { status: response.status },
+        502
       );
     }
 
     tavilyData = (await response.json()) as TavilyResponse;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: `Lookup failed: ${message}` }, { status: 500 });
+    await settleMeteredAction(supabase, quota.executionId, "failed");
+    return apiError("api.lookup.request_failed", err);
   }
 
-  const output = formatResults(tavilyData.query ?? body.query, tavilyData.results ?? []);
+  const results = tavilyData.results ?? [];
+  await settleMeteredAction(supabase, quota.executionId, "succeeded", {
+    outputUnits: results.length
+  });
+
+  const output = formatResults(tavilyData.query ?? body.query, results);
   return NextResponse.json({ output });
 }
