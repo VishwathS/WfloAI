@@ -21,7 +21,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 - **Node resizing** — drag bottom-right corner of any node; dimensions persist across saves/reloads
 - **Run history** — right-side sidebar showing past workflow runs; History button in toolbar toggles it; runs saved automatically after every execution
 - **Scheduled triggers** — Inngest-powered background execution; multiple named cron schedules per workflow stored in `workflow_schedules`; Workflow Settings sidebar (toolbar trigger pill) manages them; scheduled runs persist to `workflow_runs` like manual runs; per-schedule Run now button
-- **Gmail integration** — connect Gmail once via OAuth in Settings (own Google OAuth client with PKCE, NOT the Supabase login provider); Gmail node with a single Action dropdown (Send Email / Create Draft / Reply to Email / Find Emails / Read Email) whose form changes per action; incremental authorization (send/compose first, `gmail.readonly` via a separate "Enable email reading" flow); tokens AES-256-GCM encrypted at rest; server-execution-only
+- **Gmail integration** — connect Gmail once via OAuth in Settings (own Google OAuth client with PKCE, NOT the Supabase login provider); Gmail node with a single Action dropdown (Send Email / Create Draft / Reply to Email / Find Emails / Read Email) whose form changes per action; incremental authorization (`gmail.send` only at initial connect; the restricted scopes come via a separate "Enable email reading" flow that is off in V1); tokens AES-256-GCM encrypted at rest; server-execution-only. **V1 ships Send only** — Create Draft, Reply, Find and Read all need a Restricted scope and are gated off (see Gmail scope & launch strategy)
 - **HTTP Request node** — power-user escape hatch: GET/POST/PUT/PATCH/DELETE with URL, query params, headers, body, and auth via the encrypted per-user credential store (Bearer / Basic / API-key header); DNS-rebinding-safe SSRF guard, manual redirect handling with credential stripping, streaming response cap, secret redaction; server-execution-only
 - **Settings page** (`/settings`) — Gmail connection card (connect / capabilities / enable reading / disconnect) + API credentials card (add / replace-in-place / delete-with-usage-count; secrets write-only)
 - **Integration safety rails** — idempotency ledger (`integration_action_executions`) with atomic claims prevents duplicate sends on retries; per-user quotas; audit log (`integration_audit_events`); unit tests via Vitest (`npm test`)
@@ -459,7 +459,19 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 
 **Quotas (`lib/integrations/limits.ts`).** Single source of limits: 5 concurrent requests/user (in-memory), 60 HTTP mutations/min, 10 Gmail sends/min, 200/day (ledger-derived), 50 external actions/run. Audit events (`lib/integrations/audit.ts`) are best-effort — an audit failure must never fail a successful send.
 
-**Gmail scope & launch strategy.** Initial connect requests `gmail.send gmail.compose` only; "Enable email reading" adds restricted `gmail.readonly` with `include_granted_scopes=true`. `gmail_connections.scopes` stores what Google actually granted. Feature flag `GMAIL_READ_ACTIONS_ENABLED=false` hides Find/Read/Reply (dropdown + execution) so Send/Draft can ship while restricted-scope verification is pending. **Pre-launch checklist:** consent-screen published, verified domain, privacy policy, terms, data-use disclosure, scope justification, restricted-scope verification submitted (possible security assessment). `gmail.readonly` verification is a launch dependency, not a nice-to-have.
+**Gmail scope & launch strategy.** Google's classification — always confirm it in the Cloud Console, never from prose:
+
+| Scope | Classification | In V1? |
+|---|---|---|
+| `gmail.send` | **Sensitive** | Yes — the only scope V1 requests |
+| `gmail.compose` | **Restricted** | No — deferred with D1 |
+| `gmail.readonly` | **Restricted** | No — deferred with D1 |
+
+Initial connect requests **`gmail.send` only**. Requesting *any* Restricted scope at connect time puts the entire Gmail integration behind a CASA security assessment — not just the actions that use it — so `gmail.compose` was removed from the initial tier (A15). The "Enable email reading" flow adds the restricted scopes with `include_granted_scopes=true` and belongs to the deferred D1 program; `gmail_connections.scopes` stores what Google actually granted.
+
+Feature flag `GMAIL_READ_ACTIONS_ENABLED=false` hides **every restricted-scope action — Create Draft, Reply, Find and Read** — from both the node dropdown and execution, so Send can ship while restricted-scope verification is pending. `lib/gmail/scopes.ts` holds the two predicates: `isRestrictedAction()` (what the flag gates) and `needsReadScope()` (the narrower set that "Enable email reading" can actually unblock — Create Draft is not one of them, since it needs `compose`).
+
+**Pre-launch checklist for V1 (sensitive-scope path only):** consent-screen published, verified domain, privacy policy, terms, data-use disclosure, scope justification, `gmail.send` sensitive-scope verification submitted. Restricted-scope verification and the security assessment are **not** V1 launch dependencies — that is the deferred D1 program.
 
 **Public-run safety invariant (future).** Public/unauthenticated workflow runs must NOT execute Gmail Send/Reply/Create Draft or mutating HTTP actions by default. When public links ship: explicit owner opt-in, per-link rate limits, execution caps, owner warnings, optional pre-execution approval. Public pages must never expose credential names, connected Gmail addresses, secret-backed headers, or internal metadata.
 

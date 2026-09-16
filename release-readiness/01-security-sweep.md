@@ -47,7 +47,23 @@ DELETE is the same class of problem for a different reason: the Gmail and HTTP q
 
 Blast radius is self-only — a user can only re-send their own actions and reset their own quota — which is why this was re-tiered out of blocker status. It rides along here because the fix is one migration.
 
-Users only need `SELECT`.
+~~Users only need `SELECT`.~~
+
+**Corrected during implementation (2026-09-15) — the audit's premise is half wrong.** The audit assumed both ledger write paths bypass RLS. They do not:
+
+| Run path | Client passed into `IntegrationContext` | RLS |
+|---|---|---|
+| Scheduled (`lib/inngest/functions.ts`) | service-role admin client | bypassed |
+| **Manual** (`app/api/workflows/[id]/execute/route.ts:45`) | **user-scoped** `createServerSupabaseClient()` | **enforced** |
+
+So `claimAction`, `markActionSucceeded`, `markActionFailed` and `markActionUnknown` all write this table *as the authenticated user* on every manual run. Dropping the UPDATE policy outright would leave manual Gmail/HTTP runs unable to record a **successful** external action — the email would be sent and then `markActionSucceeded` would throw. That is strictly worse than the hole it closes.
+
+What shipped instead:
+
+- **DELETE** — dropped outright. No application code deletes from this table (verified), so the quota-reset primitive is removed with no functional cost.
+- **UPDATE** — constrained by the row's *current* status rather than dropped: `using (auth.uid() = user_id and status in ('pending','failed'))`. RLS evaluates `USING` against the existing row, so this permits exactly the transitions the application performs — `pending → succeeded|failed|unknown` and the `failed → pending` reclaim — while making `succeeded` and `unknown` terminal from the user's side. The `succeeded → failed` re-send primitive is closed, which is what A13 is about. `unknown` is included because CLAUDE.md requires ambiguous outcomes never to be auto-retried.
+
+Residual, accepted and deliberate: a user can still write arbitrary `result_output` onto their own `pending` row. That only replays fabricated output to themselves, causes no external side effect, and `WITH CHECK` keeps `user_id` pinned.
 
 ### A15 — `gmail.compose` is a Restricted scope, and CLAUDE.md says otherwise
 
@@ -75,27 +91,27 @@ Protection currently rests entirely on Supabase's `SameSite` cookie defaults, wh
 
 # Required Changes
 
-- [ ] **A4** — Invert `isProtectedPath` in `middleware.ts` to an **allow-list**: public paths are `/login`, `/auth/*`, and (once task 07 lands) the marketing and legal routes. Everything else requires auth. Coordinate the public-path list with task 07 so the homepage and `/privacy` / `/terms` are not accidentally gated.
-- [ ] **A4** — Add a `supabase.auth.getUser()` guard to `app/(dashboard)/settings/page.tsx` as defense in depth. Do not rely on middleware alone for the page that manages tokens.
-- [ ] **A5** — Change the check to `next.startsWith("/") && !next.startsWith("//")` in **both** `app/auth/callback/route.ts` and `components/auth/login-card.tsx:21`. Prefer a single shared helper over two copies.
-- [ ] **A5** — Handle the `exchangeCodeForSession` error result in `app/auth/callback/route.ts` rather than discarding it. On failure, redirect to `/login` with an error indication instead of silently proceeding.
-- [ ] **A13** — New migration in `supabase/migrations/` dropping the user-facing UPDATE **and** DELETE policies on `integration_action_executions`. Leave SELECT. Confirm the service-role path (`lib/inngest/functions.ts`) and the claim path still work — they bypass RLS, so they should be unaffected, but verify rather than assume.
-- [ ] **A15** — Remove `gmail.compose` from the initial connect scope tier in `lib/gmail/scopes.ts`. V1 ships **Send only** on the sensitive-scope path.
-- [ ] **A15** — Move Create Draft behind the restricted gate alongside Find / Read / Reply, consistent with how `GMAIL_READ_ACTIONS_ENABLED` already hides actions from both the dropdown and execution.
-- [ ] **A15** — **Correct the Gmail launch-strategy section of `CLAUDE.md`.** It currently asserts the wrong scope classification. This is not optional cleanup; leaving it means the next person re-derives the same wrong plan.
-- [ ] **A6 (Phase 1)** — Add a `headers()` export to `next.config.mjs` setting `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a frame-ancestors deny. ~20 minutes, near-zero breakage risk.
-- [ ] **A6 (Phase 1)** — Stop rendering `error.message` to users in `app/global-error.tsx:27`. Show a generic message; the real error goes to the reporter added in task 02.
+- [x] **A4** — Invert `isProtectedPath` in `middleware.ts` to an **allow-list**: public paths are `/login`, `/auth/*`, and (once task 07 lands) the marketing and legal routes. Everything else requires auth. Coordinate the public-path list with task 07 so the homepage and `/privacy` / `/terms` are not accidentally gated.
+- [x] **A4** — Add a `supabase.auth.getUser()` guard to `app/(dashboard)/settings/page.tsx` as defense in depth. Do not rely on middleware alone for the page that manages tokens.
+- [x] **A5** — Change the check to `next.startsWith("/") && !next.startsWith("//")` in **both** `app/auth/callback/route.ts` and `components/auth/login-card.tsx:21`. Prefer a single shared helper over two copies.
+- [x] **A5** — Handle the `exchangeCodeForSession` error result in `app/auth/callback/route.ts` rather than discarding it. On failure, redirect to `/login` with an error indication instead of silently proceeding.
+- [x] **A13** — New migration in `supabase/migrations/` dropping the user-facing UPDATE **and** DELETE policies on `integration_action_executions`. Leave SELECT. Confirm the service-role path (`lib/inngest/functions.ts`) and the claim path still work — they bypass RLS, so they should be unaffected, but verify rather than assume.
+- [x] **A15** — Remove `gmail.compose` from the initial connect scope tier in `lib/gmail/scopes.ts`. V1 ships **Send only** on the sensitive-scope path.
+- [x] **A15** — Move Create Draft behind the restricted gate alongside Find / Read / Reply, consistent with how `GMAIL_READ_ACTIONS_ENABLED` already hides actions from both the dropdown and execution.
+- [x] **A15** — **Correct the Gmail launch-strategy section of `CLAUDE.md`.** It currently asserts the wrong scope classification. This is not optional cleanup; leaving it means the next person re-derives the same wrong plan.
+- [x] **A6 (Phase 1)** — Add a `headers()` export to `next.config.mjs` setting `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a frame-ancestors deny. ~20 minutes, near-zero breakage risk.
+- [x] **A6 (Phase 1)** — Stop rendering `error.message` to users in `app/global-error.tsx:27`. Show a generic message; the real error goes to the reporter added in task 02.
 - [ ] **A6 (Phase 3, separate commit)** — Full CSP. Use the **non-nonce** form: nonce-based CSP forces every page to render dynamically, which would kill static optimization app-wide. Expect iteration against the React Flow canvas.
-- [ ] **B3** — Shared `Origin`-header check helper applied to state-changing API routes, starting with `POST /api/integrations/gmail/disconnect`.
+- [x] **B3** — Shared `Origin`-header check helper applied to state-changing API routes, starting with `POST /api/integrations/gmail/disconnect`.
 
 # Verification
 
 **Automated**
 
-- [ ] `npm test` green.
-- [ ] `npx tsc --noEmit` clean.
-- [ ] `npm run build` succeeds.
-- [ ] Add a unit test for the redirect-safety helper covering at minimum: `/dashboard` → allowed; `//evil.com` → rejected; `https://evil.com` → rejected; `/\evil.com` → rejected; `""` and `null` → default to `/`.
+- [x] `npm test` green.
+- [x] `npx tsc --noEmit` clean.
+- [x] `npm run build` succeeds.
+- [x] Add a unit test for the redirect-safety helper covering at minimum: `/dashboard` → allowed; `//evil.com` → rejected; `https://evil.com` → rejected; `/\evil.com` → rejected; `""` and `null` → default to `/`.
 
 **Manual**
 

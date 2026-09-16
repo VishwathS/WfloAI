@@ -22,16 +22,20 @@ export default function GlobalErrorPage({
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-600">
               A global rendering error occurred. Refresh or try resetting the app
-              state.
+              state. If it keeps happening, contact support with the reference
+              below.
             </p>
-            <details className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              <summary className="cursor-pointer font-medium text-gray-900">
-                Error details
-              </summary>
-              <pre className="mt-3 whitespace-pre-wrap break-words text-xs leading-6 text-gray-600">
-                {error.message}
-              </pre>
-            </details>
+            {/*
+              A6: never render error.message to end users — it can carry internal
+              paths, query fragments, or upstream provider detail. The digest is
+              an opaque id that support can correlate; the real error goes to the
+              reporter added in task 02.
+            */}
+            {error.digest ? (
+              <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">
+                Reference: {error.digest}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={reset}

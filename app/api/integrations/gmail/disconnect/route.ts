@@ -4,8 +4,14 @@ import { decryptSecret } from "@/lib/crypto";
 import { revokeToken } from "@/lib/gmail/oauth";
 import { deleteGmailConnection, getGmailConnection } from "@/lib/integrations/repo";
 import { recordAuditEvent } from "@/lib/integrations/audit";
+import { isSameOrigin } from "@/lib/security/origin";
 
-export async function POST() {
+export async function POST(request: Request) {
+  // B3: defense in depth behind Supabase's SameSite cookies.
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+  }
+
   const supabase = createServerSupabaseClient();
   const {
     data: { user }

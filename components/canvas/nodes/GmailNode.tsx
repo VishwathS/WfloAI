@@ -23,6 +23,18 @@ const GMAIL_ACTIONS: GmailActionType[] = [
   "Read Email"
 ];
 
+// Mirrors isRestrictedAction/needsReadScope in lib/gmail/scopes.ts, which stays
+// server-only. RESTRICTED_ACTIONS is everything needing a Google *restricted*
+// scope — Create Draft is in it because gmail.compose is restricted (A15), even
+// though it does not read mail. READ_ACTIONS is the narrower set that
+// "Enable email reading" (gmail.readonly) can actually unblock.
+const RESTRICTED_ACTIONS = new Set<GmailActionType>([
+  "Create Draft",
+  "Reply to Email",
+  "Find Emails",
+  "Read Email"
+]);
+
 const READ_ACTIONS = new Set<GmailActionType>(["Reply to Email", "Find Emails", "Read Email"]);
 
 interface GmailNodeStatus {
@@ -113,7 +125,7 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
   const isReadAction = READ_ACTIONS.has(action);
   const sendsRealEmail = action === "Send Email" || action === "Reply to Email";
   const visibleActions = GMAIL_ACTIONS.filter(
-    (candidate) => status?.readActionsEnabled !== false || !READ_ACTIONS.has(candidate)
+    (candidate) => status?.readActionsEnabled !== false || !RESTRICTED_ACTIONS.has(candidate)
   );
   // The saved action can outlive its capability (read actions turned off after
   // the graph was built). Never rewrite data.action to satisfy the dropdown —

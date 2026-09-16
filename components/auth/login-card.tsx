@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
+import { safeRedirectPath } from "@/lib/security/redirect";
 
 interface LoginCardProps {
   nextPath?: string;
@@ -18,7 +19,7 @@ export function LoginCard({ nextPath = "/" }: LoginCardProps) {
 
     const supabase = createBrowserSupabaseClient();
     const params = new URLSearchParams({
-      next: nextPath.startsWith("/") ? nextPath : "/"
+      next: safeRedirectPath(nextPath)
     });
     const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
 

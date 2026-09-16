@@ -1,8 +1,15 @@
 import type { GmailActionType } from "@/lib/types";
 
 // Central scope map — the only place Gmail scopes are defined.
-// send/compose are "sensitive" scopes; readonly is RESTRICTED and requires
-// Google restricted-scope verification before arbitrary users can grant it.
+//
+// Google's classification (verify in the Cloud Console, not from prose):
+//   gmail.send     — Sensitive
+//   gmail.compose  — RESTRICTED
+//   gmail.readonly — RESTRICTED
+//
+// A15: requesting ANY restricted scope at connect time puts the whole Gmail
+// integration behind a CASA security assessment, not just the actions that use
+// it. V1 therefore ships Send only.
 export const GMAIL_SCOPES = {
   send: "https://www.googleapis.com/auth/gmail.send",
   compose: "https://www.googleapis.com/auth/gmail.compose",
@@ -11,13 +18,14 @@ export const GMAIL_SCOPES = {
 
 export type GmailTier = "send" | "read";
 
-// Incremental authorization: the initial connect requests only send/compose;
-// "Enable email reading" re-runs OAuth adding readonly with
-// include_granted_scopes=true. Users who only send never grant read access.
+// Incremental authorization. The initial connect requests gmail.send ONLY —
+// no restricted scope. The "read" tier adds the restricted scopes and belongs
+// to the deferred D1 program; it is unreachable while GMAIL_READ_ACTIONS_ENABLED
+// is off.
 export function scopesForTier(tier: GmailTier): string[] {
   return tier === "read"
     ? [GMAIL_SCOPES.send, GMAIL_SCOPES.compose, GMAIL_SCOPES.readonly]
-    : [GMAIL_SCOPES.send, GMAIL_SCOPES.compose];
+    : [GMAIL_SCOPES.send];
 }
 
 export function requiredScopesForAction(action: GmailActionType): string[] {
@@ -34,14 +42,24 @@ export function requiredScopesForAction(action: GmailActionType): string[] {
   }
 }
 
-export function isReadAction(action: GmailActionType): boolean {
+// Every action that needs a RESTRICTED scope. These are hidden from the node
+// dropdown and refused at execution while the feature flag is off. Create Draft
+// is here because gmail.compose is restricted (A15) — not because it reads mail.
+export function isRestrictedAction(action: GmailActionType): boolean {
+  return action !== "Send Email";
+}
+
+// Narrower: actions that specifically need gmail.readonly, which is what the
+// "Enable email reading" flow in Settings grants. Create Draft needs compose,
+// so that flow cannot unblock it — the message must not suggest otherwise.
+export function needsReadScope(action: GmailActionType): boolean {
   return action === "Find Emails" || action === "Read Email" || action === "Reply to Email";
 }
 
-// Feature flag: lets Send/Draft launch while restricted-scope verification for
-// gmail.readonly is still pending. Server-only (read at execution + status).
-// Defaults OFF — Find/Read/Reply stay hidden and unexecutable unless explicitly
-// opted in, so an unconfigured deploy never exposes an unverified restricted scope.
+// Feature flag: lets Send launch while restricted-scope verification is still
+// pending. Server-only (read at execution + status). Defaults OFF — every
+// restricted-scope action stays hidden and unexecutable unless explicitly opted
+// in, so an unconfigured deploy never exposes an unverified restricted scope.
 export function gmailReadActionsEnabled(): boolean {
   return process.env.GMAIL_READ_ACTIONS_ENABLED === "true";
 }

@@ -4,7 +4,8 @@ import { findUpstreamEmailRef, type ParentNodeMetadata } from "@/lib/gmail/infer
 import {
   gmailReadActionsEnabled,
   hasScopes,
-  isReadAction,
+  isRestrictedAction,
+  needsReadScope,
   requiredScopesForAction
 } from "@/lib/gmail/scopes";
 import { claimAction, markActionFailed, markActionSucceeded, markActionUnknown } from "@/lib/integrations/idempotency";
@@ -173,8 +174,12 @@ function assertScopes(access: GmailAccess, action: GmailActionType): void {
   if (hasScopes(access.scopes, requiredScopesForAction(action))) {
     return;
   }
-  if (isReadAction(action)) {
+  if (needsReadScope(action)) {
     throw new Error(`"${action}" needs email reading — use "Enable email reading" in Settings.`);
+  }
+  if (action === "Create Draft") {
+    // gmail.compose is restricted and is not granted by "Enable email reading".
+    throw new Error(`"${action}" is not available in this version.`);
   }
   throw new Error("Reconnect Gmail in Settings to grant sending permission.");
 }
@@ -187,8 +192,11 @@ export async function executeGmailAction(
 ): Promise<GmailActionResult> {
   const { action } = fields;
 
-  if (isReadAction(action) && !gmailReadActionsEnabled()) {
-    throw new Error("Email reading actions are currently disabled.");
+  // A15: every restricted-scope action — Create Draft included — is refused
+  // while the flag is off, regardless of what scopes a connection happens to
+  // hold from an earlier consent.
+  if (isRestrictedAction(action) && !gmailReadActionsEnabled()) {
+    throw new Error(`"${action}" is not available in this version.`);
   }
 
   consumeRunAction(ctx);

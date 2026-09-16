@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { GmailConnectionCard } from "@/components/settings/GmailConnectionCard";
 import { CredentialsCard } from "@/components/settings/CredentialsCard";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +9,19 @@ interface SettingsPageProps {
   searchParams: { gmail?: string };
 }
 
-export default function SettingsPage({ searchParams }: SettingsPageProps) {
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  // A4: defense in depth. The middleware allow-list also covers this route, but
+  // the page that manages OAuth tokens and API credentials does not rely on a
+  // single gate.
+  const supabase = createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/settings");
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6 lg:p-8">
       <div className="border-b border-gray-100 pb-5">
