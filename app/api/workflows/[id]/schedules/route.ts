@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/observability/apiError";
 import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { recordAuditEvent } from "@/lib/integrations/audit";
+import {
+  UNATTENDED_SEND_CONSENT_CODE,
+  UNATTENDED_SEND_CONSENT_MESSAGE,
+  requiresUnattendedSendConsent
+} from "@/lib/schedule/consent";
+import type { WorkflowGraph } from "@/lib/types";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone, meetsIntervalFloor } from "@/lib/schedule/cron";
 
 interface RouteContext {
@@ -16,6 +23,9 @@ interface SchedulePayload {
   cron_expression: string;
   timezone: string;
   input_values?: Record<string, string>;
+  // A14a: the explicit authorisation for unattended sending. Absent or false
+  // is a refusal, never an omission that defaults to consent.
+  unattended_send_ack?: boolean;
 }
 
 function isValidSchedulePayload(value: unknown): value is SchedulePayload {
@@ -131,7 +141,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { data: workflow, error: workflowError } = await supabase
     .from("workflows")
-    .select("id, user_id")
+    .select("id, user_id, graph")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -145,6 +155,21 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (workflow.user_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // A14a: creating an already-enabled schedule on a send-capable graph is the
+  // same authorisation moment as enabling one later, so it is gated the same
+  // way. A graph that cannot send, or a schedule created disabled, is not.
+  const graph = (workflow.graph ?? { nodes: [], edges: [] }) as WorkflowGraph;
+
+  if (
+    requiresUnattendedSendConsent(body.enabled, graph.nodes) &&
+    body.unattended_send_ack !== true
+  ) {
+    return NextResponse.json(
+      { error: UNATTENDED_SEND_CONSENT_MESSAGE, code: UNATTENDED_SEND_CONSENT_CODE },
+      { status: 400 }
+    );
   }
 
   // A12: a per-user cap. The poller's global .limit(50) is a throughput
@@ -202,6 +227,16 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (insertError) {
     return apiError("api.workflows.schedules.insert_failed", insertError);
+  }
+
+  if (requiresUnattendedSendConsent(body.enabled, graph.nodes)) {
+    await recordAuditEvent(
+      supabase,
+      user.id,
+      "gmail.unattended_send.authorized",
+      "succeeded",
+      (schedule as { id: string }).id
+    );
   }
 
   return NextResponse.json({ schedule }, { status: 201 });

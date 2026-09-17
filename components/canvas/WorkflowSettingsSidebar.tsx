@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cronToPreset, describeCron, presetToCron } from "@/lib/schedule/cron";
 import { AUTO_DISABLED_REASON } from "@/lib/schedule/constants";
+import { UNATTENDED_SEND_CONSENT_CODE } from "@/lib/schedule/consent";
 import type { ScheduleFrequency, WorkflowSchedule } from "@/lib/types";
 
 export interface ScheduleSummary {
@@ -127,6 +128,13 @@ export function WorkflowSettingsSidebar({
   const [form, setForm] = useState<ScheduleFormState>(defaultFormState);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // A14a: set when the server refuses an enable because the graph can send real
+  // email unattended. Holds the retry, so confirming is one click and declining
+  // simply does nothing.
+  const [pendingSendConsent, setPendingSendConsent] = useState<{
+    message: string;
+    retry: () => Promise<void>;
+  } | null>(null);
   const [queuedRunId, setQueuedRunId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -203,18 +211,44 @@ export function WorkflowSettingsSidebar({
       ? `/api/workflows/${workflowId}/schedules`
       : `/api/workflows/${workflowId}/schedules/${editingId}`;
 
+    await submitSchedule(url, isNew ? "POST" : "PATCH", payload, isNew);
+  }
+
+  async function submitSchedule(
+    url: string,
+    method: "POST" | "PATCH",
+    payload: Record<string, unknown>,
+    isNew: boolean
+  ) {
+    setIsSaving(true);
+
     try {
       const response = await fetch(url, {
-        method: isNew ? "POST" : "PATCH",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const data = (await response.json()) as { schedule?: WorkflowSchedule; error?: string };
+      const data = (await response.json()) as {
+        schedule?: WorkflowSchedule;
+        error?: string;
+        code?: string;
+      };
+
+      if (data.code === UNATTENDED_SEND_CONSENT_CODE) {
+        setPendingSendConsent({
+          message: data.error ?? "",
+          retry: () =>
+            submitSchedule(url, method, { ...payload, unattended_send_ack: true }, isNew)
+        });
+        return;
+      }
 
       if (!response.ok || !data.schedule) {
         setFormError(data.error ?? "Failed to save schedule.");
         return;
       }
+
+      setPendingSendConsent(null);
 
       const saved = data.schedule;
       applySchedules(
@@ -228,16 +262,32 @@ export function WorkflowSettingsSidebar({
     }
   }
 
-  async function handleToggle(schedule: WorkflowSchedule) {
+  async function handleToggle(schedule: WorkflowSchedule, ack = false) {
     const response = await fetch(`/api/workflows/${workflowId}/schedules/${schedule.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: !schedule.enabled })
+      body: JSON.stringify({
+        enabled: !schedule.enabled,
+        ...(ack ? { unattended_send_ack: true } : {})
+      })
     });
-    const data = (await response.json()) as { schedule?: WorkflowSchedule };
+    const data = (await response.json()) as {
+      schedule?: WorkflowSchedule;
+      error?: string;
+      code?: string;
+    };
+
+    if (data.code === UNATTENDED_SEND_CONSENT_CODE) {
+      setPendingSendConsent({
+        message: data.error ?? "",
+        retry: () => handleToggle(schedule, true)
+      });
+      return;
+    }
 
     if (response.ok && data.schedule) {
       const saved = data.schedule;
+      setPendingSendConsent(null);
       applySchedules(schedules.map((s) => (s.id === saved.id ? saved : s)));
     }
   }
@@ -284,6 +334,40 @@ export function WorkflowSettingsSidebar({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]">
+        {pendingSendConsent ? (
+          <div className="mx-4 mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-900">
+                  This will send real email on its own
+                </p>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  {pendingSendConsent.message}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void pendingSendConsent.retry()}
+                    disabled={isSaving}
+                  >
+                    I understand — enable it
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPendingSendConsent(null)}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between px-4 pt-4">
           <p className={sectionLabelClass}>Schedules</p>
           {!isEditing && schedules.length > 0 ? (

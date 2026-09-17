@@ -16,6 +16,26 @@ import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 
 type WorkflowNode = Node<WorkflowNodeData>;
 
+// A14a. The single place a graph is asked whether it can send mail. Task 10 is
+// explicit that a second graph walker is a correctness bug waiting to happen,
+// so schedule-consent reuses this rather than forking one.
+//
+// Send Email and Reply to Email both put mail in someone inbox. Create Draft
+// does not send, and is unreachable in V1 anyway (A15).
+const SEND_CAPABLE_GMAIL_ACTIONS = new Set(["Send Email", "Reply to Email"]);
+
+// Structurally typed rather than taking a reactflow Node, so the schedule
+// routes can pass graph JSONB straight in without a cast.
+export function containsSendCapableGmailNode(
+  nodes: ReadonlyArray<{ type?: string; data?: unknown }>
+): boolean {
+  return nodes.some(
+    (node) =>
+      node.type === "gmailNode" &&
+      SEND_CAPABLE_GMAIL_ACTIONS.has((node.data as GmailNodeData | undefined)?.action ?? "")
+  );
+}
+
 export interface WorkflowValidationResult {
   valid: boolean;
   nodeErrors: Record<string, string>;

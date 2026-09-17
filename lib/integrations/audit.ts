@@ -11,7 +11,9 @@ export type AuditAction =
   | "gmail.send.attempted"
   | "gmail.draft.attempted"
   | "gmail.reply.attempted"
-  | "http.request.attempted";
+  | "http.request.attempted"
+  // A14a: the user authorising unattended sending when enabling a schedule.
+  | "gmail.unattended_send.authorized";
 
 export type AuditResult = "succeeded" | "failed" | "blocked" | "unknown";
 

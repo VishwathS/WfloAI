@@ -123,6 +123,35 @@ export async function checkGmailSendQuota(
   }
 }
 
+export interface GmailSendUsage {
+  sentThisMinute: number;
+  sentToday: number;
+  perMinuteLimit: number;
+  perDayLimit: number;
+}
+
+// A14a: a limit the user cannot see is a limit they will hit by surprise. Same
+// action list and same counter as checkGmailSendQuota, so the number in
+// Settings cannot drift from the number that is enforced.
+export async function gmailSendUsage(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<GmailSendUsage> {
+  const now = Date.now();
+
+  const [sentThisMinute, sentToday] = await Promise.all([
+    countLedgerActions(supabase, userId, GMAIL_SEND_ACTIONS, new Date(now - 60_000).toISOString()),
+    countLedgerActions(supabase, userId, GMAIL_SEND_ACTIONS, new Date(now - 86_400_000).toISOString())
+  ]);
+
+  return {
+    sentThisMinute,
+    sentToday,
+    perMinuteLimit: INTEGRATION_LIMITS.GMAIL_SENDS_PER_MINUTE,
+    perDayLimit: INTEGRATION_LIMITS.GMAIL_SENDS_PER_DAY
+  };
+}
+
 const HTTP_MUTATION_ACTIONS = ["http.POST", "http.PUT", "http.PATCH", "http.DELETE"];
 
 export async function checkHttpMutationQuota(

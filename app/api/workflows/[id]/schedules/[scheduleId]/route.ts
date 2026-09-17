@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { recordAuditEvent } from "@/lib/integrations/audit";
+import {
+  UNATTENDED_SEND_CONSENT_CODE,
+  UNATTENDED_SEND_CONSENT_MESSAGE,
+  requiresUnattendedSendConsent
+} from "@/lib/schedule/consent";
+import type { WorkflowGraph } from "@/lib/types";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone } from "@/lib/schedule/cron";
 import { meetsIntervalFloor } from "@/lib/schedule/cron";
 import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
@@ -19,6 +26,9 @@ interface ScheduleUpdatePayload {
   cron_expression?: string;
   timezone?: string;
   input_values?: Record<string, string>;
+  // A14a: explicit authorisation for unattended sending. Absent or false is a
+  // refusal, never an omission that defaults to consent.
+  unattended_send_ack?: boolean;
 }
 
 function isValidScheduleUpdatePayload(value: unknown): value is ScheduleUpdatePayload {
@@ -131,6 +141,42 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (!isValidCronExpression(cronExpression, timezone)) {
     return NextResponse.json({ error: "Invalid cron expression" }, { status: 400 });
+  }
+
+  // A14a. Turning a schedule ON is the authorisation moment for unattended
+  // sending; leaving it on while renaming it is not, so the gate fires only on
+  // the transition into enabled.
+  const isEnabling = body.enabled === true && !result.schedule.enabled;
+
+  if (isEnabling) {
+    const { data: workflow, error: workflowError } = await supabase
+      .from("workflows")
+      .select("graph")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (workflowError) {
+      return apiError("api.workflows.schedules.item.workflow_lookup_failed", workflowError);
+    }
+
+    const graph = (workflow?.graph ?? { nodes: [], edges: [] }) as WorkflowGraph;
+
+    if (requiresUnattendedSendConsent(true, graph.nodes)) {
+      if (body.unattended_send_ack !== true) {
+        return NextResponse.json(
+          { error: UNATTENDED_SEND_CONSENT_MESSAGE, code: UNATTENDED_SEND_CONSENT_CODE },
+          { status: 400 }
+        );
+      }
+
+      await recordAuditEvent(
+        supabase,
+        user.id,
+        "gmail.unattended_send.authorized",
+        "succeeded",
+        params.scheduleId
+      );
+    }
   }
 
   const { data: schedule, error: updateError } = await supabase

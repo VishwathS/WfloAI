@@ -10,6 +10,12 @@ interface GmailStatus {
   canSend?: boolean;
   canRead?: boolean;
   readActionsEnabled: boolean;
+  usage?: {
+    sentThisMinute: number;
+    sentToday: number;
+    perMinuteLimit: number;
+    perDayLimit: number;
+  };
 }
 
 interface GmailConnectionCardProps {
@@ -20,6 +26,7 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
   const [status, setStatus] = useState<GmailStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isConfirmingDisconnect, setIsConfirmingDisconnect] = useState(false);
 
   async function loadStatus() {
     try {
@@ -43,6 +50,7 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
       await loadStatus();
     } finally {
       setIsDisconnecting(false);
+      setIsConfirmingDisconnect(false);
     }
   }
 
@@ -102,7 +110,7 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
               <ul className="space-y-1 text-sm text-gray-600">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  Send emails &amp; create drafts
+                  Send emails
                 </li>
                 <li className="flex items-center gap-2">
                   {status.canRead ? (
@@ -119,6 +127,20 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
                 </li>
               </ul>
             </div>
+            {status.usage ? (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
+                  Sending limits
+                </p>
+                <p className="text-sm text-gray-600">
+                  {status.usage.sentThisMinute} of {status.usage.perMinuteLimit} sent this
+                  minute · {status.usage.sentToday} of {status.usage.perDayLimit} sent today.
+                </p>
+                <p className="text-xs text-gray-500">
+                  A send that would cross a limit stops rather than queueing.
+                </p>
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
               {needsReconnect ? (
                 <a
@@ -138,13 +160,40 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
               ) : null}
               <button
                 type="button"
-                onClick={handleDisconnect}
-                disabled={isDisconnecting}
+                onClick={() => setIsConfirmingDisconnect(true)}
+                disabled={isDisconnecting || isConfirmingDisconnect}
                 className="rounded-full border border-gray-200 px-4 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-60"
               >
-                {isDisconnecting ? "Disconnecting…" : "Disconnect"}
+                Disconnect
               </button>
             </div>
+            {isConfirmingDisconnect ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">Disconnect Gmail?</p>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  Every workflow with a Gmail step stops working, including schedules that
+                  run without you. Nothing warns you when one fails to send afterwards.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDisconnect}
+                    disabled={isDisconnecting}
+                    className="rounded-full bg-rose-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
+                  >
+                    {isDisconnecting ? "Disconnecting…" : "Yes, disconnect"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDisconnect(false)}
+                    disabled={isDisconnecting}
+                    className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Keep it connected
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-3">
