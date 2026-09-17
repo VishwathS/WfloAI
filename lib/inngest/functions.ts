@@ -6,6 +6,14 @@ import { isApprovedUser } from "@/lib/auth/approval";
 import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import { reportError } from "@/lib/observability/report";
 import { AUTO_DISABLED_REASON, SCHEDULE_LIMITS } from "@/lib/schedule/constants";
+import {
+  LEDGER_UNSETTLED_FLOOR_DAYS,
+  RETENTION_DAYS,
+  SETTLED_LEDGER_STATUSES,
+  UNSETTLED_LEDGER_STATUSES,
+  retentionCleanupEnabled
+} from "@/lib/retention/constants";
+import { cutoffIso } from "@/lib/retention/plan";
 import { computeNextRunAt } from "@/lib/schedule/cron";
 import { validateWorkflow } from "@/lib/execution/validate";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
@@ -292,5 +300,106 @@ export const runScheduledWorkflow = inngest.createFunction(
     });
 
     return { status: run.status };
+  }
+);
+
+// B2. Nothing in this system was ever deleted: workflow_runs holds every node
+// full output text, and the ledger and audit log grow without bound.
+//
+// Deletion is irreversible, so this is fail-closed in two ways. It refuses to
+// run unless RETENTION_CLEANUP_ENABLED is exactly "true" — this working copy
+// has a live Supabase CLI project link, so a local Inngest dev server would
+// otherwise sweep a remote database — and each sweep is its own step, so a
+// failure in one does not silently skip the others on a retry.
+export const cleanupExpiredData = inngest.createFunction(
+  { id: "cleanup-expired-data", retries: 1, triggers: cron("30 3 * * *") },
+  async ({ step }) => {
+    if (!retentionCleanupEnabled()) {
+      return { skipped: "RETENTION_CLEANUP_ENABLED is not \"true\"." };
+    }
+
+    const now = new Date();
+
+    const runs = await step.run("delete-expired-runs", async () => {
+      const supabase = createAdminSupabaseClient();
+      const { data, error } = await supabase
+        .from("workflow_runs")
+        .delete()
+        .lt("created_at", cutoffIso(RETENTION_DAYS.WORKFLOW_RUNS, now))
+        .select("id");
+
+      if (error) {
+        throw new Error(`Failed to delete expired runs: ${error.message}`);
+      }
+
+      return (data ?? []).length;
+    });
+
+    const auditEvents = await step.run("delete-expired-audit-events", async () => {
+      const supabase = createAdminSupabaseClient();
+      const { data, error } = await supabase
+        .from("integration_audit_events")
+        .delete()
+        .lt("created_at", cutoffIso(RETENTION_DAYS.AUDIT_EVENTS, now))
+        .select("id");
+
+      if (error) {
+        throw new Error(`Failed to delete expired audit events: ${error.message}`);
+      }
+
+      return (data ?? []).length;
+    });
+
+    const settledLedger = await step.run("delete-settled-ledger-rows", async () => {
+      const supabase = createAdminSupabaseClient();
+      // Measured from settlement, not creation: a row that sat pending for a
+      // month and then succeeded is one day old for this purpose.
+      const { data, error } = await supabase
+        .from("integration_action_executions")
+        .delete()
+        .in("status", [...SETTLED_LEDGER_STATUSES])
+        .lt("updated_at", cutoffIso(RETENTION_DAYS.LEDGER_SETTLED, now))
+        .select("id");
+
+      if (error) {
+        throw new Error(`Failed to delete settled ledger rows: ${error.message}`);
+      }
+
+      return (data ?? []).length;
+    });
+
+    const unsettledLedger = await step.run("delete-unsettled-ledger-rows", async () => {
+      const supabase = createAdminSupabaseClient();
+      // CLAUDE.md invariant: a pending or unknown row is evidence that an
+      // external action may already have happened. The cutoff is well past the
+      // 7-day floor, and the floor is asserted rather than assumed so a future
+      // edit cannot lower the period underneath it.
+      if (RETENTION_DAYS.LEDGER_UNSETTLED < LEDGER_UNSETTLED_FLOOR_DAYS) {
+        throw new Error("Unsettled ledger retention is below the 7-day floor.");
+      }
+
+      const { data, error } = await supabase
+        .from("integration_action_executions")
+        .delete()
+        .in("status", [...UNSETTLED_LEDGER_STATUSES])
+        .lt("created_at", cutoffIso(RETENTION_DAYS.LEDGER_UNSETTLED, now))
+        .select("id");
+
+      if (error) {
+        throw new Error(`Failed to delete unsettled ledger rows: ${error.message}`);
+      }
+
+      return (data ?? []).length;
+    });
+
+    // Uploaded files are retained until the user deletes them or their account.
+    log("info", "retention.sweep_completed", {
+      runs,
+      auditEvents,
+      settledLedger,
+      unsettledLedger
+    });
+
+    return { runs, auditEvents, settledLedger, unsettledLedger };
   }
 );

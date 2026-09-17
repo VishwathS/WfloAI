@@ -1,0 +1,70 @@
+# B7. There was no CI at all, so `npm test` and `npm run lint` gated nothing.
+# This is the harness that makes every other task's regression tests mean
+# something; it deliberately does not backfill coverage (MASTER section 7.7).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the engines field in package.json.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # The build must not need real credentials. These placeholders exist
+          # so config reads do not crash the build; the startup check in
+          # instrumentation.ts is skipped during phase-production-build, which
+          # is why a build needs no secrets at all.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+
+  audit:
+    runs-on: ubuntu-latest
+    # Deliberately non-blocking, which is the decision this task asks for.
+    # Task 06 left nine transitive advisories that `npm audit fix` cannot
+    # resolve in this tree. A blocking audit that fires on an unfixable
+    # transitive advisory gets switched off within a week, and then nobody
+    # looks at it at all. This reports; a human decides.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Audit (high and above, advisory only)
+        run: npm audit --audit-level=high

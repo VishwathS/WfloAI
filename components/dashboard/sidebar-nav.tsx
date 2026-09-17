@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, LayoutTemplate, Settings } from "lucide-react";
+import { CircleHelp, LayoutGrid, LayoutTemplate, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const linkClass =
@@ -58,6 +58,13 @@ export function SidebarNav() {
       >
         <Settings className="h-4 w-4" />
         Settings
+      </Link>
+      <Link
+        href="/help"
+        className={cn(linkClass, pathname.startsWith("/help") ? activeClass : inactiveClass)}
+      >
+        <CircleHelp className="h-4 w-4" />
+        Help
       </Link>
     </nav>
   );

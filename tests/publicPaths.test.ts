@@ -18,6 +18,12 @@ describe("public paths", () => {
     expect(requiresAuth("/terms")).toBe(false);
   });
 
+  test("the help page is reachable without a session", () => {
+    // B10: a support link that requires a login is no use to someone who
+    // cannot get in.
+    expect(requiresAuth("/help")).toBe(false);
+  });
+
   test("the login page and the auth callback stay public", () => {
     expect(requiresAuth("/login")).toBe(false);
     expect(requiresAuth("/auth/callback")).toBe(false);

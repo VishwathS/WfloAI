@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import type { WorkflowRun } from "@/lib/types";
 import { NodeOutputDisplay, getOutputPreview } from "@/components/canvas/NodeOutputDisplay";
 
+interface RunsPage {
+  runs?: WorkflowRun[];
+  hasMore?: boolean;
+  nextOffset?: number;
+}
+
 interface RunHistorySidebarProps {
   workflowId: string;
   open: boolean;
@@ -33,6 +39,12 @@ export function RunHistorySidebar({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // B2/C4: the endpoint is paginated now, so the sidebar must not silently
+  // show the newest page as if it were the whole history.
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   useEffect(() => {
     if (!open) return;
 
@@ -40,16 +52,38 @@ export function RunHistorySidebar({
 
     fetch(`/api/workflows/${workflowId}/runs`)
       .then((res) => res.json())
-      .then((data: { runs?: WorkflowRun[] }) => {
+      .then((data: RunsPage) => {
         setRuns(data.runs ?? []);
+        setNextOffset(data.nextOffset ?? 0);
+        setHasMore(Boolean(data.hasMore));
       })
       .catch(() => {
         setRuns([]);
+        setHasMore(false);
       })
       .finally(() => {
         setIsLoading(false);
       });
   }, [open, refreshTrigger, workflowId]);
+
+  async function loadMore() {
+    setIsLoadingMore(true);
+
+    try {
+      const response = await fetch(
+        `/api/workflows/${workflowId}/runs?offset=${nextOffset}`
+      );
+      const data = (await response.json()) as RunsPage;
+
+      setRuns((current) => [...current, ...(data.runs ?? [])]);
+      setNextOffset(data.nextOffset ?? nextOffset);
+      setHasMore(Boolean(data.hasMore));
+    } catch {
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
 
   if (!open) {
     return null;
@@ -153,6 +187,16 @@ export function RunHistorySidebar({
                 </div>
               );
             })}
+            {hasMore ? (
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={isLoadingMore}
+                className="w-full px-4 py-3 text-sm font-medium text-violet-700 transition hover:bg-violet-50 disabled:opacity-60"
+              >
+                {isLoadingMore ? "Loading…" : "Load older runs"}
+              </button>
+            ) : null}
           </div>
         )}
       </div>

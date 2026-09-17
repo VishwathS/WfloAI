@@ -32,6 +32,9 @@ export default function MarketingLayout({
             WfloAI
           </p>
           <nav className="flex gap-5 text-sm text-gray-600">
+            <Link href="/help" className="hover:text-gray-900">
+              Help
+            </Link>
             <Link href="/privacy" className="hover:text-gray-900">
               Privacy
             </Link>

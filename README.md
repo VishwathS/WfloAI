@@ -4,29 +4,37 @@ WfloAI is an AI-first visual workflow builder built with Next.js 16, TypeScript,
 
 The app currently supports:
 
-- Google OAuth login with Supabase Auth
-- Protected dashboard routes
+- Google OAuth login with Supabase Auth, behind an invite gate
+- A public marketing page, privacy policy, terms and help page; the dashboard lives at `/dashboard`
 - Workflow creation, listing, rename, and deletion
-- React Flow canvas with trigger, AI, and action nodes
-- Drag-and-drop node creation and animated edges
+- A React Flow canvas with nine step types: Trigger, Input, File Input, AI, Router, Lookup, Gmail, HTTP Request, and Action
+- Drag-and-drop node creation, resizable nodes, and debounced auto-save
 - Workflow graph persistence to Supabase
-- Phase 3 execution with node-by-node state, streaming AI output, and an execution log
+- Server-side execution with node-by-node state, streaming AI output, and an execution log
+- Run history with pagination, and automatic retention
+- Scheduled runs via Inngest, with an interval floor, per-user caps and auto-disable on repeated failure
+- Gmail sending (Send only in V1) and an HTTP Request step, both server-execution-only
+- Account deletion and a JSON data export
 
 ## Stack
 
-- Next.js 16 App Router
+- Next.js 16 App Router, React 19
 - TypeScript with strict mode
 - Tailwind CSS
 - shadcn-style UI components
-- Supabase for auth and Postgres storage
+- Supabase for auth, Postgres and file storage
 - React Flow for the visual builder
-- Anthropic for AI node execution
+- Anthropic for AI step execution, Tavily for Lookup
+- Inngest for scheduled and background runs
+- Vitest for unit tests
 
 ## Prerequisites
 
 - Node.js 22.x
 - A Supabase project
 - An Anthropic API key
+- A Tavily API key (Lookup steps)
+- A Google Cloud OAuth client (Gmail steps), separate from the Supabase login provider
 
 ## Environment Variables
 
@@ -100,8 +108,10 @@ npm.cmd install
 3. Run the database migrations in Supabase:
 
 - Open the SQL editor in Supabase
-- Run [supabase/migrations/202605140001_init_flowai.sql](/c:/Users/vishw/wflo-AI/supabase/migrations/202605140001_init_flowai.sql:1)
-- Then run [supabase/migrations/202605150001_add_execution_logs.sql](/c:/Users/vishw/wflo-AI/supabase/migrations/202605150001_add_execution_logs.sql:1)
+- Run every file in [`supabase/migrations/`](supabase/migrations/) in filename order. They are named
+  `YYYYMMDDNNNN_description.sql`, and order matters.
+- Applying migrations to a **remote** project is a deliberate operator action. This working copy has
+  a live Supabase CLI project link, so `supabase db push` targets a remote project by default.
 
 4. Start the development server:
 
@@ -123,26 +133,34 @@ http://localhost:3000
 
 ## Execution Notes
 
-- Trigger nodes simulate a workflow start and emit `"Workflow triggered."`
-- AI nodes call Anthropic through the authenticated server route at `/api/execute`
-- Action nodes simulate completion and emit `"Output saved."`
-- Workflow execution order is determined by topological sort
-- Cycles in the graph throw an execution error
+- Execution order is a topological sort; a cycle in the graph is an execution error
+- The primary run path is `POST /api/workflows/[id]/execute`, which traverses the whole graph
+  server-side via `lib/execution/serverExecutor.ts` and streams SSE to the client
+- Scheduled runs take the same executor through Inngest, without SSE
+- `/api/execute` is the older single-step endpoint used by the browser-side executor; it streams
+  `text/plain`
+- Gmail and HTTP Request steps run **only** on the server, so credentials never reach the browser
 
-The Anthropic route uses:
+Both AI paths use:
 
-- Model: `claude-sonnet-4-20250514`
-- `max_tokens: 1024`
-- Streaming text output
+- Model: `claude-haiku-4-5-20251001`
+- `max_tokens: 4096`
+- Streaming text output, with an abort timeout
 
 ## Scripts
 
 ```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
+npm run dev        # Next dev server (Turbopack)
+npm run build      # production build
+npm run start      # serve the production build
+npm run lint       # eslint, flat config
+npm run typecheck  # tsc --noEmit
+npm test           # vitest run
 ```
+
+CI runs lint, typecheck, test and build on every pull request
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). `npm audit` runs alongside them and
+reports without blocking.
 
 ## Windows PowerShell Note
 
@@ -152,20 +170,25 @@ If `node`, `npm`, or `npm.cmd` are not recognized inside VS Code but `where.exe 
 
 - `app/(auth)/login/page.tsx`: login page
 - `app/auth/callback/route.ts`: OAuth callback handler
-- `app/(dashboard)/page.tsx`: dashboard
+- `app/(marketing)`: public homepage, privacy, terms, help
+- `app/(dashboard)/dashboard/page.tsx`: dashboard
 - `app/(dashboard)/workflows/[id]/page.tsx`: workflow editor page
 - `app/api/workflows/[id]/route.ts`: workflow graph save endpoint
 - `app/api/execute/route.ts`: authenticated Anthropic streaming endpoint
 - `components/canvas`: React Flow canvas, toolbar, execution context, and log UI
-- `components/canvas/nodes`: custom Trigger, AI, and Action nodes
+- `components/canvas/nodes`: the nine step components
 - `components/canvas/edges`: custom edge rendering and deletion
 - `hooks/use-user.ts`: current session/user hook
 - `hooks/useExecution.ts`: workflow execution state hook
 - `lib/supabase.ts`: browser Supabase client
 - `lib/supabase/server.ts`: server and middleware Supabase clients
-- `lib/execution`: pure execution utilities
+- `lib/execution`: executors, validation, and runtime limits
+- `lib/integrations`, `lib/gmail`, `lib/http`: integration, quota and egress safety
+- `lib/retention`: retention periods and the sweep predicates
+- `lib/config/env.ts`: the required-variable startup check
 - `lib/types.ts`: shared workflow and node data types
-- `middleware.ts`: route protection
+- `proxy.ts`: route protection and the invite gate (Next 16 renamed the middleware convention)
+- `docs/KEY-RECOVERY.md`: what INTEGRATION_TOKEN_KEY protects and how to restore it
 
 ## Current Workflow Data Model
 

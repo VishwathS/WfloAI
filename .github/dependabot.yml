@@ -1,0 +1,31 @@
+# B7. Weekly rather than daily: this is a small dependency tree and a daily
+# cadence produces more PRs than anyone reviews, which is how Dependabot ends
+# up muted.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the routine churn, so the majors that need real attention
+      # are not buried among patch bumps.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Framework majors are a planned migration with a manual regression
+      # checklist (task 06), not something to take from a bot PR.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

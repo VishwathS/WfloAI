@@ -6,7 +6,10 @@
 // Allow-list, not deny-list. A deny-list left /settings — the page that manages
 // OAuth tokens and API keys — ungated, and every new dashboard route would have
 // inherited that default.
-const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms"]);
+// /help is public on purpose: it is product documentation with no user data in
+// it, and a support link that requires a login is no use to someone who cannot
+// get in (B10).
+const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/help"]);
 const PUBLIC_PREFIXES = ["/auth/"];
 
 export function requiresAuth(pathname: string): boolean {

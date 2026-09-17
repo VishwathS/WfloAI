@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { DraftBanner } from "@/components/marketing/DraftBanner";
+// Task 12 Completion Criteria: the periods here and in the sweep must be the
+// same numbers. Importing them is how that stays true.
+import {
+  LEDGER_UNSETTLED_FLOOR_DAYS,
+  RETENTION_DAYS
+} from "@/lib/retention/constants";
 
 export const metadata = {
   title: "Privacy Policy — WfloAI",
@@ -211,11 +217,21 @@ export default function PrivacyPage() {
           Your workflows, files and connections are kept until you delete them or ask us to
           delete your account.
         </p>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-          <span className="font-medium">Pending.</span> Run history and integration records
-          are currently kept indefinitely. Automatic deletion after a fixed period is planned
-          and not yet implemented, so this draft deliberately states no retention period for
-          them. A period must be committed to and implemented before this page is published.
+        <p>
+          Run history is deleted automatically after{" "}
+          <span className="font-medium text-gray-900">{RETENTION_DAYS.WORKFLOW_RUNS} days</span>.
+          That includes the full text output of every step in the run.
+        </p>
+        <p>
+          Our internal records of external actions are deleted on the same schedule: the audit
+          log after {RETENTION_DAYS.AUDIT_EVENTS} days, and the record used to prevent
+          duplicate sends {RETENTION_DAYS.LEDGER_SETTLED} days after the action it describes
+          finished. A record of an action whose outcome is still unresolved is held for at
+          least {LEDGER_UNSETTLED_FLOOR_DAYS} days, because deleting it is what would let a
+          retry send the same email twice.
+        </p>
+        <p>
+          Uploaded files are kept until you delete them or delete your account.
         </p>
       </Section>
 
