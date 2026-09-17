@@ -12,7 +12,10 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { cronToPreset, describeCron, presetToCron } from "@/lib/schedule/cron";
-import { AUTO_DISABLED_REASON } from "@/lib/schedule/constants";
+import {
+  AUTO_DISABLED_REASON,
+  UNATTENDED_SEND_DISABLED_REASON
+} from "@/lib/schedule/constants";
 import { UNATTENDED_SEND_CONSENT_CODE } from "@/lib/schedule/consent";
 import type { ScheduleFrequency, WorkflowSchedule } from "@/lib/types";
 
@@ -567,6 +570,16 @@ export function WorkflowSettingsSidebar({
                         Turned off automatically after{" "}
                         {schedule.consecutive_failures} failed runs. Check Run History,
                         fix the workflow, then enable it again.
+                      </span>
+                    </p>
+                  ) : null}
+                  {schedule.disabled_reason === UNATTENDED_SEND_DISABLED_REASON ? (
+                    <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>
+                        Turned off because this workflow now sends email. A schedule may
+                        only send on its own with your explicit confirmation — enable it
+                        again to confirm.
                       </span>
                     </p>
                   ) : null}

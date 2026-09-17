@@ -7,6 +7,7 @@ import {
   isApprovedUser,
   requiresApproval
 } from "@/lib/auth/approval";
+import { requiresAuth } from "@/lib/security/publicPaths";
 
 // A3. The DB-level assertions this task also asks for — a profiles row created
 // on first login, and RLS preventing one user reading another row — need a live
@@ -31,12 +32,47 @@ function fakeSupabase(row: ProfileRow, error: unknown = null): SupabaseClient {
 describe("which paths need approval", () => {
   test("protected pages need it", () => {
     expect(requiresApproval("/dashboard")).toBe(true);
-    expect(requiresApproval("/settings")).toBe(true);
     expect(requiresApproval("/workflows/8f3c1d2e")).toBe(true);
   });
 
   test("the waitlist page itself does not, or the redirect loops forever", () => {
     expect(requiresApproval(WAITLIST_PATH)).toBe(false);
+  });
+
+  // C2 cross-task remediation. /settings was gated, which made the deletion and
+  // export the privacy policy promises unreachable for anyone not yet admitted.
+  // The routes behind it were never approval-gated; only the page that reaches
+  // them was.
+  test("settings is reachable by an authenticated but unapproved user", () => {
+    expect(requiresApproval("/settings")).toBe(false);
+  });
+
+  test("but settings still requires a session — it is not public", () => {
+    // Opening the page to unapproved users must not open it to anonymous ones:
+    // it lists the connected Gmail address and stored credential names.
+    expect(requiresAuth("/settings")).toBe(true);
+  });
+
+  test("opening settings grants no dashboard, canvas or execution access", () => {
+    expect(requiresApproval("/dashboard")).toBe(true);
+    expect(requiresApproval("/workflows/8f3c1d2e")).toBe(true);
+  });
+
+  test("an unapproved user still cannot reach any money-spending route", () => {
+    // Those are not gated by the proxy at all; each checks for itself.
+    expect(MONEY_SPENDING_ROUTES.length).toBeGreaterThan(0);
+    for (const routeFile of MONEY_SPENDING_ROUTES) {
+      expect(readFileSync(new URL("../" + routeFile, import.meta.url), "utf8")).toContain(
+        "requireApprovedUser"
+      );
+    }
+  });
+
+  test("no redirect loop: the page unapproved users are sent to is itself open", () => {
+    // The proxy redirects them to WAITLIST_PATH. If that path required
+    // approval, it would redirect to itself forever.
+    expect(requiresApproval(WAITLIST_PATH)).toBe(false);
+    expect(requiresAuth(WAITLIST_PATH)).toBe(true);
   });
 
   test("public pages do not, because they never needed a session either", () => {

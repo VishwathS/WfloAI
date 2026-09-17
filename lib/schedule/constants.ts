@@ -19,3 +19,10 @@ export const SCHEDULE_LIMITS = {
 } as const;
 
 export const AUTO_DISABLED_REASON = "auto_disabled_consecutive_failures";
+
+// A14a cross-task remediation. A schedule enabled on a workflow that could not
+// send mail carries no unattended-send consent. If the workflow is later edited
+// to add a Gmail Send step, that schedule would begin sending unattended on
+// authorisation nobody ever gave. It is disabled instead, and re-enabling it
+// goes through the normal consent gate.
+export const UNATTENDED_SEND_DISABLED_REASON = "disabled_unattended_send_unconsented";

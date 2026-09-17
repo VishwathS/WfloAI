@@ -8,9 +8,19 @@ import { requiresAuth } from "@/lib/security/publicPaths";
 
 export const WAITLIST_PATH = "/waitlist";
 
-// Pages an authenticated-but-unapproved user may still reach. Without this the
-// gate redirects /waitlist to /waitlist forever.
-const UNAPPROVED_PAGES = new Set([WAITLIST_PATH]);
+// Pages an authenticated-but-unapproved user may still reach.
+//
+//   /waitlist  without it the gate redirects /waitlist to /waitlist forever.
+//   /settings  the privacy policy tells every user they can export their data
+//              and delete their account from Settings. The routes behind it
+//              (POST /api/account/delete, GET /api/account/export) are
+//              deliberately not approval-gated, so gating the only page that
+//              reaches them made a published promise unkeepable.
+//
+// Neither grants any dashboard, canvas or execution capability: /dashboard and
+// /workflows/:id stay gated here, and every money-spending route checks
+// requireApprovedUser itself.
+const UNAPPROVED_PAGES = new Set([WAITLIST_PATH, "/settings"]);
 
 // Layered on top of task 01 allow-list rather than beside it: a page that does
 // not need a session does not need approval either, so the two checks compose

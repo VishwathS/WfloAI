@@ -147,6 +147,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   // sending; leaving it on while renaming it is not, so the gate fires only on
   // the transition into enabled.
   const isEnabling = body.enabled === true && !result.schedule.enabled;
+  let authorizedAt: string | null = null;
 
   if (isEnabling) {
     const { data: workflow, error: workflowError } = await supabase
@@ -161,7 +162,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const graph = (workflow?.graph ?? { nodes: [], edges: [] }) as WorkflowGraph;
 
-    if (requiresUnattendedSendConsent(true, graph.nodes)) {
+    // A14a: a schedule that already carries authorisation does not re-ask. That
+    // authorisation is cleared whenever a graph edit newly makes the workflow
+    // send (disableUnauthorizedSendSchedules), so this cannot silently inherit
+    // consent across a change that introduced sending.
+    if (requiresUnattendedSendConsent(true, graph.nodes, result.schedule)) {
       if (body.unattended_send_ack !== true) {
         return NextResponse.json(
           { error: UNATTENDED_SEND_CONSENT_MESSAGE, code: UNATTENDED_SEND_CONSENT_CODE },
@@ -169,6 +174,11 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
 
+      authorizedAt = new Date().toISOString();
+
+      // The audit event stays as historical evidence of who confirmed and when.
+      // It is no longer what the application consults, so retention deleting it
+      // cannot change whether this schedule may send.
       await recordAuditEvent(
         supabase,
         user.id,
@@ -187,6 +197,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       // Re-enabling clears the auto-disable reason and the failure run: the
       // user is deliberately restarting the automation.
       ...(enabled ? { consecutive_failures: 0, disabled_reason: null } : {}),
+      // Only ever written on an explicit confirmation. Absent one, whatever the
+      // schedule already carried is left untouched.
+      ...(authorizedAt ? { unattended_send_authorized_at: authorizedAt } : {}),
       cron_expression: cronExpression,
       timezone,
       input_values: body.input_values ?? result.schedule.input_values,

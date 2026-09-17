@@ -49,3 +49,21 @@ Record operator-performed actions here as they happen. These are **not** agent w
 ## Deferred
 
 C1–C10, D2, D3, D4, and the full D1 restricted-scope program are deferred to Phase 4. See [`release-readiness/MASTER.md`](release-readiness/MASTER.md) §6. Do not implement them during V1 hardening.
+
+## Cross-task remediation (2026-09-17)
+
+A read-only integration audit of the committed Tasks 01-12 found defects that only
+appear where two task implementations meet. They were fixed as integration hardening,
+not as a new numbered task: **no task status changed and none became COMPLETE** — their
+outstanding operator items are unaffected.
+
+| Finding | Fix |
+|---|---|
+| Applying `202609160001` left every existing user unapproved, silently killing their schedules | The backfill now grandfathers existing accounts as approved **inside the migration**, so no intermediate unapproved state exists |
+| `/settings` was approval-gated, so an unapproved user could not reach the deletion and export the privacy policy promises | `/settings` is reachable by an authenticated unapproved user; dashboard, canvas and every spending route stay gated |
+| Unattended-send consent was checked at enable time only, and stored only in a 90-day audit row | Consent is durable on `workflow_schedules.unattended_send_authorized_at` (migration `202609160002`); a graph save that introduces Gmail Send disables unauthorised enabled schedules, and the runner refuses before any mail leaves |
+| Deleting a workflow orphaned its uploaded bytes in Storage | Deletion moved server-side to `DELETE /api/workflows/[id]`, which sweeps the object prefix **before** removing the row |
+| CLAUDE.md documented a concurrency limiter that Task 03 removed | Corrected, with the durable quota mechanism documented in its place |
+
+**Migration order is now `202609150001` → `202609150002` → `202609150003` → `202609160001` → `202609160002`.** None is applied.
+The application code requires all five; deploy and migrate together.

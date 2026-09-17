@@ -5,7 +5,12 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isApprovedUser } from "@/lib/auth/approval";
 import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import { reportError } from "@/lib/observability/report";
-import { AUTO_DISABLED_REASON, SCHEDULE_LIMITS } from "@/lib/schedule/constants";
+import {
+  AUTO_DISABLED_REASON,
+  SCHEDULE_LIMITS,
+  UNATTENDED_SEND_DISABLED_REASON
+} from "@/lib/schedule/constants";
+import { hasUnattendedSendConsent } from "@/lib/schedule/consent";
 import {
   LEDGER_UNSETTLED_FLOOR_DAYS,
   RETENTION_DAYS,
@@ -15,7 +20,7 @@ import {
 } from "@/lib/retention/constants";
 import { cutoffIso } from "@/lib/retention/plan";
 import { computeNextRunAt } from "@/lib/schedule/cron";
-import { validateWorkflow } from "@/lib/execution/validate";
+import { containsSendCapableGmailNode, validateWorkflow } from "@/lib/execution/validate";
 import { resolveFileInputs } from "@/lib/execution/resolveFileInputs";
 import { runWorkflowToCompletion, type CollectedRun } from "@/lib/execution/runToCompletion";
 import { deriveRunId } from "@/lib/integrations/idempotency";
@@ -159,7 +164,7 @@ export const runScheduledWorkflow = inngest.createFunction(
 
       const { data: schedule, error: scheduleError } = await supabase
         .from("workflow_schedules")
-        .select("input_values")
+        .select("input_values, unattended_send_authorized_at")
         .eq("id", event.data.scheduleId)
         .maybeSingle();
 
@@ -172,6 +177,31 @@ export const runScheduledWorkflow = inngest.createFunction(
       }
 
       const { nodes, edges } = workflow.graph as WorkflowGraph;
+
+      // A14a, last line of defence. The graph-save sweep disables an
+      // unauthorised send-capable schedule, but a save and a due occurrence can
+      // race. No mail leaves on an authorisation nobody gave: the schedule is
+      // turned off here and the refusal is persisted as a visible error run
+      // rather than skipped silently, so the owner can see why it stopped.
+      if (
+        containsSendCapableGmailNode(nodes) &&
+        !hasUnattendedSendConsent(schedule as { unattended_send_authorized_at: string | null })
+      ) {
+        await supabase
+          .from("workflow_schedules")
+          .update({
+            enabled: false,
+            next_run_at: null,
+            disabled_reason: UNATTENDED_SEND_DISABLED_REASON
+          })
+          .eq("id", event.data.scheduleId)
+          .eq("user_id", event.data.userId);
+
+        return validationErrorRun(
+          "This workflow now sends email, which a schedule may only do with your explicit confirmation. The schedule has been turned off — re-enable it in Workflow Settings to confirm."
+        );
+      }
+
       const overriddenNodes = applyInputOverrides(
         nodes as unknown as Node<WorkflowNodeData>[],
         (schedule.input_values ?? {}) as Record<string, string>

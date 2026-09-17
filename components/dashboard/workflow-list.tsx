@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ArrowRight, Clock, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { WorkflowWithLastRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -100,10 +99,20 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
     setErrorMessage(null);
     setItems((currentItems) => currentItems.filter((item) => item.id !== workflowId));
 
-    const supabase = createBrowserSupabaseClient();
-    const { error } = await supabase.from("workflows").delete().eq("id", workflowId);
+    // S3: goes through the server so the uploaded files in Storage are removed
+    // with the row. A direct client delete cascades workflow_files but leaves
+    // the bytes behind, which the privacy policy says does not happen.
+    let response: Response;
 
-    if (error) {
+    try {
+      response = await fetch("/api/workflows/" + workflowId, { method: "DELETE" });
+    } catch {
+      setItems(previousItems);
+      setErrorMessage("The workflow could not be deleted. Please try again.");
+      return;
+    }
+
+    if (!response.ok) {
       setItems(previousItems);
       setErrorMessage("The workflow could not be deleted. Please try again.");
       return;

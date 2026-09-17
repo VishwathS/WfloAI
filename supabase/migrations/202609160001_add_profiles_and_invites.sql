@@ -46,17 +46,29 @@ create table if not exists public.invite_codes (
 
 alter table public.invite_codes enable row level security;
 
--- Backfill: every existing auth user gets a profile. approved is left FALSE
--- here on purpose. Task 08's Stop Conditions call retroactively de-authorising
--- real accounts an operator decision, and task 08 Manual Step 4 says to seed the
--- approval list before deploying the gate — so seeding is a deliberate operator
--- step, not something this migration guesses at. See the comment at the bottom.
-insert into public.profiles (user_id)
-select id from auth.users
+-- Backfill: every EXISTING auth user is grandfathered in as APPROVED.
+--
+-- This is the operator's explicit decision, and it is made here rather than in a
+-- follow-up UPDATE for a specific reason. Applying this migration with existing
+-- users unapproved and seeding them afterwards leaves a window in which every
+-- enabled schedule is claimed, has next_run_at advanced, and is then skipped by
+-- runScheduledWorkflow with no workflow_runs row, no consecutive_failures
+-- increment and no report. Those occurrences are lost, not deferred. There must
+-- be no intermediate deployed state in which an existing user is unapproved, so
+-- the grandfathering happens in the same statement that creates their row.
+--
+-- This applies ONLY to accounts that exist when this migration runs. Everyone
+-- created afterwards is unapproved — see handle_new_user below, which
+-- deliberately supplies no `approved` value and therefore takes the FALSE
+-- default.
+insert into public.profiles (user_id, approved, approved_at)
+select id, true, now() from auth.users
 on conflict (user_id) do nothing;
 
--- New users get a profile at sign-up. Without this, a first-time Google login
--- would have no row and the gate would have nothing to read.
+-- New users get a profile at sign-up, and they get it UNAPPROVED: no `approved`
+-- value is supplied, so the column default (false) applies. Without this trigger
+-- a first-time Google login would have no row at all and the gate would have
+-- nothing to read. Do not add `approved` here — that would open signup.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -145,31 +157,37 @@ $$;
 revoke all on function public.redeem_invite_code(text) from public;
 grant execute on function public.redeem_invite_code(text) to authenticated;
 
+-- Who is approved after this migration runs
+--
+--   Existing accounts  APPROVED, by the backfill above. No seeding step is
+--                      needed and none should be performed; task 08 Manual
+--                      Step 4 is satisfied by the migration itself.
+--   New accounts       UNAPPROVED. They land on /waitlist and get in by
+--                      redeeming an invite code, or by an operator UPDATE.
+--
+-- If any existing account should NOT have been admitted, revoke it explicitly
+-- AFTER applying (step 3 below) rather than changing the backfill — a partial
+-- backfill reintroduces the lost-occurrence window the comment above describes.
+--
 -- Operator steps, deliberately NOT performed by this migration.
 --
--- 1. Seed yourself and your Phase 1 testers BEFORE the gate reaches an
---    environment with real accounts, or you lock yourself out:
---
---      update public.profiles set approved = true, approved_at = now()
---      where user_id in (select id from auth.users where email in ('...'));
---
--- 2. Create invite codes as needed:
+-- 1. Create invite codes as needed:
 --
 --      insert into public.invite_codes (code, max_uses, expires_at, note)
 --      values ('beta-7f3a91', 25, now() + interval '30 days', 'phase 2 beta');
 --
+-- 2. Approving someone later:
+--
+--      update public.profiles set approved = true, approved_at = now()
+--      where user_id in (select id from auth.users where email in ('...'));
+--
 -- 3. Revoking access is `update public.profiles set approved = false`. It takes
---    effect on the next request; no session invalidation is involved.
+--    effect on the next request; no session invalidation is involved. Note that
+--    a revoked owner's enabled schedules stop running, and — by design — do so
+--    without producing run rows, so revoke deliberately rather than casually.
 --
--- 4. The backfill above deliberately leaves existing accounts UNAPPROVED. That
---    is the shape task 08 Manual Step 4 assumes ("seed the approval list ...
---    or you will lock yourself out"), and it keeps the decision with you. If
---    you would rather grandfather everyone who already signed up, change the
---    backfill to:
---
---      insert into public.profiles (user_id, approved, approved_at)
---      select id, true, now() from auth.users
---      on conflict (user_id) do nothing;
---
---    Which of these is right depends on who already has an account, which is a
---    fact about your database and not about this repository.
+-- 4. Invite seats are consumed permanently. `uses` is incremented on redemption
+--    and is never decremented, including when the redeeming account is deleted:
+--    a deleted user who signs up again receives a new auth user id, a fresh
+--    UNAPPROVED profile, and needs admission again. Intentional for V1 — an
+--    invite grants one admission, not a transferable seat.

@@ -179,6 +179,10 @@ export interface WorkflowSchedule {
   // disabled_reason records why. Null reason means the user disabled it.
   consecutive_failures: number;
   disabled_reason: string | null;
+  // A14a: operative unattended-send authorisation. Null means not authorised.
+  // Durable on the schedule rather than inferred from an audit event, which
+  // retention deletes after 90 days.
+  unattended_send_authorized_at: string | null;
   created_at: string;
   updated_at: string;
 }

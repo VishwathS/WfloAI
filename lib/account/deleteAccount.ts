@@ -60,32 +60,37 @@ const LIST_PAGE_SIZE = 100;
 // {user_id}/{workflow_id}/{fileId}, so the prefix is walked a level at a time.
 // A partial deletion that reports success is worse than a clear failure, so
 // every error throws rather than being counted as progress.
+//
+// Takes any prefix: account deletion passes "{user_id}" and workflow deletion
+// passes "{user_id}/{workflow_id}". One walker, so the two cannot drift.
+// Storage RLS authorises on the first path segment, so a user-scoped client is
+// sufficient for the workflow case and no admin client is involved there.
 export async function deleteStoragePrefix(
-  admin: SupabaseClient,
-  userId: string
+  client: SupabaseClient,
+  prefix: string
 ): Promise<number> {
-  const storage = admin.storage.from(STORAGE_BUCKET);
-  const pending = [userId];
+  const storage = client.storage.from(STORAGE_BUCKET);
+  const pending = [prefix];
   const objectPaths: string[] = [];
 
   while (pending.length > 0) {
-    const prefix = pending.pop() as string;
+    const current = pending.pop() as string;
     let offset = 0;
 
     for (;;) {
-      const { data, error } = await storage.list(prefix, {
+      const { data, error } = await storage.list(current, {
         limit: LIST_PAGE_SIZE,
         offset
       });
 
       if (error) {
-        throw new Error(`Failed to list ${prefix}: ${error.message}`);
+        throw new Error(`Failed to list ${current}: ${error.message}`);
       }
 
       const entries = data ?? [];
 
       for (const entry of entries) {
-        const path = `${prefix}/${entry.name}`;
+        const path = `${current}/${entry.name}`;
         // A folder placeholder has no id; a real object always has one.
         if (entry.id === null || entry.id === undefined) {
           pending.push(path);

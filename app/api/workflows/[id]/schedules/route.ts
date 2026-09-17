@@ -8,6 +8,7 @@ import {
   UNATTENDED_SEND_CONSENT_MESSAGE,
   requiresUnattendedSendConsent
 } from "@/lib/schedule/consent";
+import { containsSendCapableGmailNode } from "@/lib/execution/validate";
 import type { WorkflowGraph } from "@/lib/types";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone, meetsIntervalFloor } from "@/lib/schedule/cron";
 
@@ -220,7 +221,16 @@ export async function POST(request: Request, context: RouteContext) {
       cron_expression: body.cron_expression,
       timezone: body.timezone,
       input_values: body.input_values ?? {},
-      next_run_at: body.enabled ? computeNextRunAt(body.cron_expression, body.timezone) : null
+      next_run_at: body.enabled ? computeNextRunAt(body.cron_expression, body.timezone) : null,
+      // A14a: the operative authorisation, durable on the schedule. Set only
+      // when the user actually confirmed an enable on a send-capable graph —
+      // never inferred, and never set for a schedule that cannot send.
+      unattended_send_authorized_at:
+        body.enabled &&
+        body.unattended_send_ack === true &&
+        containsSendCapableGmailNode(graph.nodes)
+          ? new Date().toISOString()
+          : null
     })
     .select()
     .single();

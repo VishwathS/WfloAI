@@ -418,6 +418,10 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 - Fan-out: one `workflow/schedule.due` event per claimed schedule; the runner serializes per workflow via `concurrency { key: workflowId, limit: 1 }`
 - Node-level failures never throw out of `runWorkflowToCompletion` — they become a `status: "error"` run row; Inngest retries only fire on infra throws, and the execute/persist step split means retries never re-spend AI tokens
 - Validation failures persist an error run (visible in Run History) and do not auto-disable the schedule
+- A run skipped for ownership, a deleted schedule, or an unapproved owner returns before `persist-run` — deliberately, since there is nothing to record — but that also means **no run row, no failure count and no report**. An owner whose approval is revoked therefore has every schedule stop silently. Revoking approval is not a casual action
+
+**Capacity, not a quota.** The poller takes `.limit(50)` due schedules per minute. That is a **throughput ceiling on the poller**, never a per-user allowance: `MAX_SCHEDULES_PER_USER` is 20 and `MIN_INTERVAL_MINUTES` is 15, so three users at cap can fill a single minute. Nothing is lost when it binds — unclaimed schedules stay due and are picked up on a later tick, because `next_run_at` only advances on a successful claim — but they run **late**, and lateness grows with the backlog. Watch claimed-per-tick against 50 in production; if it is regularly at the ceiling, that is a capacity signal, not a reason to raise per-user caps. Do not read `.limit(50)` as a quota in either direction
+
 
 **input_values:** applied in the runner before validation — Input nodes whose `key` appears in `schedule.input_values` get their `defaultValue` replaced (immutably). No UI edits this yet; it defaults to `{}`.
 
@@ -462,7 +466,13 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 
 **Gmail module (`lib/gmail/`).** `scopes.ts` is the single scope⇄action map. `client.ts` handles token lifecycle: encrypted cache, refresh with optimistic CAS on `access_token_expires_at` (concurrent refreshes → one Google call), `invalid_grant` → `status='requires_reconnect'` (fail fast, never hammer refresh). `mime.ts` is header-injection safe: CR/LF rejected in all header values, recipients parsed with a narrow quoted-string-aware parser (display names dropped), RFC 2047 subject encoding, plain-text only in V1. `infer.ts`: Reply/Read resolve their target email from **typed in-memory metadata of direct parents only** (`metadataByNodeId` in serverExecutor) — never by scanning output text; ambiguity (0 or >1 Gmail parents) fails before any external action. **Reply requires a Read Email node as direct parent** (statically enforced in `validate.ts`); canonical flow: Find → Read → AI Draft → Reply. Find fetches per-message metadata with bounded concurrency (5).
 
-**Quotas (`lib/integrations/limits.ts`).** Single source of limits: 5 concurrent requests/user (in-memory), 60 HTTP mutations/min, 10 Gmail sends/min, 200/day (ledger-derived), 50 external actions/run. Audit events (`lib/integrations/audit.ts`) are best-effort — an audit failure must never fail a successful send.
+**Quotas (`lib/integrations/limits.ts`).** Single source of limits: 60 HTTP mutations/min; 10 Gmail sends/min and 200/day; 20 AI calls/min and 200/day; 10 Lookup searches/min and 100/day; 50 external actions/run; 20 AI nodes/run (enforced in `lib/execution/validate.ts`). Every window is **ledger-derived** — counted from `integration_action_executions`, so it holds across serverless instances.
+
+AI and Lookup consume theirs **atomically** through `consume_action_quota` (migration `202609150002`), which counts and inserts a `pending` row inside one advisory-locked statement, so an in-flight call already counts; `settleMeteredAction` then settles it to `succeeded`/`failed` with measured units. Gmail and HTTP still use the pre-existing check-then-act windows, whose residual race is bounded and documented in `release-readiness/03-ai-lookup-quotas.md`.
+
+**There is no concurrency limiter.** `MAX_CONCURRENT_REQUESTS` was an in-memory `Map` and therefore a no-op on serverless; Task 03 removed it rather than leave something that reads like a working control. What replaces it is the set of durable protections above plus `maxDuration` and the node-count cap (`lib/execution/constants.ts`) and the schedule floor and caps (`lib/schedule/constants.ts`). Do not reintroduce an in-process gauge.
+
+Audit events (`lib/integrations/audit.ts`) are best-effort — an audit failure must never fail a successful send.
 
 **Gmail scope & launch strategy.** Google's classification — always confirm it in the Cloud Console, never from prose:
 
@@ -558,6 +568,10 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | The auth allow-list lives in `lib/security/publicPaths.ts`, and `requiresAuth()` gates an unrecognised path by default | `/` , `/privacy` and `/terms` are public and everything else is not; a deny-list left `/settings` ungated once already (A4), and the default-deny is what stops a new route inheriting that |
 | `profiles` has no UPDATE policy, and `approved` is written only by `redeem_invite_code` or the service role | `approved` is the admission gate; a user who could update their own row could approve themselves |
 | Every money-spending route checks `requireApprovedUser` itself, and the Inngest runner checks `isApprovedUser` | The proxy deliberately does not gate `/api/`, and a schedule spends with nobody signed in — a gate that only covers pages is not a cost control |
+| `workflow_schedules.unattended_send_authorized_at` is the operative unattended-send consent, not the audit event | Retention deletes `integration_audit_events` after 90 days; a schedule must not become authorised or unauthorised as a side effect of a sweep. The audit row stays as historical evidence of who confirmed and when |
+| A graph save disables any enabled schedule on that workflow that lacks consent once the graph can send | Schedules execute the latest saved graph, so adding a Gmail Send step would otherwise start unattended sending on an authorisation nobody gave. `runScheduledWorkflow` re-checks before any mail leaves, and records the refusal as a visible error run |
+| Workflow deletion goes through `DELETE /api/workflows/[id]`, never a direct client delete | The row cascade does not remove Storage objects. The route sweeps `{user_id}/{workflow_id}/` **before** deleting the row, so a storage failure deletes nothing rather than orphaning bytes the privacy policy says are gone |
+| Invite seats are consumed permanently, including when the redeeming account is deleted | An invite grants one admission, not a transferable seat. A returning deleted user gets a new auth id, a fresh unapproved profile, and needs admission again |
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |
 | 700ms debounce on auto-save in `WorkflowCanvasShell` | Without it, every React Flow state change fires a PATCH — floods the DB |
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |
