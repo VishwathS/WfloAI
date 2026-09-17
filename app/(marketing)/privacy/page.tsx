@@ -229,10 +229,17 @@ export default function PrivacyPage() {
           You can also revoke WfloAI access directly from the permissions page of your Google
           account.
         </p>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-          <span className="font-medium">Pending.</span> Deleting your entire account is not
-          yet available inside the application. Until it is, request it at the address below
-          and it will be done manually.
+        <p>
+          You can delete your entire account from Settings. Deleting it revokes WfloAI access
+          to your Google account, removes your uploaded files from storage, and deletes your
+          account and everything linked to it — workflows, schedules, run history, uploaded
+          file records, and stored credentials. It happens immediately, it cannot be undone,
+          and nothing can be recovered afterwards.
+        </p>
+        <p>
+          Settings also offers an export of your workflows, schedules and run history as
+          JSON. Stored secrets are not included in it, because the application never returns
+          a stored secret to a browser.
         </p>
       </Section>
 

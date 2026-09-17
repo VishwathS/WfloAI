@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { GmailConnectionCard } from "@/components/settings/GmailConnectionCard";
 import { CredentialsCard } from "@/components/settings/CredentialsCard";
+import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       </div>
       <GmailConnectionCard notice={gmail} />
       <CredentialsCard />
+      <DeleteAccountCard />
     </div>
   );
 }
