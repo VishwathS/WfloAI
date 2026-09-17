@@ -9,6 +9,7 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 ## Implemented Features
 
 - **Google OAuth** via Supabase Auth with cookie-based sessions
+- **Invite-gated admission** — `profiles.approved` decides who gets in. Unapproved signed-in users land on `/waitlist` and can redeem an invite code (`redeem_invite_code`, security definer); the operator approves directly with SQL. Enforced in `proxy.ts` for pages, inside each money-spending API route, and in the Inngest scheduled runner
 - **Dashboard** — list all workflows with last-run timestamp, delete
 - **Canvas editor** — React Flow canvas with drag-and-drop node creation
 - **Seven node types** — Trigger, Input, File Input, AI, Router, Action, Lookup
@@ -554,6 +555,8 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `/api/execute` streams `text/plain` chunks | `requestAIText()` reads raw chunks; changing format breaks AI node streaming |
 | `updateSession()` in `proxy.ts` on every request | Without it, sessions don't refresh and users get logged out unexpectedly. Next 16 renamed the `middleware.ts` convention to `proxy.ts`; the exported function is `proxy`, and it is still the auth gate |
 | The auth allow-list lives in `lib/security/publicPaths.ts`, and `requiresAuth()` gates an unrecognised path by default | `/` , `/privacy` and `/terms` are public and everything else is not; a deny-list left `/settings` ungated once already (A4), and the default-deny is what stops a new route inheriting that |
+| `profiles` has no UPDATE policy, and `approved` is written only by `redeem_invite_code` or the service role | `approved` is the admission gate; a user who could update their own row could approve themselves |
+| Every money-spending route checks `requireApprovedUser` itself, and the Inngest runner checks `isApprovedUser` | The proxy deliberately does not gate `/api/`, and a schedule spends with nobody signed in — a gate that only covers pages is not a cost control |
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |
 | 700ms debounce on auto-save in `WorkflowCanvasShell` | Without it, every React Flow state change fires a PATCH — floods the DB |
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |

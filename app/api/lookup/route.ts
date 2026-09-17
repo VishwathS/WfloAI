@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireApprovedUser } from "@/lib/auth/approval";
 import { apiError } from "@/lib/observability/apiError";
 import { LOOKUP_QUOTA } from "@/lib/integrations/limits";
 import { consumeQuota, quotaMessage, settleMeteredAction } from "@/lib/integrations/quota";
@@ -40,6 +41,14 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // A3: the gate cannot only cover pages. The proxy deliberately does not gate
+  // /api/, and this route spends money, so it checks admission itself.
+  const denied = await requireApprovedUser(supabase, user.id);
+
+  if (denied) {
+    return denied;
   }
 
   const apiKey = process.env.TAVILY_API_KEY;

@@ -2,6 +2,7 @@ import { cron } from "inngest";
 import type { Edge, Node } from "reactflow";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { isApprovedUser } from "@/lib/auth/approval";
 import { log, LOG_EVENTS } from "@/lib/observability/logger";
 import { reportError } from "@/lib/observability/report";
 import { AUTO_DISABLED_REASON, SCHEDULE_LIMITS } from "@/lib/schedule/constants";
@@ -139,6 +140,13 @@ export const runScheduledWorkflow = inngest.createFunction(
 
       if (!workflow || workflow.user_id !== event.data.userId) {
         return { skipped: "Workflow not found or ownership mismatch." };
+      }
+
+      // A3: a gate that only covers pages and request-scoped routes is not a
+      // cost control. A schedule created before approval was revoked would
+      // otherwise keep spending on its own timetable, with nobody signed in.
+      if (!(await isApprovedUser(supabase, event.data.userId))) {
+        return { skipped: "Account is not approved." };
       }
 
       const { data: schedule, error: scheduleError } = await supabase

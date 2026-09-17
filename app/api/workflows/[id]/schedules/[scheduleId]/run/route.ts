@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireApprovedUser } from "@/lib/auth/approval";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 
 interface RouteContext {
@@ -19,6 +20,14 @@ export async function POST(_request: Request, context: RouteContext) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // A3: the gate cannot only cover pages. The proxy deliberately does not gate
+  // /api/, and this route spends money, so it checks admission itself.
+  const denied = await requireApprovedUser(supabase, user.id);
+
+  if (denied) {
+    return denied;
   }
 
   const { data: schedule, error } = await supabase
