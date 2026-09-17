@@ -4,7 +4,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function DashboardSidebar() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

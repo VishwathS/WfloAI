@@ -10,7 +10,7 @@ import type { ApiKeySecret } from "@/lib/integrations/types";
 import type { UserCredential } from "@/lib/types";
 
 export async function GET() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -56,7 +56,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

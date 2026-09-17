@@ -1,6 +1,6 @@
 # WfloAI
 
-WfloAI is an AI-first visual workflow builder built with Next.js 14, TypeScript, Tailwind CSS, shadcn-style UI primitives, Supabase, React Flow, and Anthropic.
+WfloAI is an AI-first visual workflow builder built with Next.js 16, TypeScript, Tailwind CSS, shadcn-style UI primitives, Supabase, React Flow, and Anthropic.
 
 The app currently supports:
 
@@ -14,7 +14,7 @@ The app currently supports:
 
 ## Stack
 
-- Next.js 14 App Router
+- Next.js 16 App Router
 - TypeScript with strict mode
 - Tailwind CSS
 - shadcn-style UI components

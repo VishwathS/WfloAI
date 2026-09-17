@@ -23,8 +23,12 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["mammoth"]
+  // Next 15 promoted this out of `experimental`.
+  serverExternalPackages: ["mammoth"],
+  // Pin the workspace root so Turbopack does not infer it from a stray
+  // lockfile in a parent directory outside this repository.
+  turbopack: {
+    root: import.meta.dirname
   },
   async headers() {
     return [
@@ -33,13 +37,6 @@ const nextConfig = {
         headers: securityHeaders
       }
     ];
-  },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.cache = false;
-    }
-
-    return config;
   }
 };
 

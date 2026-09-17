@@ -13,13 +13,18 @@ import { EXECUTE_ROUTE_MAX_DURATION_SECONDS } from "@/lib/execution/constants";
 // A11 Phase 1. Without this the platform default applies, and when it fires
 // mid-execution the request is severed before the workflow_runs row is written:
 // a run that happened, cost money and possibly sent email, with no record of it.
-export const maxDuration = EXECUTE_ROUTE_MAX_DURATION_SECONDS;
+//
+// Next 16 requires segment config exports to be statically analyzable literals,
+// so this cannot reference EXECUTE_ROUTE_MAX_DURATION_SECONDS directly. That
+// constant remains the documented source of the value and is pinned to this
+// literal by tests/executionLimits.test.ts.
+export const maxDuration = 300;
 
 // Leaves headroom inside maxDuration for the workflow_runs write.
 const RUN_BUDGET_MS = (EXECUTE_ROUTE_MAX_DURATION_SECONDS - 30) * 1000;
 
 interface RouteContext {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // Rejects shortly before the platform would sever the request at maxDuration,
@@ -40,8 +45,9 @@ function createRuntimeBudget() {
   return { expiry, cancel: () => clearTimeout(timer) };
 }
 
-export async function POST(_request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function POST(_request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

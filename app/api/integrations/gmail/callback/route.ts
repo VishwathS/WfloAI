@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     return response;
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
   const code = requestUrl.searchParams.get("code");
   const stateNonce = requestUrl.searchParams.get("state");
-  const sealedState = cookies().get(GMAIL_OAUTH_STATE_COOKIE)?.value;
+  const sealedState = (await cookies()).get(GMAIL_OAUTH_STATE_COOKIE)?.value;
 
   if (!code || !stateNonce || !sealedState) {
     return redirectToSettings("error");

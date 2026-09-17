@@ -4,9 +4,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { WorkflowGraph } from "@/lib/types";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 function isValidGraph(value: unknown): value is WorkflowGraph {
@@ -19,8 +19,9 @@ function isValidGraph(value: unknown): value is WorkflowGraph {
   return Array.isArray(maybeGraph.nodes) && Array.isArray(maybeGraph.edges);
 }
 
-export async function PATCH(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function PATCH(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

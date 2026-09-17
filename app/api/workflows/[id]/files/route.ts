@@ -7,7 +7,7 @@ import { formatBytes, getFileKind, getMaxBytes } from "@/lib/files/constants";
 export const maxDuration = 60;
 
 interface RouteContext {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 interface CreateFileBody {
@@ -17,8 +17,9 @@ interface CreateFileBody {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function POST(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function POST(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

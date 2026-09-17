@@ -6,14 +6,15 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 interface SettingsPageProps {
-  searchParams: { gmail?: string };
+  searchParams: Promise<{ gmail?: string }>;
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const { gmail } = await searchParams;
   // A4: defense in depth. The middleware allow-list also covers this route, but
   // the page that manages OAuth tokens and API credentials does not rely on a
   // single gate.
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -30,7 +31,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           Manage integrations and credentials used by your workflows.
         </p>
       </div>
-      <GmailConnectionCard notice={searchParams.gmail} />
+      <GmailConnectionCard notice={gmail} />
       <CredentialsCard />
     </div>
   );

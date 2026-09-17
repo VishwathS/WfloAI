@@ -4,14 +4,15 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { inngest, workflowScheduleDue } from "@/lib/inngest/client";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
     scheduleId: string;
-  };
+  }>;
 }
 
-export async function POST(_request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function POST(_request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

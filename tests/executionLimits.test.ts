@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test, vi } from "vitest";
 import type { Edge, Node } from "reactflow";
 import { validateWorkflow } from "@/lib/execution/validate";
@@ -86,5 +87,21 @@ describe("runtime limit constants", () => {
 
   test("the execute route budget matches the Inngest route's declared maxDuration", () => {
     expect(EXECUTE_ROUTE_MAX_DURATION_SECONDS).toBe(300);
+  });
+});
+
+describe("segment config literals", () => {
+  test("the execute route's maxDuration literal matches the documented constant", () => {
+    const source = readFileSync(
+      new URL("../app/api/workflows/[id]/execute/route.ts", import.meta.url),
+      "utf8"
+    );
+
+    // Next 16 rejects a segment config export that is not statically
+    // analyzable, so the route cannot import the constant. This keeps the
+    // duplicated literal honest.
+    expect(source).toContain(
+      `export const maxDuration = ${EXECUTE_ROUTE_MAX_DURATION_SECONDS};`
+    );
   });
 });

@@ -3,14 +3,15 @@ import { apiError } from "@/lib/observability/apiError";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
     fileId: string;
-  };
+  }>;
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function DELETE(_request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

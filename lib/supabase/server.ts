@@ -22,9 +22,9 @@ function getSupabaseConfig() {
   return { url, anonKey };
 }
 
-export function createServerSupabaseClient() {
+export async function createServerSupabaseClient() {
   const { url, anonKey } = getSupabaseConfig();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   return createServerClient(url, anonKey, {
     cookies: {

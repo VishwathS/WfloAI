@@ -33,14 +33,15 @@ WfloAI is a visual AI workflow builder. Users create workflows by connecting nod
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | Next.js (App Router) | 14.2.35 |
+| Framework | Next.js (App Router) | 16.3.5 |
+| UI runtime | React | 19.3 |
 | Language | TypeScript | 5.7 |
 | Canvas | React Flow | 11.11.4 |
 | Backend | Supabase (Postgres + Auth) | `@supabase/ssr` 0.5 |
 | AI | Anthropic SDK | 0.96 |
 | Styling | Tailwind CSS | 3.4 |
 | Icons | Lucide React | 0.511 |
-| HTTP egress | undici (guarded Agent) + ipaddr.js | 7.x / 2.x |
+| HTTP egress | undici (guarded Agent) + ipaddr.js | 8.x / 2.x |
 | Tests | Vitest (`npm test`, unit tests in `tests/`) | 4.x |
 | Runtime | Node.js | 22.x |
 
@@ -57,7 +58,7 @@ No Redux, Zustand, or other state managers. State is React hooks + React Context
 - **API routes** (`app/api/`) for streaming responses and operations called from client-side hooks
 
 ### Supabase client usage
-- Use `lib/supabase/server.ts → createServerSupabaseClient()` in Server Components and API routes
+- Use `lib/supabase/server.ts → createServerSupabaseClient()` in Server Components and API routes. It is **async** — Next 15 made `cookies()` async, so every call site must `await` it
 - Use `lib/supabase.ts → createBrowserSupabaseClient()` in Client Components
 - Never use the service role key in request-scoped code. The only permitted consumer of `lib/supabase/admin.ts → createAdminSupabaseClient()` is the Inngest execution path (`lib/inngest/functions.ts`), which runs with no user session. Admin-client code must re-verify ownership in application code (the workflow row's `user_id` must match the schedule owner carried in the event) and must always write rows with the schedule owner's `user_id` so RLS-scoped reads stay correct
 
@@ -324,7 +325,9 @@ Node dimensions are stored in `node.style.width` and `node.style.height` (flow u
 7. Add `<div className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize" onPointerDown={onResizePointerDown} />` as the last child of the root div
 
 ### Adding a new API route
-- Auth-check first via `createServerSupabaseClient().auth.getUser()`
+- Auth-check first via `(await createServerSupabaseClient()).auth.getUser()`
+- Dynamic segments arrive as a Promise: type the context as `params: Promise<{ id: string }>` and `await` it before use (Next 15+)
+- Segment config exports (`maxDuration`, `dynamic`, `revalidate`) must be literals — Next 16 rejects an imported constant as not statically analyzable
 - Return consistent error shapes: `{ error: string }` with appropriate HTTP status
 - Streaming routes must return `ReadableStream` with `text/plain`
 
@@ -549,7 +552,7 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | RLS policies on `workflows`, `execution_logs`, `workflow_runs`, and `workflow_schedules` | Only DB-level access control — weakening them exposes all users' data |
 | `workflow_runs` INSERT policy subquery on `workflows` | Prevents users from inserting runs for workflows they don't own, even if they guess a workflow UUID |
 | `/api/execute` streams `text/plain` chunks | `requestAIText()` reads raw chunks; changing format breaks AI node streaming |
-| `updateSession()` in middleware on every request | Without it, sessions don't refresh and users get logged out unexpectedly |
+| `updateSession()` in `proxy.ts` on every request | Without it, sessions don't refresh and users get logged out unexpectedly. Next 16 renamed the `middleware.ts` convention to `proxy.ts`; the exported function is `proxy`, and it is still the auth gate |
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |
 | 700ms debounce on auto-save in `WorkflowCanvasShell` | Without it, every React Flow state change fires a PATCH — floods the DB |
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |

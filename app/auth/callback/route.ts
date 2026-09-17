@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return loginRedirect(requestUrl.origin);
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {

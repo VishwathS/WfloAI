@@ -9,11 +9,11 @@ import { recordAuditEvent } from "@/lib/integrations/audit";
 import type { WorkflowGraph } from "@/lib/types";
 
 interface RouteContext {
-  params: { credentialId: string };
+  params: Promise<{ credentialId: string }>;
 }
 
 async function countWorkflowsUsingCredential(
-  supabase: ReturnType<typeof createServerSupabaseClient>,
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
   credentialId: string
 ): Promise<number> {
@@ -37,8 +37,9 @@ async function countWorkflowsUsingCredential(
   }).length;
 }
 
-export async function PATCH(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function PATCH(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -88,8 +89,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function DELETE(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

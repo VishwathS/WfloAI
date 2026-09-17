@@ -15,7 +15,7 @@ function formatTimestamp(value: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

@@ -11,9 +11,9 @@ import type { Workflow } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 interface WorkflowPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 function normalizeGraph(graph: Workflow["graph"]) {
@@ -30,7 +30,8 @@ function normalizeGraph(graph: Workflow["graph"]) {
 }
 
 export default async function WorkflowPage({ params }: WorkflowPageProps) {
-  const supabase = createServerSupabaseClient();
+  const { id } = await params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -42,7 +43,7 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
   const { data, error } = await supabase
     .from("workflows")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !data) {

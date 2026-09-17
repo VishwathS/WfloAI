@@ -4,7 +4,7 @@ import { getGmailConnection } from "@/lib/integrations/repo";
 import { GMAIL_SCOPES, gmailReadActionsEnabled } from "@/lib/gmail/scopes";
 
 export async function GET() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

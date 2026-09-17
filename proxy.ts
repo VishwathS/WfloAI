@@ -32,7 +32,7 @@ function requiresAuth(pathname: string) {
   return !PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabase, response } = updateSession(request);
   const {
     data: { user }

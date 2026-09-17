@@ -5,9 +5,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { computeNextRunAt, isValidCronExpression, isValidTimezone, meetsIntervalFloor } from "@/lib/schedule/cron";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 interface SchedulePayload {
@@ -50,8 +50,9 @@ function isValidSchedulePayload(value: unknown): value is SchedulePayload {
   return true;
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function GET(_request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -91,8 +92,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
   return NextResponse.json({ schedules: schedules ?? [] }, { status: 200 });
 }
 
-export async function POST(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function POST(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

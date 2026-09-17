@@ -1,11 +1,12 @@
 import { LoginCard } from "@/components/auth/login-card";
 
 interface LoginPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     next?: string;
-  };
+  }>;
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  return <LoginCard nextPath={searchParams?.next} />;
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolved = await searchParams;
+  return <LoginCard nextPath={resolved?.next} />;
 }

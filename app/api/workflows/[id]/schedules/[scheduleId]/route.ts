@@ -7,10 +7,10 @@ import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
 import type { WorkflowSchedule } from "@/lib/types";
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
     scheduleId: string;
-  };
+  }>;
 }
 
 interface ScheduleUpdatePayload {
@@ -58,8 +58,8 @@ function isValidScheduleUpdatePayload(value: unknown): value is ScheduleUpdatePa
 }
 
 async function loadOwnedSchedule(
-  supabase: ReturnType<typeof createServerSupabaseClient>,
-  params: RouteContext["params"],
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  params: Awaited<RouteContext["params"]>,
   userId: string
 ) {
   const { data: schedule, error } = await supabase
@@ -83,8 +83,9 @@ async function loadOwnedSchedule(
   return { schedule: schedule as WorkflowSchedule };
 }
 
-export async function PATCH(request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function PATCH(request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -156,8 +157,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   return NextResponse.json({ schedule }, { status: 200 });
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
-  const supabase = createServerSupabaseClient();
+export async function DELETE(_request: Request, context: RouteContext) {
+  const params = await context.params;
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

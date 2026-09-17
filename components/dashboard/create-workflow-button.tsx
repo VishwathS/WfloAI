@@ -12,7 +12,7 @@ const EMPTY_GRAPH: WorkflowGraph = {
 async function createWorkflow() {
   "use server";
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();

@@ -20,7 +20,7 @@ function buildPrompt(prompt: string, context: string, schema?: string) {
 }
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
