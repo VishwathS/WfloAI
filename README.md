@@ -44,6 +44,40 @@ Required values:
 
 `.env.local` is ignored by git. Keep real secrets there only.
 
+### Production environment
+
+Production requires more than local development does, and the application
+**refuses to start** if any of these is missing when `NODE_ENV=production`
+(`instrumentation.ts` → `lib/config/env.ts`). The check exists because a
+missing signing key otherwise fails silently.
+
+| Variable | Why it is required |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Every Supabase client |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Every Supabase client |
+| `SUPABASE_SERVICE_ROLE_KEY` | The Inngest execution path and account deletion. Server-only |
+| `ANTHROPIC_API_KEY` | AI and Router nodes |
+| `TAVILY_API_KEY` | Lookup nodes |
+| `INTEGRATION_TOKEN_KEY` | Decrypts stored Gmail tokens and credentials. **Back it up — see [docs/KEY-RECOVERY.md](docs/KEY-RECOVERY.md)** |
+| `GOOGLE_CLIENT_ID` | The Gmail OAuth client (not the Supabase login provider) |
+| `GOOGLE_CLIENT_SECRET` | The Gmail OAuth client |
+| `INNGEST_EVENT_KEY` | Publishing `workflow/schedule.due`. Unset means schedules never fire — a loud failure |
+| `INNGEST_SIGNING_KEY` | Authenticating `/api/inngest`. Unset means that endpoint accepts **unsigned** requests into the service-role execution path — a silent failure |
+
+Optional, with safe defaults:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `GMAIL_READ_ACTIONS_ENABLED` | off | Must be exactly `"true"` to enable. Gates every Gmail action except Send, Create Draft included |
+| Error reporter DSN | none | Registered through `setErrorTransport()`; until then errors go to stderr as structured lines |
+
+The two Inngest keys are **not interchangeable** and confusing them is the
+reason the startup check names them separately. `.env.local.example` documents
+the distinction in full.
+
+**Never put a secret in a `NEXT_PUBLIC_` variable.** The only client-visible
+values are the Supabase URL and anon key.
+
 ## Setup
 
 1. Install dependencies:

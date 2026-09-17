@@ -45,19 +45,68 @@ Needs: a separate production GCP project; consent screen published with accurate
 
 Repository-side work only. Everything else is in `# Manual / External Steps`.
 
-- [ ] **Declare `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` as real keys** in `.env.local.example`, not comments. Document the distinction above alongside them — the two-key confusion is the reason A10 exists.
-- [ ] Document all required production environment variables in the README (coordinate with task 12 / B8, which rewrites it): `SUPABASE_SERVICE_ROLE_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `INTEGRATION_TOKEN_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GMAIL_READ_ACTIONS_ENABLED`, `TAVILY_API_KEY`, `ANTHROPIC_API_KEY`, plus the error-reporter DSN from task 02.
-- [ ] Add a startup check that fails loudly if a required server-only variable is missing in production. A missing signing key currently produces silence; it should produce a refusal to start.
-- [ ] Write the `INTEGRATION_TOKEN_KEY` recovery procedure into the repository documentation — where the key is stored, how to restore it, and what breaks if it is lost.
+- [x] **Declare `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` as real keys** in `.env.local.example`, not comments. Document the distinction above alongside them — the two-key confusion is the reason A10 exists.
+- [x] Document all required production environment variables in the README (coordinate with task 12 / B8, which rewrites it): `SUPABASE_SERVICE_ROLE_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `INTEGRATION_TOKEN_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GMAIL_READ_ACTIONS_ENABLED`, `TAVILY_API_KEY`, `ANTHROPIC_API_KEY`, plus the error-reporter DSN from task 02.
+- [x] Add a startup check that fails loudly if a required server-only variable is missing in production. A missing signing key currently produces silence; it should produce a refusal to start.
+- [x] Write the `INTEGRATION_TOKEN_KEY` recovery procedure into the repository documentation — where the key is stored, how to restore it, and what breaks if it is lost.
+
+# Implementation record (2026-09-16)
+
+Repository-side only, which is the whole of the agent's contribution to this task. Nothing in Inngest, Supabase or Google Cloud was touched, and no secret was generated, read or written.
+
+## A10 — the two keys are now declared, and distinguished
+
+`INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` were only ever a **comment** in `.env.local.example`. They are now real keys, with the direction-of-travel distinction written out beside them: signing is Inngest → app and its absence is a **silent security failure**; event is app → Inngest and its absence is a **loud functional failure**. The comment also says plainly that a passing unsigned-POST test says nothing about the event key, because that is the specific confusion A10 exists to prevent.
+
+While in that file: the `GMAIL_READ_ACTIONS_ENABLED` comment still claimed *"Send and Create Draft need only sensitive scopes and remain available either way"*, which A15 made untrue. Corrected.
+
+## The startup check — and the defect found while verifying it
+
+`lib/config/env.ts` holds the required-variable list with a reason per entry, `missingServerEnv()` (which treats `""` and whitespace as missing, since a host setting a variable to empty is the more likely failure), and `assertServerEnv()`, which throws **in production only** — a hard failure in development would make the app unusable for anyone working on a single feature.
+
+`instrumentation.ts` calls it at server boot and skips `phase-production-build`, because the build has no reason to hold production secrets and failing there would say nothing about the deployed environment.
+
+**The first version passed every automated check and did not work.** Running `next start` with `NODE_ENV=production` and both Inngest keys genuinely absent, Next printed the error, printed **"Ready in 371ms"**, and then kept the process alive serving nothing for as long as it was left running. Next logs a failed instrumentation hook; it does not exit. That is still silence by the standard A10 cares about — a host would see a live instance rather than a failed boot.
+
+The fix is an explicit `process.exit(1)` after reporting, guarded to the Node runtime. Re-verified the same way: the process now exits **1 in 1.4 seconds**, emitting one structured line through the project's own reporter:
+
+```
+{"level":"error","event":"startup.required_env_missing", ... "INNGEST_SIGNING_KEY (authenticating /api/inngest — without it the endpoint accepts unsigned requests into the service-role execution path)" ...}
+```
+
+That is the verification checkbox, done behaviourally rather than by inspection. `tests/env.test.ts` additionally pins every required variable individually, the empty-string case, that development is not blocked, that **both** Inngest keys are listed, that the message names each missing variable with its reason, that instrumentation skips the build phase, and that the explicit exit is still there — the last one because that is precisely the regression that would restore the original silence.
+
+## B9 — the recovery procedure
+
+`docs/KEY-RECOVERY.md`. It states what `INTEGRATION_TOKEN_KEY` encrypts (Gmail refresh and access tokens, every stored credential, the OAuth state cookie), that the `v1:` envelope anticipates rotation but **no rotation path is implemented**, and what losing it actually costs: every Gmail connection and every stored credential becomes unreadable at once, permanently, with no partial recovery — and because the application never returns a stored secret to a browser, users must re-enter secrets they may no longer have. Scheduled workflows then start failing on their own timetable with nobody present.
+
+It also specifies what "two independent places" excludes, how to confirm the host will not regenerate the value, the restore test to perform **once** (retrieve from the password manager, compare byte-for-byte including padding, confirm a real connection still decrypts, then record the date in `RELEASE_PROGRESS.md`), and what to do if the key is believed exposed — which, with no rotation path, is a deliberate reset rather than a rotation.
+
+## README
+
+A **Production environment** section listing all ten required variables with the reason each is required, plus the two optional ones and their defaults. It states that the application refuses to start without them and points at `docs/KEY-RECOVERY.md`. Task 12 (B8) rewrites the README wholesale; this section is written to survive that, and the task text asks for the coordination explicitly.
+
+## Scope boundary honoured
+
+Every Google Cloud item (Manual Steps 12–19) is left for **Task 14**, per the scope-boundary note at the top of this file. Nothing here touches the consent screen, scopes, redirect URIs or verification submission.
+
+## Outstanding — all operator, all hard stops for an agent
+
+- **POST unsigned to the production `/api/inngest` and confirm rejection.** The single most important manual verification in the plan. It must be done against the deployed URL: the local dev server runs unsigned by design, so a local test proves the opposite of what is needed. Depends on Task 13.
+- **Confirm `INNGEST_EVENT_KEY` separately** with a schedule "Run now". The unsigned-POST test does not cover it.
+- **Generate both Inngest keys, set them in the host, sync to Inngest Cloud and confirm the functions register.** Generating keys is secret creation — a hard stop.
+- **Supabase (B5):** Pro plan, MFA, SSL enforcement, network restrictions, CAPTCHA (also Task 08), backup retention and PITR if the database will exceed 4 GB, and confirm the `workflow-files` bucket is private **in the production project** — it is private by design, and design is not verification.
+- **B9:** store the key in two independent places and **actually retrieve it from the backup once**. An untested backup is not a backup.
+- **Google Cloud (B6):** Manual Steps 12–19, executed at **Task 14**, not here.
 
 # Verification
 
 **Automated**
 
-- [ ] `npm test` green.
-- [ ] `npx tsc --noEmit` clean.
-- [ ] `npm run build` succeeds.
-- [ ] Test the startup check: with a required variable absent, the app refuses to start in production mode.
+- [x] `npm test` green.
+- [x] `npx tsc --noEmit` clean.
+- [x] `npm run build` succeeds.
+- [x] Test the startup check: with a required variable absent, the app refuses to start in production mode.
 
 **Manual — these are the point of this task**
 
