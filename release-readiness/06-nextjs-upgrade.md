@@ -14,24 +14,24 @@ This matters more here than in a typical app: `middleware.ts` *is* the authentic
 
 `next` is pinned at **14.2.35** (App Router). Supporting stack: TypeScript 5.7, React Flow 11.11.4, `@supabase/ssr` 0.5, Tailwind 3.4, Node 22.x.
 
-The audit's estimate is **2â4 days including regression testing**, driven by two breaking-change surfaces:
+The audit's estimate is **2–4 days including regression testing**, driven by two breaking-change surfaces:
 
-1. **Async `headers()` / `cookies()`.** This touches **every** Supabase server-client call site â `lib/supabase/server.ts` and every Server Component and API route that uses it. Mechanical but wide.
+1. **Async `headers()` / `cookies()`.** This touches **every** Supabase server-client call site — `lib/supabase/server.ts` and every Server Component and API route that uses it. Mechanical but wide.
 2. **React 19.** Ecosystem compatibility, particularly React Flow.
 
 Target: 15.x (supported through October 2026) or 16.x.
 
 # Required Changes
 
-- [x] Upgrade `next` and `react` / `react-dom` to the chosen target. Decide 15.x vs 16.x deliberately â 15.x is the lower-risk hop with a defined support window; 16.x buys more runway at more migration cost.
+- [x] Upgrade `next` and `react` / `react-dom` to the chosen target. Decide 15.x vs 16.x deliberately — 15.x is the lower-risk hop with a defined support window; 16.x buys more runway at more migration cost.
 - [ ] Run the official codemod where available, then review every change it makes rather than trusting it wholesale.
 - [x] Convert all `headers()` / `cookies()` call sites to the async form, starting from `lib/supabase/server.ts` and following the call graph outward.
 - [x] Verify `@supabase/ssr` is at a version compatible with the target Next.js. If it is not, that is a blocker to resolve before proceeding, not a thing to work around.
-- [ ] Verify React Flow 11.11.4 works under React 19. If it does not, the upgrade path may require a React Flow major â see Stop Conditions.
+- [ ] Verify React Flow 11.11.4 works under React 19. If it does not, the upgrade path may require a React Flow major — see Stop Conditions.
 - [ ] Re-verify `middleware.ts` behaves identically after upgrade. Middleware is the auth gate; a subtle behavior change here is the single most dangerous outcome of this task.
-- [x] Re-verify the SSE streaming path in `app/api/workflows/[id]/execute/route.ts` and the `text/plain` streaming contract in `app/api/execute/route.ts`. CLAUDE.md lists both as invariants â `requestAIText()` in `lib/execution/executor.ts` reads raw chunks and will break silently if the response shape changes.
+- [x] Re-verify the SSE streaming path in `app/api/workflows/[id]/execute/route.ts` and the `text/plain` streaming contract in `app/api/execute/route.ts`. CLAUDE.md lists both as invariants — `requestAIText()` in `lib/execution/executor.ts` reads raw chunks and will break silently if the response shape changes.
 - [x] Re-verify `app/api/inngest/route.ts` including its `maxDuration = 300`.
-- [x] Update the `next` version reference wherever it is documented (CLAUDE.md tech-stack table; README â though README is task 12's problem, do not leave it asserting 14.2.35 if you are touching it).
+- [x] Update the `next` version reference wherever it is documented (CLAUDE.md tech-stack table; README — though README is task 12's problem, do not leave it asserting 14.2.35 if you are touching it).
 
 # Implementation record (2026-09-16)
 
@@ -129,10 +129,10 @@ All four automated checks green, and the build emits **no warnings at all** afte
 - [x] `npm run build` succeeds.
 - [x] `npm run lint` clean.
 
-**Manual â the regression checklist. Do not skip any line.**
+**Manual — the regression checklist. Do not skip any line.**
 
 - [ ] **Auth:** log in via Google end to end. Log out. Confirm a protected route redirects when logged out and renders when logged in.
-- [ ] **Middleware:** confirm session refresh still happens on every request. CLAUDE.md warns that without `updateSession()` users get logged out unexpectedly â that failure is intermittent and easy to miss in a quick smoke test.
+- [ ] **Middleware:** confirm session refresh still happens on every request. CLAUDE.md warns that without `updateSession()` users get logged out unexpectedly — that failure is intermittent and easy to miss in a quick smoke test.
 - [ ] **Canvas:** load a workflow, drag a node from the sidebar, connect two nodes, resize a node, reload, and confirm dimensions and graph persisted.
 - [ ] **Auto-save:** confirm the 700ms debounced PATCH still fires once, not per keystroke.
 - [ ] **SSE execution:** run a multi-node workflow and confirm events stream in real time and the run persists to `workflow_runs`.
@@ -146,10 +146,10 @@ All four automated checks green, and the build emits **no warnings at all** afte
 
 Stop and ask before proceeding if:
 
-- **React Flow is incompatible with React 19** and the fix requires a React Flow major upgrade. That is a second large migration wearing the first one's clothes â surface it as its own decision.
+- **React Flow is incompatible with React 19** and the fix requires a React Flow major upgrade. That is a second large migration wearing the first one's clothes — surface it as its own decision.
 - `@supabase/ssr` has no compatible version. Do not pin around it or patch it locally.
 - **The canvas or SSE streaming breaks in a way that is not a mechanical async-API fix.** Report it; do not redesign the executor or the canvas to accommodate the upgrade. Redesigning load-bearing subsystems is out of scope for an upgrade task.
-- Middleware behavior differs in any way you cannot fully explain. This is the auth gate â "it seems to work" is not sufficient.
+- Middleware behavior differs in any way you cannot fully explain. This is the auth gate — "it seems to work" is not sufficient.
 - The upgrade requires changing the `text/plain` streaming contract or the SSE event shape. Both are named invariants in CLAUDE.md.
 - Deploying the upgrade to production is the next step. Deployment is a hard stop.
 
@@ -160,10 +160,10 @@ Stop and ask before proceeding if:
 - **Every line of the manual regression checklist performed and recorded.** A green build proves compilation, not that the canvas still works.
 - Middleware auth behavior verified equivalent, explicitly.
 - Version references updated in CLAUDE.md.
-- `git diff` reviewed â this will be a large diff; review it in sections rather than skimming.
+- `git diff` reviewed — this will be a large diff; review it in sections rather than skimming.
 
 # Manual / External Steps
 
 1. **Decide 15.x vs 16.x.** 15.x is supported through October 2026 and is the smaller hop. 16.x buys runway at higher migration cost. This is an operator call.
-2. **Deploy to a preview environment first** and re-run the regression checklist there. Local success does not prove serverless success â particularly for streaming and middleware.
+2. **Deploy to a preview environment first** and re-run the regression checklist there. Local success does not prove serverless success — particularly for streaming and middleware.
 3. **Deploy to production** only after the preview passes.
