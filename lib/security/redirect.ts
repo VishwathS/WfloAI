@@ -1,4 +1,7 @@
-const DEFAULT_PATH = "/";
+// Task 07 moved the authenticated dashboard to /dashboard so that / can be the
+// public marketing page. An unusable or missing `next` lands on the dashboard,
+// not on the marketing page.
+const DEFAULT_PATH = "/dashboard";
 
 // A5: a post-authentication redirect target must be a same-origin *path*.
 // `next.startsWith("/")` is not sufficient — `//evil.com` and `/\evil.com` both

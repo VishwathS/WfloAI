@@ -12,7 +12,7 @@ const inactiveClass = "text-gray-600 hover:bg-gray-50 hover:text-gray-900";
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const isDashboard = pathname === "/";
+  const isDashboard = pathname === "/dashboard";
 
   function handleTemplatesClick(event: React.MouseEvent<HTMLAnchorElement>) {
     if (!isDashboard) {
@@ -32,17 +32,17 @@ export function SidebarNav() {
       behavior: prefersReducedMotion ? "auto" : "smooth",
       block: "start"
     });
-    window.history.replaceState(null, "", "/#templates");
+    window.history.replaceState(null, "", "/dashboard#templates");
   }
 
   return (
     <nav className="space-y-1">
-      <Link href="/" className={cn(linkClass, isDashboard ? activeClass : inactiveClass)}>
+      <Link href="/dashboard" className={cn(linkClass, isDashboard ? activeClass : inactiveClass)}>
         <LayoutGrid className="h-4 w-4" />
         Dashboard
       </Link>
       <Link
-        href="/#templates"
+        href="/dashboard#templates"
         onClick={handleTemplatesClick}
         className={cn(linkClass, inactiveClass)}
       >

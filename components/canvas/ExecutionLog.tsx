@@ -150,7 +150,7 @@ export function ExecutionLog({
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="max-h-[262px] overflow-y-auto">
+      <div ref={scrollContainerRef} className="max-h-[216px] overflow-y-auto">
         {entries.length === 0 ? (
           <div className="px-4 py-5 text-sm text-gray-400">
             Run the workflow to see node-by-node output and timing here.
@@ -206,6 +206,12 @@ export function ExecutionLog({
           </div>
         )}
       </div>
+
+      {/* B1: AI-generated-content disclosure, shown wherever run output is read. */}
+      <p className="border-t border-gray-100 px-4 py-2.5 text-[11px] leading-4 text-gray-400">
+        AI steps write this output. It can be wrong, and nothing reviews it before the next
+        step acts on it.
+      </p>
     </div>
   );
 }

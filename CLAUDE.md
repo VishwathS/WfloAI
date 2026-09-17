@@ -553,6 +553,7 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `workflow_runs` INSERT policy subquery on `workflows` | Prevents users from inserting runs for workflows they don't own, even if they guess a workflow UUID |
 | `/api/execute` streams `text/plain` chunks | `requestAIText()` reads raw chunks; changing format breaks AI node streaming |
 | `updateSession()` in `proxy.ts` on every request | Without it, sessions don't refresh and users get logged out unexpectedly. Next 16 renamed the `middleware.ts` convention to `proxy.ts`; the exported function is `proxy`, and it is still the auth gate |
+| The auth allow-list lives in `lib/security/publicPaths.ts`, and `requiresAuth()` gates an unrecognised path by default | `/` , `/privacy` and `/terms` are public and everything else is not; a deny-list left `/settings` ungated once already (A4), and the default-deny is what stops a new route inheriting that |
 | `createServerSupabaseClient()` in API routes (not browser client) | Browser client in server context breaks cookie-based auth |
 | 700ms debounce on auto-save in `WorkflowCanvasShell` | Without it, every React Flow state change fires a PATCH — floods the DB |
 | Cycle detection in `topologicalSort.ts` | Without it, cyclic graphs hang the browser tab indefinitely |

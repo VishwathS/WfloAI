@@ -11,32 +11,32 @@ describe("safeRedirectPath", () => {
   });
 
   test("rejects a protocol-relative path", () => {
-    expect(safeRedirectPath("//evil.com")).toBe("/");
+    expect(safeRedirectPath("//evil.com")).toBe("/dashboard");
   });
 
   test("rejects an absolute URL", () => {
-    expect(safeRedirectPath("https://evil.com")).toBe("/");
+    expect(safeRedirectPath("https://evil.com")).toBe("/dashboard");
   });
 
   test("rejects a backslash-authority path", () => {
     // The WHATWG URL parser treats a backslash as "/" for http(s), so
     // "/\\evil.com" resolves to the evil.com origin.
-    expect(safeRedirectPath("/\\evil.com")).toBe("/");
+    expect(safeRedirectPath("/\\evil.com")).toBe("/dashboard");
   });
 
   test("rejects a path that only becomes protocol-relative after the parser strips whitespace", () => {
-    expect(safeRedirectPath("/\n/evil.com")).toBe("/");
-    expect(safeRedirectPath("/\t\\evil.com")).toBe("/");
+    expect(safeRedirectPath("/\n/evil.com")).toBe("/dashboard");
+    expect(safeRedirectPath("/\t\\evil.com")).toBe("/dashboard");
   });
 
   test("defaults empty, null and undefined to the root path", () => {
-    expect(safeRedirectPath("")).toBe("/");
-    expect(safeRedirectPath(null)).toBe("/");
-    expect(safeRedirectPath(undefined)).toBe("/");
+    expect(safeRedirectPath("")).toBe("/dashboard");
+    expect(safeRedirectPath(null)).toBe("/dashboard");
+    expect(safeRedirectPath(undefined)).toBe("/dashboard");
   });
 
   test("rejects a bare relative path with no leading slash", () => {
-    expect(safeRedirectPath("evil.com")).toBe("/");
+    expect(safeRedirectPath("evil.com")).toBe("/dashboard");
   });
 
   test("every rejected candidate resolves back to this origin", () => {

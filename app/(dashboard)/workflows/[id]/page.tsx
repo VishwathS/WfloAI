@@ -57,7 +57,7 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
     <div className="flex h-[calc(100vh-2rem)] min-h-[600px] flex-col gap-3 p-4 lg:px-6 lg:pt-4">
       <div className="min-w-0">
         <Link
-          href="/"
+          href="/dashboard"
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "h-7 w-fit px-0 text-xs text-gray-500 hover:bg-transparent hover:text-gray-900"

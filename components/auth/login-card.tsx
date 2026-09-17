@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ interface LoginCardProps {
   nextPath?: string;
 }
 
-export function LoginCard({ nextPath = "/" }: LoginCardProps) {
+export function LoginCard({ nextPath = "/dashboard" }: LoginCardProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleGoogleSignIn() {
@@ -60,6 +61,17 @@ export function LoginCard({ nextPath = "/" }: LoginCardProps) {
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Sign in with Google
         </Button>
+        <p className="mt-4 text-center text-xs leading-5 text-gray-500">
+          By signing in you agree to our{" "}
+          <Link href="/terms" className="font-medium text-violet-700 hover:underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="font-medium text-violet-700 hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </CardContent>
     </Card>
   );
