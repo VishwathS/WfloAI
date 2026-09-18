@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DraftBanner } from "@/components/marketing/DraftBanner";
 import { SUPPORT_EMAIL } from "@/lib/support";
 // Task 12 Completion Criteria: the periods here and in the sweep must be the
 // same numbers. Importing them is how that stays true.
@@ -98,8 +97,6 @@ const subprocessors = [
 export default function PrivacyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12 lg:py-16">
-      <DraftBanner />
-
       <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Privacy Policy</h1>
       <p className="mt-2 text-sm text-gray-500">Last updated {LAST_UPDATED}</p>
 

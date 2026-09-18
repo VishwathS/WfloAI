@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DraftBanner } from "@/components/marketing/DraftBanner";
 import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
@@ -34,8 +33,6 @@ const prohibited = [
 export default function TermsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12 lg:py-16">
-      <DraftBanner />
-
       <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
         Terms of Service
       </h1>

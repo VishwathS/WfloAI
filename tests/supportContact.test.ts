@@ -34,9 +34,11 @@ describe("the support address", () => {
     expect(read("docs/RUNBOOK.md")).not.toContain("<SUPPORT_ADDRESS>");
   });
 
-  test("both legal pages still carry the DRAFT banner", () => {
+  test("neither legal page renders the draft banner", () => {
     for (const page of PAGES.slice(0, 2)) {
-      expect(read(page)).toContain("<DraftBanner");
+      const source = read(page);
+      expect(source).not.toContain("DraftBanner");
+      expect(source).not.toMatch(/NOT REVIEWED BY COUNSEL|human legal review/i);
     }
   });
 });
