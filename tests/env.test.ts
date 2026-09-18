@@ -1,11 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   REQUIRED_SERVER_ENV,
   assertServerEnv,
   describeMissingServerEnv,
   inngestDevModeRequested,
-  missingServerEnv
+  missingServerEnv,
+  serviceRoleKeyProblem
 } from "@/lib/config/env";
 
 // A10. The point of this check is that a missing INNGEST_SIGNING_KEY currently
@@ -159,5 +160,83 @@ describe("INNGEST_DEV cannot reach production", () => {
 
   test("development keeps working with INNGEST_DEV=1", () => {
     expect(() => assertServerEnv({ NODE_ENV: "development", INNGEST_DEV: "1" })).not.toThrow();
+  });
+});
+
+describe("SUPABASE_SERVICE_ROLE_KEY must be a service-role key", () => {
+  // A publishable key is accepted by PostgREST, so a wrong value does not fail:
+  // every service-role query runs under RLS with no user and returns nothing.
+  // Production's schedule poller ran that way for ten hours on 2026-09-18.
+  function fakeJwt(payload: Record<string, unknown>): string {
+    const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+    return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(payload)}.signature`;
+  }
+
+  const publishable = "sb_publishable_synthetic-test-value";
+
+  test.each([
+    ["a publishable key", publishable],
+    ["a publishable key with surrounding whitespace", `  ${publishable}  `],
+    ["a legacy anon JWT", fakeJwt({ role: "anon" })],
+    ["a JWT with no role", fakeJwt({ iss: "supabase" })]
+  ])("%s is rejected", (_label, value) => {
+    expect(serviceRoleKeyProblem(value)).not.toBeNull();
+  });
+
+  test.each([
+    ["a secret key", "sb_secret_synthetic-test-value"],
+    ["a legacy service_role JWT", fakeJwt({ role: "service_role" })]
+  ])("%s is accepted", (_label, value) => {
+    expect(serviceRoleKeyProblem(value)).toBeNull();
+  });
+
+  test("the message never contains the key itself", () => {
+    const value = "sb_publishable_do-not-echo-this";
+
+    expect(serviceRoleKeyProblem(value)).not.toContain("do-not-echo-this");
+
+    let message = "";
+    try {
+      assertServerEnv({ ...completeEnv(), SUPABASE_SERVICE_ROLE_KEY: value });
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    expect(message).toContain("publishable");
+    expect(message).not.toContain("do-not-echo-this");
+  });
+
+  test("production refuses to start with a publishable key", () => {
+    expect(() =>
+      assertServerEnv({ ...completeEnv(), SUPABASE_SERVICE_ROLE_KEY: publishable })
+    ).toThrow("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  test("development is not blocked at startup", () => {
+    expect(() =>
+      assertServerEnv({ NODE_ENV: "development", SUPABASE_SERVICE_ROLE_KEY: publishable })
+    ).not.toThrow();
+  });
+});
+
+describe("the admin client refuses a publishable key in every environment", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test("createAdminSupabaseClient throws instead of querying under RLS", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "sb_publishable_synthetic-test-value");
+    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
+
+    expect(() => createAdminSupabaseClient()).toThrow("publishable");
+  });
+
+  test("a secret key still builds a client", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "sb_secret_synthetic-test-value");
+    const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
+
+    expect(() => createAdminSupabaseClient()).not.toThrow();
   });
 });

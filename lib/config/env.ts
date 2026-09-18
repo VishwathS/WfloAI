@@ -68,6 +68,40 @@ export function inngestDevModeRequested(value: string | undefined): boolean {
   return !["", "0", "false"].includes(value.trim().toLowerCase());
 }
 
+// The service-role client authenticates with whatever this variable holds. A
+// publishable (anon) key is accepted by PostgREST, so every admin query runs
+// under RLS with no user and returns an empty result instead of an error: on
+// 2026-09-18 production polled due schedules every minute for ten hours, saw
+// none, and nothing failed. Returns why the value is wrong, never the value.
+export function serviceRoleKeyProblem(value: string | undefined): string | null {
+  const key = value?.trim() ?? "";
+
+  if (key.startsWith("sb_publishable_")) {
+    return "SUPABASE_SERVICE_ROLE_KEY holds a publishable key (sb_publishable_…). Use the project's secret key (sb_secret_…) or its legacy service_role key.";
+  }
+
+  const segments = key.split(".");
+
+  if (segments.length !== 3) {
+    return null;
+  }
+
+  let role: unknown;
+
+  try {
+    role = (JSON.parse(Buffer.from(segments[1], "base64url").toString("utf8")) as { role?: unknown })
+      .role;
+  } catch {
+    return null;
+  }
+
+  if (role !== "service_role") {
+    return `SUPABASE_SERVICE_ROLE_KEY is a JWT for the "${String(role)}" role, not service_role. Use the project's secret key (sb_secret_…) or its legacy service_role key.`;
+  }
+
+  return null;
+}
+
 // Throws in production only. Development runs against .env.local with whatever
 // subset the developer needs, and a hard failure there would make the app
 // unusable for anyone working on a single feature.
@@ -80,6 +114,12 @@ export function assertServerEnv(env: Record<string, string | undefined> = proces
 
   if (missing.length > 0) {
     throw new Error(describeMissingServerEnv(missing));
+  }
+
+  const keyProblem = serviceRoleKeyProblem(env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (keyProblem) {
+    throw new Error(`Refusing to start: ${keyProblem}`);
   }
 
   if (inngestDevModeRequested(env.INNGEST_DEV)) {

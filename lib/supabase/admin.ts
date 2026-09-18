@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { serviceRoleKeyProblem } from "@/lib/config/env";
 
 // Service-role client — bypasses RLS. Exactly two sanctioned consumers, and the
 // list does not grow by precedent (see CLAUDE.md):
@@ -14,6 +15,12 @@ export function createAdminSupabaseClient() {
 
   if (!url || !serviceRoleKey) {
     throw new Error("Missing Supabase admin environment variables.");
+  }
+
+  const keyProblem = serviceRoleKeyProblem(serviceRoleKey);
+
+  if (keyProblem) {
+    throw new Error(keyProblem);
   }
 
   return createClient(url, serviceRoleKey, {
