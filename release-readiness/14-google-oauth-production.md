@@ -219,3 +219,11 @@ Repository side done and one defect fixed; **Task 14 is BLOCKED** — on a new C
 - [x] Executor guard test exists and covers both halves (Task 10's `tests/gmailConsent.test.ts`)
 - [x] Create Draft unreachable — dropdown + executor, tested
 - [ ] Every Console step and every production verification — operator, after Task 13 and after §0 is fixed
+
+### Update 2026-09-17 (release resume) — send-only connect fixed in code
+
+- **Operator decision recorded:** option A. New connections request exactly `openid email https://www.googleapis.com/auth/gmail.send`; the Gmail capability stays **Send only**; `gmail.compose`, `gmail.readonly` and every other Gmail read/modify/metadata scope stay unrequested.
+- **Fixed:** the callback reads the connected address from Google's OIDC userinfo endpoint (`fetchGoogleAccountEmail`) instead of Gmail `users.getProfile`, which a `gmail.send`-only token cannot call. PKCE, sealed state, encrypted storage, disconnect, quotas, idempotency, unattended-send consent and the `?tier=read` 403 are unchanged.
+- **Tests:** `tests/gmailConnectScope.test.ts` extended (exact scope set incl. `openid`/`email`, no Restricted scope, PKCE/state/cookie preserved); new `tests/gmailCallback.test.ts` (8 tests: userinfo success persists identity and never touches `gmail.googleapis.com`; four failure shapes persist nothing; two state-forgery cases call no Google endpoint; no token in redirect/report/audit; state cookie cleared on every outcome). RED before the fix, GREEN after.
+- **Legacy connection:** the one production row (active, holds `gmail.compose`) is untouched and remains compatible for Send. It still fails the "nothing Restricted" check; clean path is Disconnect → reconnect, operator's call (`upsertGmailConnection` merges scopes, so a reconnect alone would keep `compose`).
+- **Not proven:** real-Google behaviour. The fresh non-test-account connect-and-send test remains the decisive operator verification, after deployment.

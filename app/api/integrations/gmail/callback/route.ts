@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import {
   exchangeCodeForTokens,
-  fetchGmailProfileEmail,
+  fetchGoogleAccountEmail,
   GMAIL_OAUTH_STATE_COOKIE
 } from "@/lib/gmail/oauth";
 import { upsertGmailConnection } from "@/lib/integrations/repo";
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       codeVerifier: state.codeVerifier
     });
 
-    const email = await fetchGmailProfileEmail(tokens.access_token);
+    const email = await fetchGoogleAccountEmail(tokens.access_token);
 
     // Google may omit refresh_token on re-consent; upsertGmailConnection keeps
     // the stored one in that case and fails cleanly if none exists at all.
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
     await recordAuditEvent(supabase, user.id, "gmail.connected", "succeeded");
     return redirectToSettings("connected");
   } catch (error) {
-    // Token exchange, profile fetch or connection upsert failed. Never log the
+    // Token exchange, account-email fetch or connection upsert failed. Never log the
     // token response itself — reportError records message and stack only.
     reportError("gmail.oauth.exchange_failed", error, { userId: user.id });
     await recordAuditEvent(supabase, user.id, "gmail.connected", "failed");

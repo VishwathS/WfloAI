@@ -16,16 +16,21 @@ export const GMAIL_SCOPES = {
   readonly: "https://www.googleapis.com/auth/gmail.readonly"
 } as const;
 
+// Non-sensitive OIDC scopes. gmail.send cannot read the account's own address
+// (users.getProfile needs a Restricted scope), so the callback reads it from the
+// userinfo endpoint instead. They grant identity only — no mailbox access.
+export const IDENTITY_SCOPES = ["openid", "email"] as const;
+
 export type GmailTier = "send" | "read";
 
-// Incremental authorization. The initial connect requests gmail.send ONLY —
-// no restricted scope. The "read" tier adds the restricted scopes and belongs
-// to the deferred D1 program; it is unreachable while GMAIL_READ_ACTIONS_ENABLED
-// is off.
+// Incremental authorization. The initial connect requests gmail.send plus the
+// identity scopes — no restricted scope. The "read" tier adds the restricted
+// scopes and belongs to the deferred D1 program; it is unreachable while
+// GMAIL_READ_ACTIONS_ENABLED is off.
 export function scopesForTier(tier: GmailTier): string[] {
   return tier === "read"
-    ? [GMAIL_SCOPES.send, GMAIL_SCOPES.compose, GMAIL_SCOPES.readonly]
-    : [GMAIL_SCOPES.send];
+    ? [...IDENTITY_SCOPES, GMAIL_SCOPES.send, GMAIL_SCOPES.compose, GMAIL_SCOPES.readonly]
+    : [...IDENTITY_SCOPES, GMAIL_SCOPES.send];
 }
 
 export function requiredScopesForAction(action: GmailActionType): string[] {

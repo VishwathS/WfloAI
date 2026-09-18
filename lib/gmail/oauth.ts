@@ -96,16 +96,18 @@ export async function revokeToken(token: string): Promise<void> {
   }
 }
 
-export async function fetchGmailProfileEmail(accessToken: string): Promise<string> {
-  const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+// OIDC userinfo, authorized by the openid + email scopes. Not Gmail's
+// users.getProfile, which a gmail.send-only token is refused for.
+export async function fetchGoogleAccountEmail(accessToken: string): Promise<string> {
+  const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
   if (!response.ok) {
-    throw new Error("Couldn't read the connected Gmail profile — please try connecting again.");
+    throw new Error("Couldn't read the connected Google account — please try connecting again.");
   }
-  const json = (await response.json()) as { emailAddress?: string };
-  if (!json.emailAddress) {
-    throw new Error("Couldn't read the connected Gmail profile — please try connecting again.");
+  const json = (await response.json()) as { email?: unknown; email_verified?: unknown };
+  if (typeof json.email !== "string" || !json.email || json.email_verified === false) {
+    throw new Error("Couldn't read the connected Google account — please try connecting again.");
   }
-  return json.emailAddress;
+  return json.email;
 }

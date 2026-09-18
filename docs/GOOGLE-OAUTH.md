@@ -5,53 +5,69 @@ prepared this; **every Google Cloud action is the operator's**, and nothing here
 has been changed in any Console. `<CANONICAL_HOST>` is decided in
 [DEPLOYMENT.md](DEPLOYMENT.md) §1 and is not chosen yet.
 
-**V1 Gmail is Send Email on `gmail.send` only.** `gmail.compose` and
+**V1 Gmail is Send Email on `gmail.send` only** (the connect also requests the
+non-sensitive `openid` and `email`, for the connected address — see §0).
+`gmail.compose` and
 `gmail.readonly` are Restricted and stay deferred with D1. Nothing here requests,
 adds or justifies either.
 
 ---
 
-## 0. Blocker found 2026-09-17 — a fresh send-only connect cannot complete
+## 0. Resolved 2026-09-17 — a fresh send-only connect could not complete
 
-**Severity: CRITICAL for Task 14. Needs an operator decision before a fix.**
+**Was CRITICAL for Task 14. Fixed in code by operator-approved option A; not yet
+deployed or proven against real Google.**
 
-After Gmail consent, `app/api/integrations/gmail/callback/route.ts` calls
-`fetchGmailProfileEmail()` (`lib/gmail/oauth.ts`), which reads
-`GET https://gmail.googleapis.com/gmail/v1/users/me/profile` to get the address
-shown as "Connected as …".
+The callback used to read the connected address from Gmail's
+`GET /gmail/v1/users/me/profile`. Google authorizes `users.getProfile` only for
+`mail.google.com`, `gmail.modify`, `gmail.compose`, `gmail.readonly` and
+`gmail.metadata` — **not `gmail.send`**. After A15 removed `gmail.compose`, every
+fresh connect got a 403 there and landed on "Connecting Gmail didn't complete".
+It stayed hidden because the only live connection predates A15 and still holds
+`gmail.compose`.
 
-Google's reference for `users.getProfile` accepts only `mail.google.com`,
-`gmail.modify`, `gmail.compose`, `gmail.readonly` and `gmail.metadata`.
-**`gmail.send` is not on the list.** Since A15 removed `gmail.compose` from the
-connect tier, a user who grants only `gmail.send` gets a 403 there. The callback
-catches it, records `gmail.oauth.exchange_failed`, and sends the user to
-`/settings?gmail=error` — "Connecting Gmail didn't complete". **Every fresh V1
-connect fails this way.**
+**Fix (option A, approved by the operator):**
 
-It has stayed hidden because the only live connection (one `active` row in
-`axelqoxblpchscksfwbx`) was made **before** A15 and still holds `gmail.compose`,
-which does authorize `getProfile`.
+- The send tier requests exactly **`openid email https://www.googleapis.com/auth/gmail.send`**
+  (`scopesForTier` in `lib/gmail/scopes.ts`, via `IDENTITY_SCOPES`). `openid` and
+  `email` are **non-sensitive** identity scopes and do not change the
+  verification class. `gmail.send` is still the only Gmail scope and Send is still
+  the only Gmail capability.
+- The callback reads the address from Google's OIDC userinfo endpoint,
+  `GET https://openidconnect.googleapis.com/v1/userinfo`, with the new access
+  token (`fetchGoogleAccountEmail` in `lib/gmail/oauth.ts`). It refuses a missing
+  or non-string `email` and an explicit `email_verified: false`; any failure
+  persists nothing and lands on `/settings?gmail=error`.
+- Unchanged: PKCE (S256), the sealed user-bound single-use state cookie,
+  server-only token handling, encrypted refresh-token storage, disconnect and
+  revocation, Send, quotas, idempotency, unattended-send consent, and the 403 on
+  `?tier=read` while `GMAIL_READ_ACTIONS_ENABLED` is off.
+- Tests: `tests/gmailConnectScope.test.ts` (exact scope set, no Restricted scope,
+  PKCE/state/cookie preserved, read tier refused) and `tests/gmailCallback.test.ts`
+  (userinfo success persists the connection and never calls
+  `gmail.googleapis.com`; userinfo 401 / no email / unverified / non-string email
+  persist nothing; state mismatch and cross-user state call no Google endpoint;
+  no token appears in redirects, reports or audit records; the state cookie is
+  cleared on every outcome). The success test was RED before the fix.
 
-The address is display-only (`gmail_connections.email`, `NOT NULL`, rendered in
-Settings). Sending does not need it — Gmail sets `From` itself.
-
-| Option | Change | Consequence |
-|---|---|---|
-| **A (recommended)** | Send tier requests `openid email https://www.googleapis.com/auth/gmail.send`; the callback reads the address from Google's OIDC userinfo endpoint instead of the Gmail profile | `openid` and `email` are **non-sensitive** and do not change the verification class. It does add scopes to the request and to the consent screen's data-access list — an operator decision, since widening the requested scope set is a hard stop for an agent |
-| **B** | Keep `gmail.send` alone; stop fetching the address, store a neutral value, show "Gmail connected" | No scope change. Settings can no longer show which account is connected — which matters when the login account and the Gmail account differ — and the demo video loses "connected as" |
-
-Until one is chosen and shipped, the Task 14 completion criterion — a fresh
-non-test account connects and sends — **cannot pass**. Either fix is small and
-testable, and gets its own commit and a redeploy.
+**Still unproven:** the fix is verified against a stubbed Google, not the real
+one. The decisive check — a fresh non-test Google account connects in
+production and sends to its own address — is Task 14's operator verification,
+after deployment.
 
 ### Existing connection with a Restricted scope
 
-That one live row's `scopes` includes `gmail.compose`. It cannot be used — every
-restricted action is refused while the flag is off — but it fails Task 14's
-"`gmail_connections.scopes` records `gmail.send` and nothing Restricted" check.
+Re-read 2026-09-17 (read-only): still the only row, `active`, with a refresh
+token, scopes `openid`, `userinfo.email`, `userinfo.profile`, `gmail.send`,
+`gmail.compose`. **Legacy state, left untouched.** It stays compatible with the
+new code — Send checks for `gmail.send` only, and refresh does not depend on
+scopes — and its `gmail.compose` cannot be used while the flag is off. It still
+fails Task 14's "`gmail_connections.scopes` records nothing Restricted" check.
 Changing what an already-connected user holds is the operator's decision (Task 14
-Stop Condition). The clean path, after the fix ships: that user **disconnects** in
-Settings (which revokes the whole grant at Google), then reconnects.
+Stop Condition). Note that `upsertGmailConnection` **merges** stored scopes, so
+simply reconnecting would keep `gmail.compose` on the row. The clean path, after
+the fix is deployed: that user **disconnects** in Settings (which revokes the
+whole grant at Google and deletes the row), then reconnects.
 
 ### The Gmail client may not be separate from the login client
 
@@ -70,7 +86,8 @@ one consent screen, one publishing state and one verification.
 
 | Check | Result | Evidence |
 |---|---|---|
-| Send tier requests exactly `[gmail.send]` | Yes | `lib/gmail/scopes.ts`; regression test `tests/gmailConnectScope.test.ts` |
+| Send tier requests exactly `openid email gmail.send` (the only Gmail scope is `gmail.send`) | Yes (2026-09-17) | `lib/gmail/scopes.ts`; regression test `tests/gmailConnectScope.test.ts` |
+| Connected address read from OIDC userinfo, not `users.getProfile` | Yes (2026-09-17) | `lib/gmail/oauth.ts`; `tests/gmailCallback.test.ts` |
 | A15 comment corrected ("compose is RESTRICTED") | Yes | `lib/gmail/scopes.ts` header |
 | `.env.local.example` stale "Create Draft needs only sensitive scopes" line | Already corrected | `.env.local.example` |
 | Create Draft / Find / Read / Reply refused by the executor from a crafted graph | Yes | `tests/gmailConsent.test.ts` |
@@ -120,8 +137,8 @@ one consent screen, one publishing state and one verification.
     use them for the fresh-account test.
 
 ### G. Scopes (Data access)
-11. `https://www.googleapis.com/auth/gmail.send` — plus `openid` and
-    `.../auth/userinfo.email` (non-sensitive) **only if §0 option A is chosen**.
+11. `https://www.googleapis.com/auth/gmail.send`, plus the non-sensitive
+    `openid` and `.../auth/userinfo.email` (§0 option A — shipped in code).
 12. **Confirm the Console marks no listed scope as Restricted.** If it does, stop.
 
 ### H. Domain and verification
@@ -189,7 +206,7 @@ Derived from `lib/gmail/actions.ts` and `components/canvas/nodes/GmailNode.tsx`.
 
 From Task 14 § Verification — each needs a dated record:
 
-- [ ] Console scope list: `gmail.send` (+ `openid`/`email` if option A), no Restricted
+- [ ] Console scope list: `gmail.send` + `openid` + `userinfo.email`, no Restricted
 - [ ] Consent screen published; branding matches the product
 - [ ] Authorized domain verified = `<CANONICAL_HOST>`
 - [ ] Exactly one Gmail redirect URI, the canonical callback

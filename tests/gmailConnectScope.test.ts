@@ -5,6 +5,8 @@ import { GMAIL_SCOPES, scopesForTier } from "@/lib/gmail/scopes";
 // Task 14 / A15. V1 Gmail is gmail.send only. Requesting any Restricted scope
 // moves the whole integration into a CASA security assessment, so what the
 // connect route actually asks Google for is the property that matters.
+// openid + email are non-sensitive identity scopes: gmail.send cannot read the
+// account's own address, and Settings shows "Connected as <email>".
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabaseClient: async () => ({
@@ -21,11 +23,13 @@ async function requestedScopes(path: string): Promise<{ status: number; scopes: 
   return { status: response.status, scopes: scope ? scope.split(" ") : [] };
 }
 
-describe("the send tier is exactly gmail.send", () => {
-  test("scopesForTier('send') returns only gmail.send", () => {
+const SEND_TIER = ["openid", "email", GMAIL_SCOPES.send];
+
+describe("the send tier is exactly openid, email and gmail.send", () => {
+  test("scopesForTier('send') returns the identity scopes plus gmail.send, nothing else", () => {
     // The A15 regression guard: without it a future edit silently re-crosses
     // the Restricted line at initial connect.
-    expect(scopesForTier("send")).toEqual([GMAIL_SCOPES.send]);
+    expect(scopesForTier("send")).toEqual(SEND_TIER);
   });
 });
 
@@ -41,11 +45,31 @@ describe("the connect route never requests a Restricted scope while the flag is 
     delete process.env.GMAIL_READ_ACTIONS_ENABLED;
   });
 
-  test("a plain connect asks Google for gmail.send only", async () => {
+  test("a plain connect asks Google for openid, email and gmail.send only", async () => {
     const { status, scopes } = await requestedScopes("/api/integrations/gmail/connect");
 
     expect(status).toBe(307);
-    expect(scopes).toEqual([GMAIL_SCOPES.send]);
+    expect(scopes).toEqual(SEND_TIER);
+    expect(scopes).toContain("openid");
+    expect(scopes).toContain("email");
+    expect(scopes).toContain(GMAIL_SCOPES.send);
+    expect(scopes).not.toContain(GMAIL_SCOPES.compose);
+    expect(scopes).not.toContain(GMAIL_SCOPES.readonly);
+  });
+
+  test("a plain connect keeps PKCE, state and the single-use state cookie", async () => {
+    const response = await GET(new Request("https://app.test/api/integrations/gmail/connect"));
+    const consent = new URL(response.headers.get("location") ?? "");
+
+    expect(consent.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(consent.searchParams.get("code_challenge")).toBeTruthy();
+    expect(consent.searchParams.get("state")).toBeTruthy();
+    expect(consent.searchParams.get("redirect_uri")).toBe(
+      "https://app.test/api/integrations/gmail/callback"
+    );
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("gmail_oauth_state=");
+    expect(cookie.toLowerCase()).toContain("httponly");
   });
 
   test("?tier=read is refused, not honoured, when the flag is off", async () => {
