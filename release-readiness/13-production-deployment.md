@@ -355,3 +355,7 @@ Operator chose to reuse existing working credentials for the initial invite-only
 ### Update 2026-09-18 — pre-deployment re-audit passed
 
 All 11 required Production variables present (names/scopes only); Supabase URL and anon key target `axelqoxblpchscksfwbx`, no Dev ref; `GMAIL_READ_ACTIONS_ENABLED=false`; `INNGEST_DEV` / `RETENTION_CLEANUP_ENABLED` absent; Inngest integration provisioned a production signing key and event key (Production + Preview, non-Sensitive — hardening deferred). Node 22.x, previews protected. Framework preset unset (dashboard fix recommended). Awaiting first-deployment approval; deployments 0, evidence 0/18.
+
+### Update 2026-09-18 — first production deployment READY
+
+Operator-approved push of `6a331b5`; deployment `dpl_5Lv1fmG7jiJ8LSmu1RihzrMY2yg3` READY at **`wfloai.vercel.app`**. Next.js 16.3.5 detected, Node 22.x project setting, no runtime boot errors, logged-out public/gated/API behaviour correct, `/api/inngest` in signed mode, per-deployment URL protected, security headers present. Open: Inngest app sync not observed; Supabase Auth URL config, Google redirect URI, and signed-in smoke tests are operator steps. Detail in `docs/DEPLOYMENT.md` §6.

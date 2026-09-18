@@ -564,3 +564,27 @@ unchanged: new connections request exactly `openid email gmail.send`.
 - **Framework preset** unset on the project (`framework: null`); setting it to
   Next.js in the dashboard is recommended before the first deploy, and the first
   build log must show Next.js detected.
+
+### Update 2026-09-18 — first production deployment (operator-approved)
+
+`main` pushed `a635e15..6a331b5` with explicit operator approval; Vercel Git
+integration built it. `<CANONICAL_HOST>` = **`wfloai.vercel.app`**.
+
+| Check | Result |
+|---|---|
+| Deployment | `dpl_5Lv1fmG7jiJ8LSmu1RihzrMY2yg3`, commit `6a331b5`, target production, **READY** in ~50s, region `iad1` |
+| Framework | build log "Detected Next.js version: 16.3.5"; deployment records framework `nextjs`; Turbopack build, TypeScript passed, 19 static pages |
+| Node | project `22.x`, `engines.node` `>=22 <23`; no engine/version warning in the build log |
+| Aliases | `wfloai.vercel.app`, `wfloai-vishwaths-projects.vercel.app`, `wfloai-git-main-vishwaths-projects.vercel.app` (production domains — public) |
+| Boot / env check | pages render; no startup-check or missing-variable errors in runtime logs |
+| Logged-out public | `/`, `/privacy`, `/terms`, `/help`, `/login` → 200 |
+| Logged-out gated | `/dashboard`, `/settings`, `/waitlist`, `/workflows/<id>` → 307 to `/login?next=…` |
+| Logged-out API | `/api/credentials` GET → 401; `/api/lookup` POST → 401; `/api/workflows/<id>` GET → 405 (no GET handler) |
+| Inngest endpoint | unsigned GET `/api/inngest` → 401 "No x-inngest-signature provided" — signed production mode, not dev |
+| Per-deployment URL | `wfloai-eus5vox9f-…vercel.app` → 302 to Vercel SSO (protected) |
+| Security headers | HSTS, CSP `frame-ancestors 'none'`, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy present |
+| Inngest app sync | **not observed** — no Inngest PUT to `/api/inngest` in runtime logs yet |
+
+Not yet evidenced (needs a human or a provider dashboard): signed-in Google login
+round trip, invite gate, a manual run, Gmail connect, Inngest sync + scheduled run,
+and the service-role key's target (proven by the first scheduled run).

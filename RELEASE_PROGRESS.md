@@ -111,3 +111,5 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — Task 13 Production env configured.** `INTEGRATION_TOKEN_KEY` MATCH verified and reused. 7 of 11 Production vars set via Vercel CLI (no values displayed); Node 22.x. Missing: Supabase anon + service-role keys, Inngest signing + event keys. No deployment.
 
 > **2026-09-18 — Task 13 pre-deployment re-audit passed.** 11/11 Production vars present, prod Supabase target confirmed, no Dev ref. Deferred: Inngest keys → Sensitive, integration scope → wfloai only. Awaiting first-deployment approval.
+
+> **2026-09-18 — First production deployment READY** at `wfloai.vercel.app` (`6a331b5`, operator-approved). Automated logged-out verification passed. Pending operator: Supabase Auth URLs, Google redirect URI, Inngest sync check, signed-in smoke tests.
