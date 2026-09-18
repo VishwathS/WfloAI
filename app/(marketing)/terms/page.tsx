@@ -50,7 +50,7 @@ export default function TermsPage() {
           you connect, and make HTTP requests to services you specify.
         </p>
         <p>
-          Two of those deserve emphasis, because they are unusual: a workflow{" "}
+          Two of these need particular care: a workflow{" "}
           <span className="font-medium text-gray-900">sends mail as you</span>, and a workflow{" "}
           <span className="font-medium text-gray-900">
             points our servers at third-party services of your choosing, using credentials you
@@ -170,7 +170,7 @@ export default function TermsPage() {
 
       <Section title="Contact">
         <p>
-          Questions about these terms go to{" "}
+          Send questions about these terms to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="font-medium text-violet-700 hover:underline"

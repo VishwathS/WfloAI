@@ -26,9 +26,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6 lg:p-8">
-      <div className="border-b border-gray-100 pb-5">
-        <h1 className="text-xl font-semibold tracking-tight text-gray-900">Settings</h1>
-      </div>
+      <h1 className="border-b border-gray-100 pb-5 text-xl font-semibold tracking-tight text-gray-900">
+        Settings
+      </h1>
       <GmailConnectionCard notice={gmail} />
       <CredentialsCard />
       <DeleteAccountCard />

@@ -53,9 +53,10 @@ export default function HelpPage() {
     <div className="mx-auto w-full max-w-3xl px-6 py-12 lg:py-16">
       <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Help</h1>
       <p className="mt-3 text-sm leading-6 text-gray-600">
-        A workflow is a directed acyclic graph of nodes. Nodes run in dependency order;
-        each one receives the output of the nodes connected into it and passes its own
-        output downstream.
+        A workflow is a graph of connected nodes. Each node runs once the nodes feeding
+        into it have finished, receives their output, and passes its own output on. Every
+        workflow needs at least one Input or File Input node to start from, and the graph
+        cannot contain a cycle.
       </p>
 
       <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-1.5">
@@ -66,9 +67,9 @@ export default function HelpPage() {
         ))}
       </nav>
 
-      <Section id="variables" title="Variables: previousOutput vs your own keys">
+      <Section id="variables" title="Variables">
         <p>
-          These look similar but resolve to different values.
+          There are two kinds of variable, and they are easy to mix up.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
@@ -84,8 +85,8 @@ export default function HelpPage() {
                   <Code>{"{{previousOutput}}"}</Code>
                 </td>
                 <td className="py-2.5">
-                  The combined output of every node connected <em>into</em> this one. It
-                  depends on where the node sits in the graph, not on anything you name.
+                  The combined output of every node connected <em>into</em> this one. What
+                  it contains depends on where the node sits in the graph.
                 </td>
               </tr>
               <tr className="border-b border-gray-100 align-top">
@@ -93,23 +94,23 @@ export default function HelpPage() {
                   <Code>{"{{yourKey}}"}</Code>
                 </td>
                 <td className="py-2.5">
-                  The value of the Input node whose key is <Code>yourKey</Code>. Variables
-                  are declared on Input nodes, which is why the tag is shown only there.
+                  The value of the Input node whose key is <Code>yourKey</Code>. Keys are
+                  declared on Input nodes, so that is the only place the tag appears.
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          When a prompt references <Code>{"{{previousOutput}}"}</Code> explicitly, the
-          automatic &ldquo;Context from previous step&rdquo; block is omitted so the upstream
-          text is not sent twice. Otherwise the block is added, so an AI node with no
-          variables still receives its input.
+          If a prompt doesn&apos;t mention <Code>{"{{previousOutput}}"}</Code>, the upstream
+          output is appended automatically as a &ldquo;Context from previous step&rdquo;
+          block, so an AI node with no variables still sees its input. If the prompt does
+          mention it, the block is left out so the same text isn&apos;t sent twice.
         </p>
         <p>
-          <Code>{"{{input}}"}</Code> is the old spelling. It still works in Lookup queries,
-          the canvas rewrites it when you edit a field, and validation flags it as
-          deprecated in AI and Router prompts.
+          <Code>{"{{input}}"}</Code> is the old name for <Code>{"{{previousOutput}}"}</Code>.
+          Lookup queries still accept it, editing a field replaces it, and validation flags
+          it as deprecated in AI and Router prompts.
         </p>
       </Section>
 
@@ -118,63 +119,61 @@ export default function HelpPage() {
           <span className="font-medium">
             Reply to Email needs a Read Email node as its direct parent.
           </span>{" "}
-          Not an AI node in between, not a Read node further upstream — directly connected.
-          Without one, validation fails and the workflow does not run.
+          Directly connected: not through an AI node, and not a Read node further upstream.
+          Without one, the workflow fails validation and does not run.
         </p>
         <p>
-          A Reply has to know which message it is replying to. That is resolved from the
-          typed metadata a Read node emits, not from output text. An AI node in between
-          produces text, which carries no message ID, so the reply would have nothing to
-          attach to. The working shape is:
+          A Reply needs to know which message it is answering, and it gets that from the
+          message metadata a Read node passes along, not from any output text. An AI node
+          only produces text, so a Reply placed after one has no message to attach to. The
+          shape that works is:
         </p>
         <p className="font-mono text-[13px] text-gray-900">
           Find Emails → Read Email → AI (draft the reply) → Reply to Email
         </p>
         <p>
-          The AI node still sits in the chain, just not between Read and Reply. Connect both
-          the Read node and the AI node into the Reply node.
+          Connect both the Read node and the AI node into the Reply node: the AI node writes
+          the reply, and Read supplies the message it belongs to.
         </p>
         <p>
           <span className="font-medium text-gray-900">
-            In this version, Send Email is the only Gmail action available.
+            For now, Send Email is the only Gmail action available.
           </span>{" "}
-          Create Draft, Reply, Find and Read each need a restricted Google scope that requires
-          an additional security review, so they are disabled. Connecting Gmail requests the{" "}
-          <Code>gmail.send</Code> scope, plus <Code>openid</Code> and <Code>email</Code> to
-          show which address is connected. It cannot read your mailbox.
+          Create Draft, Reply, Find and Read all need a restricted Google scope, which requires
+          a separate security review, so they stay turned off until that is done. Connecting
+          Gmail requests <Code>gmail.send</Code>, plus <Code>openid</Code> and{" "}
+          <Code>email</Code> so Settings can show which address is connected. WfloAI cannot
+          read your mailbox.
         </p>
       </Section>
 
       <Section id="nodes" title="Node reference">
         <ul className="space-y-2">
           <li>
-            <span className="font-medium text-gray-900">Trigger</span> — the entry point of a
-            run.
-          </li>
-          <li>
             <span className="font-medium text-gray-900">Input</span> — a named value you can
-            reference as <Code>{"{{key}}"}</Code>. A schedule can override it.
+            reference as <Code>{"{{key}}"}</Code>. Scheduled runs use the value saved on the
+            node.
           </li>
           <li>
             <span className="font-medium text-gray-900">File Input</span> — upload a PDF,
-            DOCX, TXT, MD or CSV; the node outputs the text extracted from it. Scanned or
-            image-only PDFs are rejected because there is no OCR.
+            DOCX, TXT, MD or CSV and the node outputs its text. Scanned or image-only PDFs are
+            rejected, since there is no OCR. Scheduled runs use the most recent upload.
           </li>
           <li>
             <span className="font-medium text-gray-900">AI</span> — runs a prompt through
-            Claude. Text mode returns free text. JSON mode takes an action — Summarize,
-            Rewrite, Classify, Extract or Generate — and returns a fixed JSON shape, so a
-            Router can branch on a field rather than parse prose.
+            Claude. Text mode returns plain text. JSON mode returns a fixed shape for the
+            chosen action (Summarize, Rewrite, Classify, Extract or Generate), which lets a
+            Router branch on a field instead of parsing prose.
           </li>
           <li>
             <span className="font-medium text-gray-900">Router</span> — splits the graph
-            down a <Code>true</Code> or <Code>false</Code> path. Set a field and a value to
-            branch deterministically on upstream JSON; leave them empty and the model
-            evaluates the condition.
+            down a <Code>true</Code> or <Code>false</Code> path. Give it a field and a value
+            and it compares them against the upstream JSON; leave them empty, or pass it
+            plain text, and the model evaluates the condition instead.
           </li>
           <li>
-            <span className="font-medium text-gray-900">Lookup</span> — a Tavily web search
-            returning 1 to 10 results.
+            <span className="font-medium text-gray-900">Lookup</span> — searches the web
+            with Tavily and returns 1 to 10 results.
           </li>
           <li>
             <span className="font-medium text-gray-900">Gmail</span> — sends email from your
@@ -182,8 +181,8 @@ export default function HelpPage() {
           </li>
           <li>
             <span className="font-medium text-gray-900">HTTP Request</span> — sends a GET,
-            POST, PUT, PATCH or DELETE request to a public URL, optionally authenticated with
-            a credential stored in Settings. Private and internal addresses are blocked.
+            POST, PUT, PATCH or DELETE to a public URL, optionally authenticated with a
+            credential from Settings. Requests to private or internal addresses are blocked.
           </li>
           <li>
             <span className="font-medium text-gray-900">Action</span> — ends a branch and
@@ -194,9 +193,10 @@ export default function HelpPage() {
 
       <Section id="schedules" title="Schedules">
         <p>
-          Schedules are configured in Workflow Settings, not on the canvas; a workflow with
-          none runs only when you click Run. A scheduled run executes the graph as saved at
-          the moment it fires, so editing a workflow changes what its schedules do.
+          Schedules are set up in Workflow Settings, not on the canvas. Without one, a
+          workflow runs only when you click Run. A scheduled run uses the workflow as it is
+          saved when the schedule fires, so editing a workflow also changes what its
+          schedules do.
         </p>
         <p>
           A schedule can run at most once every {SCHEDULE_LIMITS.MIN_INTERVAL_MINUTES}{" "}
@@ -204,21 +204,20 @@ export default function HelpPage() {
           {SCHEDULE_LIMITS.MAX_SCHEDULES_PER_WORKFLOW} on any one workflow.
         </p>
         <p>
-          If a schedule fails {SCHEDULE_LIMITS.AUTO_DISABLE_AFTER_FAILURES} times in a row
-          it is disabled, and Workflow Settings shows why. Any successful run resets the
-          count, and re-enabling the schedule clears it.
+          A schedule that fails {SCHEDULE_LIMITS.AUTO_DISABLE_AFTER_FAILURES} times in a row
+          is turned off, and Workflow Settings shows why. A successful run resets the count,
+          and so does turning the schedule back on.
         </p>
         <p>
-          Enabling a schedule on a workflow that sends email asks you to confirm first. That
-          confirmation is about <em>unattended</em> sending — mail leaving your account
-          while you are not there to notice a mistake.
+          Turning on a schedule for a workflow that sends email asks you to confirm first,
+          because that mail leaves your account while nobody is watching the run.
         </p>
       </Section>
 
       <Section id="limits" title="Limits">
         <p>
-          These cap what a misconfigured workflow can spend. A node that would exceed a
-          limit fails; it is not queued.
+          These limits cap what a misconfigured workflow can spend. A node that would go
+          over one fails; it is not queued for later.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[440px] border-collapse text-left text-sm">
@@ -250,8 +249,8 @@ export default function HelpPage() {
           </table>
         </div>
         <p>
-          Every Router node counts as an AI call, even when it branches on a field match,
-          so a workflow can reach the AI limits sooner than its number of AI nodes suggests.
+          Router nodes count as AI calls, including ones that branch on a field match, so a
+          workflow with Routers reaches the AI limits sooner than its AI node count suggests.
         </p>
       </Section>
 
@@ -259,8 +258,8 @@ export default function HelpPage() {
         <p>
           Run history is kept for {RETENTION_DAYS.WORKFLOW_RUNS} days and then deleted
           automatically. Uploaded files are kept until you delete them. Settings has an
-          export of your workflows, schedules and run history, and a way to delete your
-          account outright.
+          export of your workflows, schedules and run history, and an option to delete your
+          account.
         </p>
         <p>
           The{" "}
@@ -273,15 +272,15 @@ export default function HelpPage() {
 
       <Section id="contact" title="Contact">
         <p>
-          Something broken, or a workflow doing something it should not? Email{" "}
+          If something breaks, or a workflow does something it shouldn&apos;t, email{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="font-medium text-violet-700 hover:underline"
           >
             {SUPPORT_EMAIL}
           </a>
-          . Include the workflow name and roughly when it ran. If a schedule is sending email
-          you did not expect, turn the schedule off in Workflow Settings first, then write.
+          {" "}with the workflow name and roughly when it ran. If a schedule is sending email
+          you didn&apos;t expect, turn it off in Workflow Settings first.
         </p>
       </Section>
     </div>

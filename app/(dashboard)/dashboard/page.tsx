@@ -95,11 +95,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
-      <section className="rounded-2xl border border-gray-200 bg-white px-8 py-8 shadow-card">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-card">
         <h1 className="text-xl font-semibold tracking-tight text-gray-900">Dashboard</h1>
-        <div className="mt-6">
-          <CreateWorkflowButton />
-        </div>
+        <CreateWorkflowButton />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -119,7 +117,7 @@ export default async function DashboardPage() {
             {latestWorkflow ? formatTimestamp(latestWorkflow.updated_at) : "Never"}
           </p>
           {latestWorkflow ? (
-            <p className="mt-2 truncate text-sm leading-6 text-gray-500">{latestWorkflow.name}</p>
+            <p className="mt-1 truncate text-sm leading-6 text-gray-500">{latestWorkflow.name}</p>
           ) : null}
         </div>
       </section>

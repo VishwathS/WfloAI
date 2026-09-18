@@ -10,14 +10,12 @@ export async function DashboardSidebar() {
   } = await supabase.auth.getUser();
 
   return (
-    <aside className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
-      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
-            <Bot className="h-4 w-4" />
-          </div>
-          <p className="text-sm font-semibold tracking-tight text-gray-900">WfloAI</p>
+    <aside className="flex flex-col gap-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-card lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+      <div className="flex items-center gap-3 px-1.5 pt-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+          <Bot className="h-4 w-4" />
         </div>
+        <p className="text-sm font-semibold tracking-tight text-gray-900">WfloAI</p>
       </div>
 
       <SidebarNav />

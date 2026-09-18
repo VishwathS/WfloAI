@@ -102,8 +102,8 @@ export default function PrivacyPage() {
 
       <p className="mt-6 text-sm leading-6 text-gray-600">
         WfloAI lets you build automations that call AI models, search the web, send email as
-        you, and make HTTP requests to services you choose. This policy describes what that
-        means for your data in concrete terms rather than in general ones.
+        you, and make HTTP requests to services you choose. This policy explains what that
+        means for your data.
       </p>
 
       <Section title="What we store">
@@ -276,7 +276,7 @@ export default function PrivacyPage() {
 
       <Section title="Contact">
         <p>
-          Questions about this policy, or requests about your data, go to{" "}
+          Send questions about this policy, or requests about your data, to{" "}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="font-medium text-violet-700 hover:underline"

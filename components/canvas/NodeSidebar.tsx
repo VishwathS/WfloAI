@@ -13,6 +13,7 @@ const NODE_CARDS = [
     category: "Sources",
     title: "Input",
     description: "Define a named value that other nodes reference as {{key}}.",
+    accentClassName: "bg-fuchsia-50 text-fuchsia-700",
     borderClass: "border-fuchsia-200 hover:border-fuchsia-300"
   },
   {
@@ -20,6 +21,7 @@ const NODE_CARDS = [
     category: "Sources",
     title: "File Input",
     description: "Extract text from an uploaded PDF, DOCX, TXT, MD, or CSV file.",
+    accentClassName: "bg-orange-50 text-orange-700",
     borderClass: "border-orange-200 hover:border-orange-300"
   },
   {
@@ -27,6 +29,7 @@ const NODE_CARDS = [
     category: "Sources",
     title: "Lookup",
     description: "Search the web with Tavily and return the top results.",
+    accentClassName: "bg-cyan-50 text-cyan-700",
     borderClass: "border-cyan-200 hover:border-cyan-300"
   },
   {
@@ -34,6 +37,7 @@ const NODE_CARDS = [
     category: "Sources",
     title: "Gmail",
     description: "Send email through your connected Gmail account.",
+    accentClassName: "bg-red-50 text-red-700",
     borderClass: "border-red-200 hover:border-red-300"
   },
   {
@@ -41,6 +45,7 @@ const NODE_CARDS = [
     category: "Sources",
     title: "HTTP Request",
     description: "Send an HTTP request to an external API, with optional stored credentials.",
+    accentClassName: "bg-indigo-50 text-indigo-700",
     borderClass: "border-indigo-200 hover:border-indigo-300"
   },
   {
@@ -48,6 +53,7 @@ const NODE_CARDS = [
     category: "AI",
     title: "AI",
     description: "Generate, rewrite, summarize, classify, or extract content with Claude.",
+    accentClassName: "bg-violet-50 text-violet-700",
     borderClass: "border-violet-200 hover:border-violet-300"
   },
   {
@@ -55,6 +61,7 @@ const NODE_CARDS = [
     category: "Logic",
     title: "Router",
     description: "Route execution to a true or false branch based on a condition.",
+    accentClassName: "bg-amber-50 text-amber-700",
     borderClass: "border-amber-200 hover:border-amber-300"
   },
   {
@@ -62,6 +69,7 @@ const NODE_CARDS = [
     category: "Actions",
     title: "Action",
     description: "End a branch and record the output it receives.",
+    accentClassName: "bg-blue-50 text-blue-700",
     borderClass: "border-blue-200 hover:border-blue-300"
   }
 ] as const;
@@ -121,8 +129,12 @@ export function NodeSidebar() {
                   onDragStart={(event) => handleDragStart(event, card.type)}
                   className={`w-full rounded-xl border bg-white p-3.5 text-left shadow-card transition-colors ${card.borderClass}`}
                 >
-                  <p className="text-sm font-semibold text-gray-900">{card.title}</p>
-                  <p className="mt-1.5 text-sm leading-6 text-gray-500">{card.description}</p>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${card.accentClassName}`}
+                  >
+                    {card.title}
+                  </span>
+                  <p className="mt-2 text-sm leading-6 text-gray-500">{card.description}</p>
                 </button>
               ))}
             </div>
