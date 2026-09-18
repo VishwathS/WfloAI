@@ -351,3 +351,7 @@ Operator chose to reuse existing working credentials for the initial invite-only
 ### Update 2026-09-18 — Production env configured (no deployment)
 
 `INTEGRATION_TOKEN_KEY` verified compatible with the production legacy Gmail credential (operator-run read-only check, output `MATCH` only; key reused, not rotated). Via the operator-authenticated Vercel CLI: seven Production-only variables written without display (`ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INTEGRATION_TOKEN_KEY`, `GMAIL_READ_ACTIONS_ENABLED=false`, `NEXT_PUBLIC_SUPABASE_URL` → `axelqoxblpchscksfwbx`); project Node set to 22.x. Audit: no Dev ref present; `INNGEST_DEV` and `RETENTION_CLEANUP_ENABLED` absent. Remaining before first deploy: the two production Supabase keys and the two Inngest keys (operator). Deployments 0; evidence 0/18. Detail in `docs/DEPLOYMENT.md` §6.
+
+### Update 2026-09-18 — pre-deployment re-audit passed
+
+All 11 required Production variables present (names/scopes only); Supabase URL and anon key target `axelqoxblpchscksfwbx`, no Dev ref; `GMAIL_READ_ACTIONS_ENABLED=false`; `INNGEST_DEV` / `RETENTION_CLEANUP_ENABLED` absent; Inngest integration provisioned a production signing key and event key (Production + Preview, non-Sensitive — hardening deferred). Node 22.x, previews protected. Framework preset unset (dashboard fix recommended). Awaiting first-deployment approval; deployments 0, evidence 0/18.

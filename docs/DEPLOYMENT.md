@@ -542,3 +542,25 @@ unchanged: new connections request exactly `openid email gmail.send`.
   `GMAIL_READ_ACTIONS_ENABLED=false`, no `INNGEST_DEV`, no `RETENTION_CLEANUP_ENABLED`.
 - **Node:** project set to **22.x** via `vercel api PATCH /v9/projects/…`
   (`nodeVersion` only); verified via Vercel MCP. Deployments still **0**.
+
+### Update 2026-09-18 — pre-deployment re-audit PASSED (names/scopes only)
+
+- **All 11 required Production variables PRESENT**: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (Sensitive),
+  `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `INTEGRATION_TOKEN_KEY`, `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`,
+  `GMAIL_READ_ACTIONS_ENABLED`. The two Supabase keys were added by the operator.
+- **Supabase target**: URL is `https://axelqoxblpchscksfwbx.supabase.co`; anon key
+  is a JWT whose `ref` is `axelqoxblpchscksfwbx`, `role` `anon`. The service-role key
+  is Sensitive (not readable) — its target is proven at first boot. 0 occurrences
+  of the Dev ref `ureajvxesvmehlxlrboy`.
+- `GMAIL_READ_ACTIONS_ENABLED=false`; `INNGEST_DEV` and `RETENTION_CLEANUP_ENABLED` ABSENT.
+- **Inngest** Vercel integration installed by the operator. It added
+  `INNGEST_SIGNING_KEY` (a production signing key) and `INNGEST_EVENT_KEY` to
+  **Production and Preview**, both as readable (non-Sensitive) values. Deferred
+  hardening: convert both to Sensitive (rotate), and restrict the integration's
+  project selection from **all projects** to `wfloai` only.
+- **Node** 22.x; **protection** `prod_deployment_urls_and_all_previews`, password off.
+- **Framework preset** unset on the project (`framework: null`); setting it to
+  Next.js in the dashboard is recommended before the first deploy, and the first
+  build log must show Next.js detected.

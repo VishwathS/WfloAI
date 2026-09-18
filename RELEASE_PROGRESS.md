@@ -109,3 +109,5 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — Task 13 minimum-change config pass.** Deployment protection set to protect previews and deployment URLs only (production public). Env vars not written (no Vercel env tooling). `INTEGRATION_TOKEN_KEY` production compatibility unverified; Inngest production keys absent. No deployment.
 
 > **2026-09-18 — Task 13 Production env configured.** `INTEGRATION_TOKEN_KEY` MATCH verified and reused. 7 of 11 Production vars set via Vercel CLI (no values displayed); Node 22.x. Missing: Supabase anon + service-role keys, Inngest signing + event keys. No deployment.
+
+> **2026-09-18 — Task 13 pre-deployment re-audit passed.** 11/11 Production vars present, prod Supabase target confirmed, no Dev ref. Deferred: Inngest keys → Sensitive, integration scope → wfloai only. Awaiting first-deployment approval.
