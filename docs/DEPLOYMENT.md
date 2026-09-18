@@ -164,8 +164,9 @@ Set in Vercel → Project → Settings → Environment Variables, scope
 OAuth-capable anyway, and a preview holding the production service-role key is a
 second production.
 
-**Current Vercel status: every row ABSENT — the Vercel project does not exist**
-(Vercel MCP, 2026-09-17: zero teams, zero projects).
+**Current Vercel status (2026-09-18): project `wfloai` exists; every row ABSENT.**
+The agent does not set these — the operator does, in the dashboard (the Vercel
+MCP has no environment-variable tool, and values never pass through the agent).
 
 | Variable | Required | Exposure | Value comes from | Notes |
 |---|---|---|---|---|
@@ -458,3 +459,34 @@ branches create previews, unless Git deployments are disabled
   not push to `main` after that without explicit approval.
 - The first deployment builds whatever `origin/main` points at when the
   repository is connected; local `main` may be ahead of it.
+
+### Update 2026-09-18 — project created, not deployed
+
+Created by the agent with operator approval, via Vercel MCP `create_git_project`
+with `deploy: false`; verified read-only afterwards:
+
+| Check | Result |
+|---|---|
+| Workspace | `vishwaths-projects` (`team_Md4RjbTLzhf6pfoNQgP8zvWy`), plan **hobby** |
+| Project | `wfloai`, `prj_W9RynoK7SBt33Eg8v5zv2lYv9Q3Y` |
+| Git link | GitHub `VishwathS/WfloAI` |
+| Production branch | `main` |
+| Deployments | **0** (`latestDeployment: null`, `live: false`) |
+| Domains | **none yet** — the `*.vercel.app` production alias is assigned by the first production deployment; `<CANONICAL_HOST>` is recorded then |
+| Project Node setting | **`24.x`** (Vercel default) — does **not** match §6. `package.json` `engines.node` `>=22 <23` takes precedence at build, and evidence row 18 checks the build log; set the project to 22.x anyway (operator, dashboard) so the two agree |
+| Framework preset | not exposed by the MCP; Vercel auto-detects Next.js at build — confirm in the first build log |
+| Deployment protection | Vercel Authentication **on**, `all_except_custom_domains`; password and trusted-IP off. See below |
+
+**Deployment protection is a first-deployment blocker to check.** With
+`all_except_custom_domains`, only custom domains are exempt, and V1 has none —
+so the generated production `*.vercel.app` alias is expected to sit behind a
+Vercel login wall. That would block visitors, Google's redirect back to
+`/api/integrations/gmail/callback`, and Inngest Cloud's calls to `/api/inngest`.
+Operator decision (not changed by the agent, since it relaxes a protection):
+Settings → Deployment Protection → Vercel Authentication → protect **only
+preview deployments**, keeping previews private. Verify after the first deploy
+with a logged-out browser.
+
+**From now on a push to `main` deploys to production.** The agent pushes only
+with explicit operator approval (PRODUCTION PUSH/DEPLOY APPROVAL REQUIRED).
+At creation `origin/main` was `a635e15`.
