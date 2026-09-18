@@ -8,7 +8,7 @@ gate is re-checked then.
 | # | Gate | Status | Why / what unblocks it |
 |---|---|---|---|
 | 1 | Hardening (Tasks 01–12) | **FAIL** | All twelve are `IN PROGRESS` with operator items outstanding (RELEASE_PROGRESS). The code for A4/A5/A13/A15 and the Next 16 upgrade has landed; their operator and manual checks have not. Each needs completing or a named waiver |
-| 2 | Production deployment | **FAIL** | No Vercel project exists; the dev == prod Supabase decision is open; 0/18 evidence items (Task 13) |
+| 2 | Production deployment | **FAIL** | No Vercel project exists; dev/prod Supabase separation done 2026-09-17 (Dev `ureajvxesvmehlxlrboy`), production migration-ledger repair still required; 0/18 evidence items (Task 13) |
 | 3 | Inngest signing key | **FAIL** | No deployment to POST to. The repo now refuses to boot with `INNGEST_DEV` in production, which protects this gate once deployed |
 | 4 | Google OAuth | **FAIL** | A fresh send-only Gmail connect cannot complete (docs/GOOGLE-OAUTH.md §0); no Console evidence; verification not submitted |
 | 5 | Gmail scope send-only | **FAIL (repo side PASS)** | Code requests only `gmail.send` and now refuses `tier=read` while the flag is off (tested). Console evidence is missing, and the one live connection holds `gmail.compose` |

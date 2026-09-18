@@ -32,3 +32,6 @@ Thumbs.db
 
 # typescript
 *.tsbuildinfo
+
+# supabase cli link state (per-machine; decides which project `supabase db push` targets)
+supabase/.temp/

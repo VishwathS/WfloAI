@@ -98,27 +98,48 @@ Task 17's smoke test.
 
 ### Supabase: which project is production
 
-**Open decision — OPERATOR INPUT REQUIRED. This is a Task 13 Stop Condition.**
+**Decided 2026-09-17 — Option A.** Development and production are separate
+hosted projects in the same organization:
 
-As of 2026-09-17 the development environment and the project certified during
-the invite launch track are **the same project**:
+| Project | Ref | Region | Used by |
+|---|---|---|---|
+| WfloAI (production) | `axelqoxblpchscksfwbx` | us-west-2 | Vercel **Production** env only (Task 13). Real users, the live invite |
+| WfloAI Dev | `ureajvxesvmehlxlrboy` | us-west-1 | `.env.local`, the local CLI link, the writable dev MCP. Disposable test data |
 
-- `.env.local` → `NEXT_PUBLIC_SUPABASE_URL` points at project `axelqoxblpchscksfwbx`
-- `supabase/.temp/project-ref` (the CLI link) is `axelqoxblpchscksfwbx`
-- the read-only Supabase MCP in `.mcp.json` is scoped to `axelqoxblpchscksfwbx`
+The previous state — `.env.local`, the CLI link and the MCP all on
+`axelqoxblpchscksfwbx` — meant local runs with `INNGEST_DEV=1` spent and wrote
+against the database real users are in. The CLI link state (`supabase/.temp/`)
+was also **committed**, so every clone started linked to production. It is now
+gitignored and per-machine.
 
-Task 13 treats dev == prod as a data-safety problem: local runs (with
-`INNGEST_DEV=1`) spend and write against the database real users are in, and
-every "test against a test account" instruction in Tasks 15–16 loses its meaning.
+How Dev was built (repeatable for a fresh dev project):
 
-Choose one and record it:
+1. Create an empty project; apply the 16 files in `supabase/migrations/` in
+   filename order. Dev was built through the Supabase MCP `apply_migration`,
+   which records each migration under a generated timestamp, so the 16 ledger
+   rows were then realigned to the Git versions; `supabase db push` from a
+   working copy linked to Dev therefore has nothing to apply. Each ledger row's
+   stored statement was checked byte-for-byte (md5) against its file.
+2. No data is copied from production. Dev holds no invite codes; create a
+   dev-only one when a test needs it.
+3. Point `.env.local` at Dev (`NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`), and
+   `supabase link --project-ref <dev ref>`.
+4. Rebuild: `next build` inlines `NEXT_PUBLIC_*`, so a stale `.next/` keeps the
+   old project URL until rebuilt.
 
-| Option | What it means | Cost |
-|---|---|---|
-| **A (recommended)** — keep `axelqoxblpchscksfwbx` as production | It already has every migration's schema, the approved users and the live invite. Point `.env.local` at a **new** development project (or a local `supabase start`), and re-link or unlink the CLI so `supabase db push` from this working copy cannot reach production | A new dev project, plus the 16 migrations applied to it |
-| **B** — create a fresh production project | Apply all 16 migrations to it, recreate the invite, re-admit users, configure Auth | Existing approved users and data do not move |
+**Dev Auth.** Email auth is on; Google login is off until a Google OAuth client
+for Supabase login is configured for Dev (Dashboard → Authentication →
+Providers → Google). That client's authorized redirect URI is
+`https://ureajvxesvmehlxlrboy.supabase.co/auth/v1/callback`. In Dev's
+Authentication → URL Configuration set Site URL `http://localhost:3000` and add
+`http://localhost:3000/auth/callback**` (the login card sends
+`${origin}/auth/callback?next=…`). This is the Supabase **login** client — not
+the Gmail integration client, which redirects to the app itself.
 
-Until this is decided, `PRODUCTION READY` cannot be claimed.
+Never point `.env.local` or the CLI at `axelqoxblpchscksfwbx`. Any operator
+action against production goes through the dashboard or a deliberately scoped
+session, not this working copy.
 
 ---
 
@@ -179,10 +200,38 @@ Read-only inspection on 2026-09-17:
 The ten later migrations were applied outside the CLI (SQL editor), so the
 ledger never recorded them. **Consequence: `supabase db push` against this
 project would try to re-apply ten migrations that are already live.** Do not
-run it. If the ledger should be made truthful, the fix is
-`supabase migration repair --status applied <version>` for each of the ten. That
-writes to the remote ledger, so it is operator-only, and only after re-running
-the schema check below.
+run it.
+
+### `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED` (Task 13, not yet done)
+
+The supported fix is the CLI's `supabase migration repair`. Per the Supabase
+docs it "updates the tracking table only — it does not apply or revert any
+SQL", and `--status applied` inserts the ledger row. Do not hand-edit
+`supabase_migrations.schema_migrations` on production.
+
+Operator-only, in a deliberate session — this working copy is linked to Dev
+and must stay that way:
+
+1. Re-run the read-only schema check below against production and confirm all
+   16 migrations' objects are present. Repair records what the schema already
+   is; if anything is missing, stop — repairing would hide it.
+2. In a scratch checkout (not this one), `supabase link --project-ref
+   axelqoxblpchscksfwbx`, then `supabase migration list` — expect the six
+   `202605140001`…`202607180001` on both sides and the other ten local-only.
+3. Mark the ten as applied:
+
+   ```bash
+   supabase migration repair --status applied \
+     202607190001 202607190002 202607190003 202607190004 \
+     202609150001 202609150002 202609150003 \
+     202609160001 202609160002 202609170001
+   ```
+
+4. `supabase migration list` shows all 16 on both sides, and
+   `supabase db push --dry-run` reports nothing to push.
+5. Unlink or delete the scratch checkout.
+
+Nothing in the Dev provisioning changed production's ledger; it still records 6.
 
 ### Procedure (operator runs it; read-only)
 
