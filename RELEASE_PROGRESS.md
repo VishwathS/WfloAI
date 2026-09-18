@@ -127,3 +127,20 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — First production deployment READY** at `wfloai.vercel.app` (`6a331b5`, operator-approved). Automated logged-out verification passed. Pending operator: Supabase Auth URLs, Google redirect URI, Inngest sync check, signed-in smoke tests.
 
 > **2026-09-18 — Ready for signed-in smoke test.** Inngest synced (3 functions), 0 production schedules, bundle targets prod Supabase, Google login redirect healthy, operator account approved. Not LIVE.
+
+## Public invite-only beta milestone — 2026-09-18 (operator decision)
+
+WfloAI at `https://wfloai.vercel.app` operates as a **public invite-only beta / production testing release**. This is **not** Task 17 `LIVE` and not `READY FOR HUMAN GO-LIVE`. The beta milestone is established by eight checks only; they do **not** pass any Task 15 row or Task 17 gate by themselves. Every exhaustive Task 15 case and every formal Task 17 requirement stays OPEN until actually performed.
+
+| # | Beta check | Status |
+|---|---|---|
+| B1 | Fresh invite → Google login → dashboard | OPEN |
+| B2 | Create / save / reload a workflow | OPEN |
+| B3 | Input → Lookup → AI manual run, visible in History | OPEN |
+| B4 | Gmail connect (identity + `gmail.send` only); one email to self | OPEN |
+| B5 | Schedule → Run now → one real unattended cron run, browser closed | OPEN |
+| B6 | Account B cannot access account A's workflow or file | OPEN |
+| B7 | `INTEGRATION_TOKEN_KEY` has an independent recoverable backup | OPEN |
+| B8 | Supabase backup capability / retention recorded | OPEN |
+
+Small-screen notice ("WfloAI works best on desktop.") implemented in `2df7f6d` — **not deployed**; production deploy requires operator approval.

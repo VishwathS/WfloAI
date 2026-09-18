@@ -42,3 +42,7 @@ gate is re-checked then.
 | 16 | Smoke test ready | **PASS** | unchanged |
 
 Other gates unchanged; the authoritative evaluation follows Tasks 15/16.
+
+## Beta, not LIVE — 2026-09-18
+
+Operator decision: public invite-only beta / production testing. `READY FOR HUMAN GO-LIVE`: **No**. Beta checks B1–B8 (RELEASE_PROGRESS.md) establish the beta milestone only and satisfy no gate on their own.
