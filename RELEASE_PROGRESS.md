@@ -107,3 +107,5 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — Vercel project created, not deployed.** `wfloai` (`prj_W9RynoK7SBt33Eg8v5zv2lYv9Q3Y`, `vishwaths-projects`, hobby), Git-linked to `VishwathS/WfloAI`, production branch `main`, 0 deployments. Push to `main` now deploys production — agent does not push without approval. Open: production env vars, Node setting 24.x → 22.x, deployment-protection scope, first-deploy approval.
 
 > **2026-09-18 — Task 13 minimum-change config pass.** Deployment protection set to protect previews and deployment URLs only (production public). Env vars not written (no Vercel env tooling). `INTEGRATION_TOKEN_KEY` production compatibility unverified; Inngest production keys absent. No deployment.
+
+> **2026-09-18 — Task 13 Production env configured.** `INTEGRATION_TOKEN_KEY` MATCH verified and reused. 7 of 11 Production vars set via Vercel CLI (no values displayed); Node 22.x. Missing: Supabase anon + service-role keys, Inngest signing + event keys. No deployment.

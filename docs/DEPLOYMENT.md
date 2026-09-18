@@ -506,3 +506,39 @@ unchanged: new connections request exactly `openid email gmail.send`.
 | Environment variables | **Not written**: the Vercel MCP has no environment-variable tool and the Vercel CLI is neither installed nor logged in. All rows still ABSENT |
 | `INTEGRATION_TOKEN_KEY` | **Compatibility with the production legacy Gmail credential not established.** The local key is 44 base64 chars (32 bytes); the production row's envelopes are `v1:`. A decrypt-test needs the production ciphertext read into the agent session, which was refused as credential handling. Not generated, not rotated; the production row was not touched |
 | Inngest | Only the local dev server is configured (`INNGEST_DEV`); **no** `INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY` exist locally. Production keys must come from Inngest Cloud (or its Vercel integration) |
+
+### Update 2026-09-18 — Production environment configured (not deployed)
+
+- **`INTEGRATION_TOKEN_KEY` verified.** An operator-run, read-only check piped the
+  production legacy Gmail connection's *expired* access-token envelope straight
+  into a local decrypt test (`supabase db query --linked --project-ref
+  axelqoxblpchscksfwbx` from an unlinked scratch workdir; target confirmed by
+  non-secret row counts, Prod ≠ Dev). Output was only `RESULT: MATCH`. The key is
+  reused unchanged — not generated, rotated or displayed — and the production row
+  was not modified.
+- **Vercel CLI** (59.23.1, operator login, scope `vishwaths-projects`) linked this
+  checkout to `wfloai` (`.vercel/`, now gitignored). `vercel link` also appended a
+  `VERCEL_OIDC_TOKEN` to `.env.local` and `.vercel` + `.env*` to `.gitignore`; the
+  token line was removed and the ignore narrowed to `.vercel`.
+- **Production env vars written** with `vercel env add NAME production`, values on
+  stdin, never printed:
+
+| Variable | Type | Source |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Sensitive | reused existing key |
+| `TAVILY_API_KEY` | Sensitive | reused existing key |
+| `GOOGLE_CLIENT_ID` | Config | reused existing OAuth client |
+| `GOOGLE_CLIENT_SECRET` | Sensitive | reused existing OAuth client |
+| `INTEGRATION_TOKEN_KEY` | Sensitive | reused, verified MATCH above |
+| `GMAIL_READ_ACTIONS_ENABLED` | Config | literal `false` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Config | `https://axelqoxblpchscksfwbx.supabase.co` (derived from the ref, **not** copied from `.env.local`, which is Dev) |
+
+- **Still ABSENT (operator):** `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+  (production dashboard → Vercel dashboard, Production only), `INNGEST_SIGNING_KEY`,
+  `INNGEST_EVENT_KEY` (Inngest Vercel integration). Deliberately absent:
+  `INNGEST_DEV`, `RETENTION_CLEANUP_ENABLED`.
+- **Audit (names/scope only):** all seven Production-only; a Production pull to a
+  scratch file (deleted) had 0 occurrences of the Dev ref, 1 of the production ref,
+  `GMAIL_READ_ACTIONS_ENABLED=false`, no `INNGEST_DEV`, no `RETENTION_CLEANUP_ENABLED`.
+- **Node:** project set to **22.x** via `vercel api PATCH /v9/projects/…`
+  (`nodeVersion` only); verified via Vercel MCP. Deployments still **0**.

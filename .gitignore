@@ -35,3 +35,6 @@ Thumbs.db
 
 # supabase cli link state (per-machine; decides which project `supabase db push` targets)
 supabase/.temp/
+
+# vercel cli link state (per-machine)
+.vercel

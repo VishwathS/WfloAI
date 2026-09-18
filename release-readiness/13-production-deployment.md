@@ -347,3 +347,7 @@ Still **0 of 18** recorded.
 ### Update 2026-09-18 — minimum-change configuration pass
 
 Operator chose to reuse existing working credentials for the initial invite-only deployment (separation deferred as hardening). Agent changed **one** thing: Vercel Authentication → `prod_deployment_urls_and_all_previews` (Production public, previews protected). Not possible with connected tooling: Node 22.x project setting and every environment variable (no MCP tool, no Vercel CLI login). Open blockers: `INTEGRATION_TOKEN_KEY` compatibility with the legacy production Gmail credential is **unverified**; Inngest production keys do not exist locally. No deployment; evidence still 0/18. Detail in `docs/DEPLOYMENT.md` §6.
+
+### Update 2026-09-18 — Production env configured (no deployment)
+
+`INTEGRATION_TOKEN_KEY` verified compatible with the production legacy Gmail credential (operator-run read-only check, output `MATCH` only; key reused, not rotated). Via the operator-authenticated Vercel CLI: seven Production-only variables written without display (`ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `INTEGRATION_TOKEN_KEY`, `GMAIL_READ_ACTIONS_ENABLED=false`, `NEXT_PUBLIC_SUPABASE_URL` → `axelqoxblpchscksfwbx`); project Node set to 22.x. Audit: no Dev ref present; `INNGEST_DEV` and `RETENTION_CLEANUP_ENABLED` absent. Remaining before first deploy: the two production Supabase keys and the two Inngest keys (operator). Deployments 0; evidence 0/18. Detail in `docs/DEPLOYMENT.md` §6.
