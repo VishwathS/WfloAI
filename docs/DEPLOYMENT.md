@@ -490,3 +490,19 @@ with a logged-out browser.
 **From now on a push to `main` deploys to production.** The agent pushes only
 with explicit operator approval (PRODUCTION PUSH/DEPLOY APPROVAL REQUIRED).
 At creation `origin/main` was `a635e15`.
+
+### Update 2026-09-18 — minimum-change configuration pass
+
+Operator decision: the initial invite-only deployment **reuses the existing
+working credentials** (Anthropic, Tavily, the current Google OAuth client).
+Separate production credentials and splitting the Supabase-login and Gmail
+OAuth clients are deferred hardening, not blockers. The Gmail scope decision is
+unchanged: new connections request exactly `openid email gmail.send`.
+
+| Item | State |
+|---|---|
+| Deployment protection | **Changed by the agent** (operator-authorised) via Vercel MCP: Vercel Authentication `prod_deployment_urls_and_all_previews` — previews and per-deployment URLs stay behind Vercel login; production domains are public. Password and trusted-IP unchanged (off). Verify with a logged-out request after the first deploy |
+| Node version | Project setting still `24.x`: the Vercel MCP has no project-settings tool. `engines.node` `>=22 <23` governs the build; operator may set Settings → Build and Deployment → Node.js Version → 22.x so the two agree |
+| Environment variables | **Not written**: the Vercel MCP has no environment-variable tool and the Vercel CLI is neither installed nor logged in. All rows still ABSENT |
+| `INTEGRATION_TOKEN_KEY` | **Compatibility with the production legacy Gmail credential not established.** The local key is 44 base64 chars (32 bytes); the production row's envelopes are `v1:`. A decrypt-test needs the production ciphertext read into the agent session, which was refused as credential handling. Not generated, not rotated; the production row was not touched |
+| Inngest | Only the local dev server is configured (`INNGEST_DEV`); **no** `INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY` exist locally. Production keys must come from Inngest Cloud (or its Vercel integration) |

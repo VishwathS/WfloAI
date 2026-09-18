@@ -105,3 +105,5 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — production ledger reconciled.** Operator-authorised `supabase migration repair --status applied` for exactly the ten versions on `axelqoxblpchscksfwbx`, from an isolated scratch workdir: ledger 16/16, `db push --dry-run` up to date, catalog fingerprint unchanged. Vercel creation approved but blocked: the Vercel MCP sees no team scope. Task 13 stays **BLOCKED** (no deployment).
 >
 > **2026-09-18 — Vercel project created, not deployed.** `wfloai` (`prj_W9RynoK7SBt33Eg8v5zv2lYv9Q3Y`, `vishwaths-projects`, hobby), Git-linked to `VishwathS/WfloAI`, production branch `main`, 0 deployments. Push to `main` now deploys production — agent does not push without approval. Open: production env vars, Node setting 24.x → 22.x, deployment-protection scope, first-deploy approval.
+
+> **2026-09-18 — Task 13 minimum-change config pass.** Deployment protection set to protect previews and deployment URLs only (production public). Env vars not written (no Vercel env tooling). `INTEGRATION_TOKEN_KEY` production compatibility unverified; Inngest production keys absent. No deployment.

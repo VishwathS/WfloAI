@@ -343,3 +343,7 @@ Still **0 of 18** recorded.
 ### Update 2026-09-18 — Vercel project created (no deployment)
 
 `VERCEL PROJECT CREATION CHECKPOINT` cleared: `wfloai` (`prj_W9RynoK7SBt33Eg8v5zv2lYv9Q3Y`) in `vishwaths-projects` (hobby), Git-linked to `VishwathS/WfloAI`, production branch `main`, **0 deployments**, no domain yet. Created with `deploy: false`. Two deviations found and left for the operator: project Node setting `24.x` (engines pin `>=22 <23` governs the build), and Vercel Authentication `all_except_custom_domains`, which is expected to wall off the production `*.vercel.app` alias. Detail in `docs/DEPLOYMENT.md` §6. Now at the **production environment-variable / first-deployment checkpoint**; any push to `main` deploys to production. Evidence still 0/18.
+
+### Update 2026-09-18 — minimum-change configuration pass
+
+Operator chose to reuse existing working credentials for the initial invite-only deployment (separation deferred as hardening). Agent changed **one** thing: Vercel Authentication → `prod_deployment_urls_and_all_previews` (Production public, previews protected). Not possible with connected tooling: Node 22.x project setting and every environment variable (no MCP tool, no Vercel CLI login). Open blockers: `INTEGRATION_TOKEN_KEY` compatibility with the legacy production Gmail credential is **unverified**; Inngest production keys do not exist locally. No deployment; evidence still 0/18. Detail in `docs/DEPLOYMENT.md` §6.
