@@ -1,4 +1,5 @@
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { SmallScreenNotice } from "@/components/ui/small-screen-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ export default function DashboardLayout({
 }>) {
   return (
     <div className="min-h-screen bg-gray-50">
+      <div className="px-3 pt-3 lg:hidden">
+        <SmallScreenNotice />
+      </div>
       <div className="mx-auto grid min-h-screen w-full max-w-[1560px] gap-5 px-3 py-4 lg:grid-cols-[260px_1fr] lg:px-4 xl:gap-6">
         <DashboardSidebar />
         <main className="rounded-2xl border border-gray-200 bg-white shadow-card">
