@@ -274,3 +274,35 @@ Operator-only. The agent documents; it does not perform. Record each with a date
 ### Google
 
 24. **Nothing here.** Google Cloud production configuration, redirect URIs, consent screen, and verification are **Task 14**. Do not start them here — Task 14 depends on the canonical origin this task decides.
+
+# Implementation record — 2026-09-17
+
+Repository-side work done; **not `PRODUCTION READY`** — no production environment exists yet.
+
+### Current State corrections (the repository moved on since this file was written)
+
+- `.github/` **exists** (Task 12 CI + Dependabot) and a `typecheck` script exists. Still no host config file — deliberately (see below).
+- `supabase/migrations/` has **16** files, not ten, and there are **twelve** public tables, not nine.
+- `/api/inngest` registers **three** functions: `check-due-schedules`, `run-scheduled-workflow`, `cleanup-expired-data`.
+- The execute route **does** declare `maxDuration = 300` (Task 04). Not a blocker.
+
+### Discovered state (read-only)
+
+- **Vercel:** MCP authenticated, but the account lists **zero teams and zero projects** (`list_teams`, `get_git_deployment_context` both empty; `list_projects` fails). No Vercel CLI, no `.vercel/`. **No production deployment exists.** Consequence: pushing `main` does not currently deploy anything.
+- **Supabase `axelqoxblpchscksfwbx`:** schema reflects all 16 migrations; 12/12 tables RLS-on; `workflow-files` private; 3 storage policies; anon cannot execute `redeem_invite_code` or `consume_action_quota`. **Ledger drift:** `schema_migrations` records only 6 versions (through `202607180001`) — the ten later ones were applied outside the CLI, so `supabase db push` would try to re-apply them. Advisors classified in `docs/DEPLOYMENT.md` §3; none blocking.
+- **Stop Condition hit — dev and prod are the same project.** `.env.local`, the CLI link and the MCP all point at `axelqoxblpchscksfwbx`, and `.env.local` carries `INNGEST_DEV=1`. Recorded as an operator decision in `docs/DEPLOYMENT.md` §1 (option A recommended: keep it as production, move dev elsewhere).
+
+### Required Changes — status
+
+- [x] Env inventory regenerated. Defect found and fixed: `RETENTION_CLEANUP_ENABLED` read by code but undeclared. `tests/env.test.ts` now fails on any read-but-undeclared variable. `ERROR_REPORTER_DSN` is declared (commented) and unread by design until Task 02 picks a vendor.
+- [x] Startup check lists both Inngest keys (unchanged, already correct). **Added:** production refuses to boot when `INNGEST_DEV` would put the SDK in dev mode (SDK 4.11.0: `"1"`/`"true"` or a URL). Verified behaviourally with `next start` and placeholder values: `INNGEST_DEV=1` → exit 1 with the refusal; `INNGEST_DEV=0` → boots.
+- [x] `maxDuration` present on the execute route.
+- [x] Canonical-origin decision written (`docs/DEPLOYMENT.md` §1): one custom-domain origin, sibling 308s to it, `*.vercel.app` and previews **not** OAuth-capable. **The hostname itself is operator input** — not chosen.
+- [x] Host configuration: **no `vercel.json`** — every behaviour it would set is already declared in the repo (engines, route `maxDuration`, `next.config.mjs`). Recorded with reasons.
+- [x] Migration-parity procedure written, including the schema fingerprint needed because the ledger is wrong.
+- [x] Health check: **option (b)**, no new route. Liveness = unauthenticated `GET /api/credentials` → 401, which proves a function booted past the startup check. No CLAUDE.md exception added.
+- [x] `docs/RUNBOOK.md` written — rollback/recovery (incl. what cannot be rolled back) and support/incident (report route, destination, response, containment switches, incident capture). Support address and operator name are **operator input**.
+
+### Production evidence table
+
+**0 of 18 items recorded** — every one needs a deployed environment. The expanded, command-level checklist is `docs/DEPLOYMENT.md` §5.

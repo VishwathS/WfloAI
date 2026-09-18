@@ -1,9 +1,10 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
   REQUIRED_SERVER_ENV,
   assertServerEnv,
   describeMissingServerEnv,
+  inngestDevModeRequested,
   missingServerEnv
 } from "@/lib/config/env";
 
@@ -100,5 +101,63 @@ describe("the env example declares what production needs", () => {
     // "Appears as a key" rather than "is mentioned": both Inngest keys used to
     // exist only inside a comment, which is what A10 is about.
     expect(example).toMatch(new RegExp(`^${name}=`, "m"));
+  });
+
+  test("every variable application code reads is declared", () => {
+    // Task 13 inventory rule: read-but-undeclared is a defect. The operator
+    // builds the production environment from this file, so a variable missing
+    // here is a variable missing in production. RETENTION_CLEANUP_ENABLED was
+    // the first one found.
+    const platformProvided = new Set(["NODE_ENV", "NEXT_PHASE", "NEXT_RUNTIME"]);
+    const root = new URL("../", import.meta.url);
+    const sources = ["app", "lib", "components", "hooks"]
+      .flatMap((dir) =>
+        (readdirSync(new URL(dir, root), { recursive: true }) as string[])
+          .filter((file) => /\.(ts|tsx)$/.test(file))
+          .map((file) => `${dir}/${file.replaceAll("\\", "/")}`)
+      )
+      .concat(["proxy.ts", "instrumentation.ts"]);
+
+    const read = new Set(
+      sources.flatMap((file) =>
+        [...readFileSync(new URL(file, root), "utf8").matchAll(/process\.env\.([A-Z_]+)/g)].map(
+          (match) => match[1]
+        )
+      )
+    );
+
+    const undeclared = [...read].filter(
+      (name) => !platformProvided.has(name) && !new RegExp(`^#? ?${name}=`, "m").test(example)
+    );
+
+    expect(read.size).toBeGreaterThan(5);
+    expect(undeclared).toEqual([]);
+  });
+});
+
+describe("INNGEST_DEV cannot reach production", () => {
+  // Dev mode skips signature verification, so INNGEST_DEV in production defeats
+  // A10 even when INNGEST_SIGNING_KEY is correctly set. The unsigned-POST test
+  // would catch it; this makes it a refused boot instead of a silent hole.
+  test.each(["1", "true", "TRUE", " 1 ", "http://localhost:8288"])(
+    "production refuses to start with INNGEST_DEV=%j",
+    (value) => {
+      expect(inngestDevModeRequested(value)).toBe(true);
+      expect(() => assertServerEnv({ ...completeEnv(), INNGEST_DEV: value })).toThrow(
+        "INNGEST_DEV"
+      );
+    }
+  );
+
+  test.each([undefined, "", "0", "false", "FALSE"])(
+    "INNGEST_DEV=%j leaves the SDK in cloud mode and starts",
+    (value) => {
+      expect(inngestDevModeRequested(value)).toBe(false);
+      expect(() => assertServerEnv({ ...completeEnv(), INNGEST_DEV: value })).not.toThrow();
+    }
+  );
+
+  test("development keeps working with INNGEST_DEV=1", () => {
+    expect(() => assertServerEnv({ NODE_ENV: "development", INNGEST_DEV: "1" })).not.toThrow();
   });
 });

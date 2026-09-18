@@ -56,6 +56,18 @@ export function describeMissingServerEnv(missing: readonly string[]): string {
   ].join("\n");
 }
 
+// The Inngest SDK enters dev mode when INNGEST_DEV is "1"/"true" or a URL, and
+// dev mode skips signature verification — so a copied .env.local line defeats
+// A10 even with INNGEST_SIGNING_KEY set. Only unset, "", "0" and "false" leave
+// it in cloud mode; anything else is refused rather than second-guessed.
+export function inngestDevModeRequested(value: string | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
+  return !["", "0", "false"].includes(value.trim().toLowerCase());
+}
+
 // Throws in production only. Development runs against .env.local with whatever
 // subset the developer needs, and a hard failure there would make the app
 // unusable for anyone working on a single feature.
@@ -68,5 +80,11 @@ export function assertServerEnv(env: Record<string, string | undefined> = proces
 
   if (missing.length > 0) {
     throw new Error(describeMissingServerEnv(missing));
+  }
+
+  if (inngestDevModeRequested(env.INNGEST_DEV)) {
+    throw new Error(
+      "Refusing to start: INNGEST_DEV is set in production. It puts the Inngest SDK in dev mode, which skips signature verification on /api/inngest even when INNGEST_SIGNING_KEY is set. Remove it from the production environment."
+    );
   }
 }

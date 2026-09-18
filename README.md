@@ -77,7 +77,15 @@ Optional, with safe defaults:
 | Variable | Default | Notes |
 |---|---|---|
 | `GMAIL_READ_ACTIONS_ENABLED` | off | Must be exactly `"true"` to enable. Gates every Gmail action except Send, Create Draft included |
+| `RETENTION_CLEANUP_ENABLED` | off | Must be exactly `"true"` for the retention sweep to delete anything. Set it only where pruning is intended |
 | Error reporter DSN | none | Registered through `setErrorTransport()`; until then errors go to stderr as structured lines |
+
+`INNGEST_DEV` must be **absent** in production. It puts the Inngest SDK in dev
+mode, which skips signature verification, so the startup check refuses to boot
+when it is set to anything other than empty, `0` or `false`.
+
+Deployment, the canonical origin and the operations runbook are in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 The two Inngest keys are **not interchangeable** and confusing them is the
 reason the startup check names them separately. `.env.local.example` documents
