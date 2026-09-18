@@ -113,3 +113,5 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-18 — Task 13 pre-deployment re-audit passed.** 11/11 Production vars present, prod Supabase target confirmed, no Dev ref. Deferred: Inngest keys → Sensitive, integration scope → wfloai only. Awaiting first-deployment approval.
 
 > **2026-09-18 — First production deployment READY** at `wfloai.vercel.app` (`6a331b5`, operator-approved). Automated logged-out verification passed. Pending operator: Supabase Auth URLs, Google redirect URI, Inngest sync check, signed-in smoke tests.
+
+> **2026-09-18 — Ready for signed-in smoke test.** Inngest synced (3 functions), 0 production schedules, bundle targets prod Supabase, Google login redirect healthy, operator account approved. Not LIVE.

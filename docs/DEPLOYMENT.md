@@ -588,3 +588,21 @@ integration built it. `<CANONICAL_HOST>` = **`wfloai.vercel.app`**.
 Not yet evidenced (needs a human or a provider dashboard): signed-in Google login
 round trip, invite gate, a manual run, Gmail connect, Inngest sync + scheduled run,
 and the service-role key's target (proven by the first scheduled run).
+
+### Update 2026-09-18 — post-configuration readiness for the signed-in smoke test
+
+Operator reported: Supabase Auth URLs set, Gmail redirect URI registered, Inngest
+Production app `wfloai` synced at `https://wfloai.vercel.app/api/inngest` (Last Sync
+Success; functions `check-due-schedules`, `cleanup-expired-data`,
+`run-scheduled-workflow`). Agent read-only confirmation:
+
+| Check | Result |
+|---|---|
+| Inngest sync | runtime log `PUT /api/inngest` 200 at 08:50:27; cron `POST /api/inngest` 200/206 since; no runtime errors other than the agent's own unsigned probe |
+| Scheduler exposure | production has **0** `workflow_schedules` — the live cron cannot fire legacy automation; 0 runs and 0 integration actions in the last 2h |
+| Retention job | registered but no-op (`RETENTION_CLEANUP_ENABLED` absent → skipped) |
+| Client bundle | 13 `/login` chunks: production ref present, Dev ref absent |
+| Supabase Google login | `/auth/v1/authorize?provider=google` → 302 to Google, callback on `axelqoxblpchscksfwbx.supabase.co`, scopes `email profile` |
+| Operator account | exists, Google identity, **approved**, no Gmail connection yet |
+| Invite gate | 1 usable invite code, 99 seats left (codes not read) |
+| Legacy Gmail connection | belongs to another approved user; untouched |
