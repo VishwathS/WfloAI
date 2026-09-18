@@ -333,3 +333,9 @@ Re-discovered: zero teams, zero projects, no `.vercel/`, no CLI. Intended projec
 ### Production evidence table
 
 Still **0 of 18** recorded.
+
+### Update 2026-09-18 — production ledger reconciled
+
+`PRODUCTION MIGRATION REPAIR OPERATOR CHECKPOINT` cleared. With operator authorisation, `supabase migration repair --status applied` recorded exactly the ten verified versions on `axelqoxblpchscksfwbx` from an isolated scratch workdir (this checkout stayed linked to Dev). After: `migration list` 16/16 local = remote; `db push --dry-run` "Remote database is up to date" (no real push); catalog fingerprint identical before and after; scratch link removed. Detail in `docs/DEPLOYMENT.md` §3. This is evidence of ledger parity only — the 18 production evidence items still need a deployment.
+
+`VERCEL PROJECT CREATION CHECKPOINT`: operator approved creating `wfloai`, but the Vercel MCP still reports **zero teams**, and `create_git_project` requires a team scope. The project was not created; no team ID was guessed.

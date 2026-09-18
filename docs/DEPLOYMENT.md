@@ -215,7 +215,27 @@ ledger never recorded them. **Consequence: `supabase db push` against this
 project would try to re-apply ten migrations that are already live.** Do not
 run it.
 
-### `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED` (Task 13) — verified, awaiting CLI auth
+### `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED` (Task 13) — RESOLVED 2026-09-18
+
+**2026-09-18: repair run and verified — ledger 16/16.** Operator authenticated
+the Supabase CLI (2.117.0) and authorised this one operation. From the isolated
+scratch workdir (identical copy of the 16 migrations, no `config.toml`), the
+repository checkout's link stayed on Dev (`ureajvxesvmehlxlrboy`) throughout:
+
+- `link --project-ref axelqoxblpchscksfwbx` (scratch only); `migration list`
+  showed exactly the six shared versions and the ten local-only ones.
+- `migration repair --linked --status applied` for exactly the ten versions
+  below → CLI: "Migration history repaired".
+- `migration list` after: 16 rows, local = remote for every one.
+- `db push --dry-run`: `"upToDate": true`, `migrations: []` — "Remote database
+  is up to date". No real push was run; no migration SQL was applied; the
+  ledger table was not hand-edited.
+- Read-only MCP catalog fingerprint (public columns, constraints, indexes,
+  public+storage policies, public function bodies) taken immediately before and
+  after the repair: **identical** (`cols 6fca00fe…`, `cons 28bd947a…`,
+  `idx c268a638…`, `pol 3cd52e03…`, `fn 872a350a…`); ledger rows 6 → 16.
+- Scratch workdir unlinked afterwards.
+
 
 **2026-09-17 (release resume): pre-repair verification done; repair not yet run.**
 
@@ -271,7 +291,7 @@ and must stay that way:
    `supabase db push --dry-run` reports nothing to push.
 5. Unlink or delete the scratch checkout.
 
-Nothing in the Dev provisioning changed production's ledger; it still records 6.
+Nothing in the Dev provisioning changed production's ledger; before the 2026-09-18 repair it recorded 6, and it now records all 16.
 
 ### Procedure (operator runs it; read-only)
 

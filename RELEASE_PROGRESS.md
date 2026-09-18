@@ -101,3 +101,5 @@ The application code requires all five; deploy and migrate together.
 > | Task 13–17 evidence: Vercel-domain decision, env matrix, migration-repair verification, creation checkpoint | *(this docs commit — see git log)* | docs only; canonical suite re-run green |
 >
 > **Operator checkpoints now open:** `PRODUCTION MIGRATION REPAIR OPERATOR CHECKPOINT` (verification passed — all ten unrecorded migrations' effects present in `axelqoxblpchscksfwbx`; CLI unauthenticated, so the ledger still records 6/16) and `VERCEL PROJECT CREATION CHECKPOINT` (zero teams/projects; `docs/DEPLOYMENT.md` §6). Task 13 stays **BLOCKED** on them; no lifecycle state changed. The one legacy production Gmail connection (holds `gmail.compose`) was left untouched.
+>
+> **2026-09-18 — production ledger reconciled.** Operator-authorised `supabase migration repair --status applied` for exactly the ten versions on `axelqoxblpchscksfwbx`, from an isolated scratch workdir: ledger 16/16, `db push --dry-run` up to date, catalog fingerprint unchanged. Vercel creation approved but blocked: the Vercel MCP sees no team scope. Task 13 stays **BLOCKED** (no deployment).
