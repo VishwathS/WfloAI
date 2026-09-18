@@ -163,3 +163,9 @@ Stop and ask before proceeding if:
 4. **Verify the domain** in Search Console — required for the OAuth submission.
 5. **Decide the retention periods** you are willing to commit to, so task 12 implements what the policy promises rather than the reverse.
 6. **Provide a real contact address** for privacy inquiries. The policy needs one that is monitored. **This is the same address Task 13's `docs/RUNBOOK.md` names as the support/incident route** — one monitored address, published here and routed there, not two. Task 17's Gate 15 checks that they match.
+
+### Update 2026-09-17 (release resume) — contact address and Gmail scope sentence
+
+- **Contact:** the operator chose `vishwath@ucsb.edu`. It is one constant, `SUPPORT_EMAIL` in `lib/support.ts`, rendered as a `mailto:` link in the privacy policy's and terms' Contact sections and in a new `/help#contact` section; `docs/RUNBOOK.md` §2.1 names it; `tests/supportContact.test.ts` fails on any drift or a returning placeholder. Blocking item (2) above — a real monitored contact address — is now **supplied**; that it is actually monitored is Task 17 Gate 15's check.
+- **Factual correction in the privacy draft:** after `fee570c` the Gmail connect requests `openid` and `email` alongside `gmail.send`, so "requests one permission: gmail.send" was false. The sentence now names all three and states that they cannot read, list or draft mail. **This is a changed legal statement — counsel review must cover it.** Both "Last updated" dates moved to 17 September 2026.
+- Nothing else changed. **Both DRAFT — NOT REVIEWED BY COUNSEL banners remain.** No company entity, address, jurisdiction, compliance claim or counsel approval was added.

@@ -9,7 +9,9 @@ runs in the Supabase SQL editor of the **production** project, which runs as a
 privileged role and bypasses RLS — read the `where` clause twice.
 
 Placeholders the operator fills in: `<CANONICAL_HOST>` (see
-[DEPLOYMENT.md](DEPLOYMENT.md) §1), `<SUPPORT_ADDRESS>`, `<OPERATOR_NAME>`.
+[DEPLOYMENT.md](DEPLOYMENT.md) §1) and `<OPERATOR_NAME>`. The support address is
+decided: `vishwath@ucsb.edu` (operator decision, 2026-09-17), held in
+`lib/support.ts`.
 
 ---
 
@@ -98,14 +100,15 @@ Deliberately minimal: no ticketing system, no status page, no on-call rotation.
 
 ### 2.1 How a user reports a problem
 
-By email to **`<SUPPORT_ADDRESS>`** — *not yet chosen; OPERATOR INPUT REQUIRED.*
-It must be the same address published in the privacy policy and terms (their
-"Contact" sections currently show a visible placeholder, deliberately not
-invented) and findable from `/help`. One address, not two.
+By email to **`vishwath@ucsb.edu`** (operator decision, 2026-09-17). It is the
+single constant `SUPPORT_EMAIL` in `lib/support.ts`, rendered in the privacy
+policy's and terms' "Contact" sections and in `/help#contact`;
+`tests/supportContact.test.ts` fails if any of them, or this runbook, drifts.
+One address, not two.
 
 ### 2.2 Where the report goes
 
-The `<SUPPORT_ADDRESS>` inbox, watched by **`<OPERATOR_NAME>`**. The Task 02
+The `vishwath@ucsb.edu` inbox, watched by **`<OPERATOR_NAME>`** — *operator to confirm*. The Task 02
 error-reporter notifications, once a vendor is chosen, go to the same inbox.
 
 ### 2.3 How the operator responds

@@ -3,6 +3,7 @@ import { EXECUTION_LIMITS } from "@/lib/execution/constants";
 import { INTEGRATION_LIMITS } from "@/lib/integrations/limits";
 import { RETENTION_DAYS } from "@/lib/retention/constants";
 import { SCHEDULE_LIMITS } from "@/lib/schedule/constants";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Help — WfloAI",
@@ -43,7 +44,8 @@ const contents: [string, string][] = [
   ["nodes", "What each step does"],
   ["schedules", "Schedules"],
   ["limits", "Limits"],
-  ["data", "Your data"]
+  ["data", "Your data"],
+  ["contact", "Contact"]
 ];
 
 export default function HelpPage() {
@@ -263,6 +265,20 @@ export default function HelpPage() {
             Privacy Policy
           </Link>{" "}
           describes what is stored and who it is sent to.
+        </p>
+      </Section>
+
+      <Section id="contact" title="Contact">
+        <p>
+          Something broken, or a workflow doing something it should not? Email{" "}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="font-medium text-violet-700 hover:underline"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          . Include the workflow name and roughly when it ran. If a schedule is sending email
+          you did not expect, turn the schedule off in Workflow Settings first, then write.
         </p>
       </Section>
     </div>

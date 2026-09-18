@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DraftBanner } from "@/components/marketing/DraftBanner";
+import { SUPPORT_EMAIL } from "@/lib/support";
 // Task 12 Completion Criteria: the periods here and in the sweep must be the
 // same numbers. Importing them is how that stays true.
 import {
@@ -12,13 +13,7 @@ export const metadata = {
   description: "What WfloAI stores, who it sends data to, and how long it keeps it."
 };
 
-// Task 07 manual step 6: the operator supplies one monitored address, which is
-// also the support/incident route named in the task 13 runbook. Task 17 gate 15
-// checks that the two match. It is left as a visible placeholder rather than
-// invented.
-const CONTACT_PLACEHOLDER = "[PRIVACY CONTACT ADDRESS — OPERATOR TO SUPPLY]";
-
-const LAST_UPDATED = "16 September 2026";
+const LAST_UPDATED = "17 September 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -141,11 +136,14 @@ export default function PrivacyPage() {
           address, and nothing else.
         </p>
         <p>
-          Connecting Gmail is separate and optional. When you connect it, WfloAI requests one
-          permission: <span className="font-medium text-gray-900">gmail.send</span>, which
-          allows sending mail on your behalf. It does not allow reading your mailbox, listing
-          your messages, or creating drafts, and WfloAI does not request any permission that
-          would.
+          Connecting Gmail is separate and optional. When you connect it, WfloAI requests
+          one Gmail permission, <span className="font-medium text-gray-900">gmail.send</span>,
+          which allows sending mail on your behalf, together with Google&apos;s basic
+          identity permissions, <span className="font-medium text-gray-900">openid</span> and{" "}
+          <span className="font-medium text-gray-900">email</span>, which tell WfloAI the
+          address of the Google account you connected so Settings can show it. None of these
+          allow reading your mailbox, listing your messages, or creating drafts, and WfloAI
+          does not request any permission that would.
         </p>
         <p>
           Mail is sent only when a workflow you built runs a step that sends it. The message
@@ -282,7 +280,12 @@ export default function PrivacyPage() {
       <Section title="Contact">
         <p>
           Questions about this policy, or requests about your data, go to{" "}
-          <span className="font-medium text-gray-900">{CONTACT_PLACEHOLDER}</span>.
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="font-medium text-violet-700 hover:underline"
+          >
+            {SUPPORT_EMAIL}
+          </a>.
         </p>
         <p>
           See also the{" "}

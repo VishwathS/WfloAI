@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { DraftBanner } from "@/components/marketing/DraftBanner";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Terms of Service — WfloAI",
   description: "The rules for using WfloAI, including what workflows may and may not do."
 };
 
-// Same placeholder as the privacy policy, and deliberately the same address:
-// task 07 manual step 6 and the task 13 runbook name one monitored route, and
-// task 17 gate 15 checks that they match.
-const CONTACT_PLACEHOLDER = "[CONTACT ADDRESS — OPERATOR TO SUPPLY]";
-
-const LAST_UPDATED = "16 September 2026";
+const LAST_UPDATED = "17 September 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -178,7 +174,12 @@ export default function TermsPage() {
       <Section title="Contact">
         <p>
           Questions about these terms go to{" "}
-          <span className="font-medium text-gray-900">{CONTACT_PLACEHOLDER}</span>.
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="font-medium text-violet-700 hover:underline"
+          >
+            {SUPPORT_EMAIL}
+          </a>.
         </p>
       </Section>
     </div>
