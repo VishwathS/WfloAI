@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { encryptSecret } from "@/lib/crypto";
 import { getGoogleClientConfig, GMAIL_OAUTH_STATE_COOKIE } from "@/lib/gmail/oauth";
-import { scopesForTier, type GmailTier } from "@/lib/gmail/scopes";
+import { gmailReadActionsEnabled, scopesForTier, type GmailTier } from "@/lib/gmail/scopes";
 
 function base64Url(buffer: Buffer): string {
   return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -21,6 +21,15 @@ export async function GET(request: Request) {
 
   const requestUrl = new URL(request.url);
   const tier: GmailTier = requestUrl.searchParams.get("tier") === "read" ? "read" : "send";
+
+  // The read tier requests Restricted scopes. Hiding its link in Settings is
+  // not a control — the URL is typeable — so the flag is enforced here too.
+  if (tier === "read" && !gmailReadActionsEnabled()) {
+    return NextResponse.json(
+      { error: "Email reading is not available in this version." },
+      { status: 403 }
+    );
+  }
 
   const { clientId } = getGoogleClientConfig();
   const redirectUri = `${requestUrl.origin}/api/integrations/gmail/callback`;

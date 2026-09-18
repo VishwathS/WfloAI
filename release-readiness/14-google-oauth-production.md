@@ -189,3 +189,33 @@ Operator-only. The agent documents; it does not perform.
 11. **Run the fresh-account connect and send test** from an account with no test-user status.
 12. **Check the Google permissions page** after the disconnect test — the app cannot verify this for you.
 13. **Do not pursue Restricted scopes.** Create Draft, Find, Read, and Reply remain deferred with the full D1 program in MASTER §6. Revisit only after Phase 3, weighing the CASA security assessment, Letter of Assessment, annual re-assessment, and recurring cost.
+
+# Implementation record — 2026-09-17
+
+Repository side done and one defect fixed; **Task 14 is BLOCKED** — on a new CRITICAL finding, on Task 13 (no canonical origin, no deployment), and on every Console step. Full operator material: `docs/GOOGLE-OAUTH.md`.
+
+### Current State corrections
+
+- A15 **has** landed: `scopesForTier("send")` is `[gmail.send]`, the file comment says compose is RESTRICTED, and `.env.local.example`'s stale Create Draft line is corrected. The snippet in this file's Current State is historical.
+- `isRestrictedAction()` (not `isReadAction()`) is the flag predicate, and it covers Create Draft.
+
+### Fixed here
+
+- **`/api/integrations/gmail/connect?tier=read` was honoured for any signed-in user regardless of `GMAIL_READ_ACTIONS_ENABLED`**, requesting `gmail.compose` + `gmail.readonly` from Google and storing whatever was granted. The Settings link was hidden, but the URL is typeable. The route now returns 403 unless the flag is exactly `"true"`. `tests/gmailConnectScope.test.ts` (7 tests, RED before the fix) also adds the required `scopesForTier("send") === [gmail.send]` regression guard, asserted through the real route's consent URL.
+
+### Found here — needs an operator decision (not fixed)
+
+- **CRITICAL: a fresh send-only Gmail connect cannot complete.** The callback reads the connected address via `users.getProfile`, which Google authorizes only for `mail.google.com`, `gmail.modify`, `gmail.compose`, `gmail.readonly`, `gmail.metadata` — **not `gmail.send`** (checked against Google's API reference 2026-09-17). Since A15, every fresh connect 403s there and lands on "Connecting Gmail didn't complete". Hidden because the one live connection predates A15 and holds `gmail.compose`. Options (A: add non-sensitive `openid email` and use OIDC userinfo — recommended; B: drop the displayed address) in `docs/GOOGLE-OAUTH.md` §0. Option A widens the requested scope set, which is a hard stop for an agent.
+- **Live row holds a Restricted scope.** The only `gmail_connections` row (`active`) has `gmail.compose`. Unusable while the flag is off, but fails this task's scope check. Clean path: disconnect + reconnect after the fix — the operator's call.
+- **Gmail and login clients may be the same.** That row also holds `openid`/`userinfo.*`, which the Gmail connect code never requested, arriving via `include_granted_scopes`. Operator to compare client IDs.
+
+### Required Changes — status
+
+- [x] A15 confirmed landed
+- [x] `.env.local.example` comment already correct
+- [x] Scope justification — `docs/GOOGLE-OAUTH.md` §3
+- [x] Demo-video script — §4
+- [x] Reconnect / error surfaces documented — §5
+- [x] Executor guard test exists and covers both halves (Task 10's `tests/gmailConsent.test.ts`)
+- [x] Create Draft unreachable — dropdown + executor, tested
+- [ ] Every Console step and every production verification — operator, after Task 13 and after §0 is fixed
