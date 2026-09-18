@@ -80,6 +80,24 @@ separate. **Confirm in the Console**: compare the client ID under Supabase → A
 Providers → Google with `GOOGLE_CLIENT_ID`. If they share a project, they share
 one consent screen, one publishing state and one verification.
 
+What the repository can and cannot show (re-checked 2026-09-17):
+
+- The Gmail flow uses only `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+  (`lib/gmail/oauth.ts` `getGoogleClientConfig`). The login flow never touches
+  them: `components/auth/login-card.tsx` goes through Supabase's Google
+  provider, whose client ID lives only in the Supabase dashboard. **The code
+  keeps them separable; it cannot prove they are separate** — that is a Console
+  fact.
+- Since `fee570c` the Gmail connect itself requests `openid` and `email`, so a
+  new row holding those no longer indicates anything. `userinfo.profile` still
+  does: the Gmail code has never requested it, while Supabase's Google login
+  does. A new connection row that holds `userinfo.profile` means the two flows
+  share an OAuth client.
+- Recommended target (operator decision, Console-only): a dedicated Gmail
+  integration client whose consent screen lists `gmail.send`, `openid` and
+  `userinfo.email`, and a login client that never lists a Gmail scope.
+  **`GOOGLE_CLIENT_SEPARATION_OPERATOR_CHECK`.**
+
 ---
 
 ## 1. Repository state verified (2026-09-17)
@@ -143,7 +161,13 @@ one consent screen, one publishing state and one verification.
 
 ### H. Domain and verification
 13. Search Console: verify `<CANONICAL_HOST>`; add it under Branding →
-    Authorized domains.
+    Authorized domains. `<CANONICAL_HOST>` is the Vercel production alias for V1
+    (DEPLOYMENT.md §1). **`GOOGLE_CUSTOM_DOMAIN_MAY_BE_REQUIRED`:** if Google
+    will not accept a `*.vercel.app` host as a verified authorized domain for
+    sensitive-scope verification, a custom domain becomes a Task 14 operator
+    gate — buy/attach it, make it canonical, and re-register every URL in
+    DEPLOYMENT.md §1. It does not block the first deployment, and Testing-mode
+    use by listed test users does not need it.
 14. App homepage `https://<CANONICAL_HOST>/`, privacy policy `/privacy`, terms
     `/terms`. **The legal pages still carry `DRAFT — NOT REVIEWED BY COUNSEL`**;
     counsel review and banner removal (Task 07) come before submission.

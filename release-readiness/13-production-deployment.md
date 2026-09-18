@@ -307,3 +307,29 @@ Repository-side work done; **not `PRODUCTION READY`** — no production environm
 ### Production evidence table
 
 **0 of 18 items recorded** — every one needs a deployed environment. The expanded, command-level checklist is `docs/DEPLOYMENT.md` §5.
+
+# Release resume — 2026-09-17
+
+Status: **IN PROGRESS, not `PRODUCTION READY`.** Two operator checkpoints stand in the way (below); nothing was deployed and production was not written to.
+
+### Operator decisions recorded
+
+- Canonical origin: the **Vercel-generated production alias** for V1; no custom domain. A custom domain may later be required by Google verification only (`GOOGLE_CUSTOM_DOMAIN_MAY_BE_REQUIRED`, Task 14). `docs/DEPLOYMENT.md` §1 rewritten accordingly; evidence row 2 (sibling redirect) is N/A for V1.
+- Support address: `vishwath@ucsb.edu` — shipped in `d78e84d` (privacy, terms, `/help#contact`, RUNBOOK §2.1).
+- Production DB stays `axelqoxblpchscksfwbx`; Dev stays `ureajvxesvmehlxlrboy`.
+
+### Dev/Prod separation — re-verified
+
+`.mcp.json`: `supabase` → `axelqoxblpchscksfwbx` `read_only=true`; `supabase-dev` → `ureajvxesvmehlxlrboy` writable; no account-level Supabase MCP. `.env.local` URL and `supabase/.temp/project-ref` → Dev only. No project ref hardcoded in tracked source.
+
+### Production migration ledger — `PRODUCTION MIGRATION REPAIR OPERATOR CHECKPOINT`
+
+Pre-repair verification is complete and passed (catalog fingerprint vs Dev, detail in `docs/DEPLOYMENT.md` §3): the ten missing versions are exactly `202607190001–4`, `202609150001–3`, `202609160001–2`, `202609170001`, and every one's effect is present. The repair was **not** run: the Supabase CLI here is unauthenticated. Ledger still records 6/16.
+
+### Vercel — `VERCEL PROJECT CREATION CHECKPOINT`
+
+Re-discovered: zero teams, zero projects, no `.vercel/`, no CLI. Intended project settings and the auto-deploy consequence are in `docs/DEPLOYMENT.md` §6. Env matrix re-derived from code with no drift; every variable ABSENT in Vercel (no project).
+
+### Production evidence table
+
+Still **0 of 18** recorded.

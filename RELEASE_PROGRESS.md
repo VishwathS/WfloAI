@@ -91,3 +91,13 @@ The application code requires all five; deploy and migrate together.
 > **2026-09-17 correction (read-only evidence, Task 13):** the "None is applied" line above is historical. Project `axelqoxblpchscksfwbx` now has the schema of **all 16** migrations, `202609170001` included — the operator applied them during the invite launch track. Its `supabase_migrations.schema_migrations` ledger, however, records only the first **6**, so `supabase db push` would try to re-apply ten live migrations. See `docs/DEPLOYMENT.md` §3.
 
 > **2026-09-17 — isolated development environment (Task 13 pause).** New hosted project **WfloAI Dev** `ureajvxesvmehlxlrboy` (us-west-1, Free plan, $0) holds all 16 migrations with a ledger that matches Git, and is certified: 12/12 tables RLS-on, no self-approve, `invite_codes` unreadable, attempt table unwritable by clients, `redeem_invite_code`/`consume_action_quota` not executable by `anon`, succeeded→failed ledger update denied, `on_auth_user_created` creates unapproved profiles, private `workflow-files` with 3 owner-prefix policies. `.env.local` and the CLI link now target Dev; `supabase/.temp/` (which was committed, pointing at production) is untracked and gitignored. **Production was not written to**; its ledger still records 6 of 16 — `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED`, procedure in `docs/DEPLOYMENT.md` §3, operator-only. Dev Google login is an operator action (`DEV_GOOGLE_AUTH_OPERATOR_ACTION_REQUIRED`, `docs/DEPLOYMENT.md` §1).
+
+> **2026-09-17 — release resume (Tasks 13–17).** Commits, all local, none pushed:
+>
+> | Change | SHA | Verification before commit |
+> |---|---|---|
+> | Gmail send-only connect fixed: `openid email gmail.send` + OIDC userinfo (Task 14) | `fee570c` | focused Gmail tests 33/33 · `npm test` 341/341 (27 files) · typecheck · lint · build — all green |
+> | Support address `vishwath@ucsb.edu` published; privacy Gmail-scope sentence corrected (Tasks 07/13) | `d78e84d` | `tests/supportContact.test.ts` 7/7 · `npm test` 348/348 (28 files) · typecheck · lint · build — all green |
+> | Task 13–17 evidence: Vercel-domain decision, env matrix, migration-repair verification, creation checkpoint | *(this docs commit — see git log)* | docs only; canonical suite re-run green |
+>
+> **Operator checkpoints now open:** `PRODUCTION MIGRATION REPAIR OPERATOR CHECKPOINT` (verification passed — all ten unrecorded migrations' effects present in `axelqoxblpchscksfwbx`; CLI unauthenticated, so the ledger still records 6/16) and `VERCEL PROJECT CREATION CHECKPOINT` (zero teams/projects; `docs/DEPLOYMENT.md` §6). Task 13 stays **BLOCKED** on them; no lifecycle state changed. The one legacy production Gmail connection (holds `gmail.compose`) was left untouched.

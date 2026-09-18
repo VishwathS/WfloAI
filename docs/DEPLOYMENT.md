@@ -35,44 +35,51 @@ non-commercial use.
 
 ### Canonical origin
 
-WfloAI has **exactly one** canonical production origin:
+**Decided 2026-09-17 (operator): V1 uses the Vercel-generated production
+domain.** No custom domain is configured, none is being bought, and the lack of
+one does not block the first deployment.
 
 ```
-https://<CANONICAL_HOST>
+https://<CANONICAL_HOST>      # the project's production alias, <name>.vercel.app
 ```
 
-`<CANONICAL_HOST>` is an operator-owned custom domain. **Not yet chosen —
-OPERATOR INPUT REQUIRED.** The recommended shape is the apex (`example.com`)
-with `www.example.com` permanently redirecting to it.
+`<CANONICAL_HOST>` is the production alias Vercel assigns when the project is
+created. For a project named `wfloai` it is normally `wfloai.vercel.app`, but
+Vercel picks a different name when that one is taken, so **the exact hostname is
+recorded only after creation, from the project's Domains page.** Until then it
+stays a placeholder here, in RUNBOOK.md and in GOOGLE-OAUTH.md.
 
 Rules that follow:
 
-1. **A custom domain is required, not optional.** Google's OAuth verification
-   (Task 14) needs an authorized domain the operator can verify in Search
-   Console, with the homepage and privacy policy on it. A `*.vercel.app` address
-   cannot be verified by you, so it cannot be the canonical origin.
-2. **Every non-canonical origin redirects to the canonical one** — `www` or apex
-   (whichever is not canonical) with a 308, configured in Vercel's domain settings.
-3. **The `*.vercel.app` production alias is not canonical and not OAuth-capable.**
-   It serves the app, but sign-in and Gmail connect fail there because neither
-   origin is registered.
-4. **Preview deployments are not OAuth-capable.** Every preview has its own
-   origin, and both Supabase Auth and Google match redirect URIs exactly. Signing
-   in or connecting Gmail on a preview URL fails **by design**; it is not a bug.
-   A preview pass proves nothing about production OAuth.
+1. **The production alias is the one canonical origin.** Every OAuth redirect is
+   registered against it and nothing else.
+2. **Deployment-specific URLs are not canonical and not OAuth-capable.** Every
+   deployment also gets its own hashed `*.vercel.app` URL. Signing in or
+   connecting Gmail there fails by design, because neither Supabase Auth nor
+   Google has that origin registered.
+3. **Preview deployments are not OAuth-capable** for the same reason. A preview
+   pass proves nothing about production OAuth.
+4. **A custom domain may become mandatory later, for Google only.** Google's
+   sensitive-scope verification needs an authorized domain the operator can
+   verify in Search Console, with the homepage and privacy policy on it. Whether
+   a `*.vercel.app` host satisfies that is settled when Task 14 submits —
+   recorded there as `GOOGLE_CUSTOM_DOMAIN_MAY_BE_REQUIRED`, an operator gate,
+   not a deployment blocker. If a domain is added then, it becomes canonical,
+   the `vercel.app` alias redirects to it (308), and every URL below is
+   re-registered.
 
 Why this matters in code: there is no site-URL variable. Every redirect is built
 from the incoming request's origin — `app/auth/callback/route.ts`,
 `components/auth/login-card.tsx`, `app/api/integrations/gmail/connect/route.ts`
 and `.../callback/route.ts`. The origin a user arrives on *is* the origin OAuth
-uses, and rule 2's redirect is what keeps it to one.
+uses.
 
 URLs registered from this decision (Task 14 consumes these):
 
 | Where | Value |
 |---|---|
-| Supabase Auth → Site URL | `https://<CANONICAL_HOST>` |
-| Supabase Auth → Redirect URLs | `https://<CANONICAL_HOST>/auth/callback` |
+| Supabase Auth (production project) → Site URL | `https://<CANONICAL_HOST>` |
+| Supabase Auth → Redirect URLs | `https://<CANONICAL_HOST>/auth/callback**` (the login card appends `?next=…`) |
 | Google Cloud → Gmail OAuth client → Authorized redirect URI | `https://<CANONICAL_HOST>/api/integrations/gmail/callback` |
 | Google Cloud → OAuth consent screen → homepage / privacy / terms | `https://<CANONICAL_HOST>/`, `/privacy`, `/terms` |
 
@@ -145,31 +152,37 @@ session, not this working copy.
 
 ## 2. Environment variables
 
-Regenerated 2026-09-17 from `process.env.*` reads in `app/ lib/ components/
-hooks/ proxy.ts instrumentation.ts`, plus the SDK-implicit Inngest variables,
-reconciled against `.env.local.example`. `tests/env.test.ts` now fails if code
-reads a variable the example does not declare.
+Re-derived 2026-09-17 (release resume) from every `process.env.*` read in `app/
+lib/ components/ hooks/ proxy.ts instrumentation.ts next.config.mjs`, plus the
+SDK-implicit Inngest variables, reconciled against `.env.local.example` and
+`lib/config/env.ts`: **no drift**. `tests/env.test.ts` fails if code reads a
+variable the example does not declare. The Anthropic model id is a code
+constant (`claude-haiku-4-5-20251001`), not configuration.
 
 Set in Vercel → Project → Settings → Environment Variables, scope
-**Production** (not Preview, unless you deliberately give previews their own
-non-production values).
+**Production** only. Do not give Preview the production values: previews are not
+OAuth-capable anyway, and a preview holding the production service-role key is a
+second production.
 
-| Variable | Required | Exposure | Value comes from |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Public (by design) | Supabase → Project Settings → API → Project URL of the **production** project |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public (by design) | Same page → anon / publishable key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | **Server only, secret** | Same page → service_role key. Never `NEXT_PUBLIC_` |
-| `ANTHROPIC_API_KEY` | Yes | Server only, secret | Anthropic Console → a **production-only** key, distinct from dev |
-| `TAVILY_API_KEY` | Yes | Server only, secret | Tavily dashboard → a **production-only** key, distinct from dev |
-| `INTEGRATION_TOKEN_KEY` | Yes | Server only, secret | `openssl rand -base64 32`, generated once, backed up in two places **before** first use — see [KEY-RECOVERY.md](KEY-RECOVERY.md) |
-| `GOOGLE_CLIENT_ID` | Yes | Server only | Google Cloud → production Gmail OAuth client (Task 14) — **not** the Supabase login provider's client |
-| `GOOGLE_CLIENT_SECRET` | Yes | Server only, secret | Same client |
-| `INNGEST_SIGNING_KEY` | Yes | Server only, secret | Inngest Cloud → production environment → Signing key |
-| `INNGEST_EVENT_KEY` | Yes | Server only, secret | Inngest Cloud → production environment → Event key |
-| `GMAIL_READ_ACTIONS_ENABLED` | No — set it anyway | Server only | Literal `false`. Setting it explicitly makes the V1 position visible in the env listing |
-| `RETENTION_CLEANUP_ENABLED` | No | Server only | `true` in production **only** when you intend the retention sweep to delete (Task 12). Absent or anything else = the sweep deletes nothing |
-| Error reporter DSN | No (Task 02) | Server only, secret | Only after a vendor is chosen **and** listed in the privacy policy |
-| `INNGEST_DEV` | **Must be absent** | — | Never. The app refuses to boot with it set (`lib/config/env.ts`) |
+**Current Vercel status: every row ABSENT — the Vercel project does not exist**
+(Vercel MCP, 2026-09-17: zero teams, zero projects).
+
+| Variable | Required | Exposure | Value comes from | Notes |
+|---|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Public (by design) | Supabase → **WfloAI** `axelqoxblpchscksfwbx` → Project Settings → API → Project URL | Must be `https://axelqoxblpchscksfwbx.supabase.co`, **never** Dev `ureajvxesvmehlxlrboy`. Inlined at build time — set before the first production build |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public (by design) | Same page → anon / publishable key of `axelqoxblpchscksfwbx` | Inlined at build time |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | **Server only, secret** | Same page → service_role key of `axelqoxblpchscksfwbx` | Never `NEXT_PUBLIC_`. Never copied from `.env.local`, which holds the **Dev** key |
+| `ANTHROPIC_API_KEY` | Yes | Server only, secret | Anthropic Console → a **production-only** key | Distinct from dev; spend cap on it (Task 03) |
+| `TAVILY_API_KEY` | Yes | Server only, secret | Tavily dashboard → a **production-only** key | Distinct from dev; cap on it |
+| `INTEGRATION_TOKEN_KEY` | Yes | Server only, secret | Generate once on your own machine: `openssl rand -base64 32` | 32 bytes, base64. Back up in two places **before** first use — [KEY-RECOVERY.md](KEY-RECOVERY.md). Not the dev value |
+| `GOOGLE_CLIENT_ID` | Yes | Server only | Google Cloud → the **Gmail integration** OAuth client (Task 14) | Should not be the Supabase login client — GOOGLE-OAUTH.md §0 records evidence they are currently the same |
+| `GOOGLE_CLIENT_SECRET` | Yes | Server only, secret | Same client | |
+| `INNGEST_SIGNING_KEY` | Yes | Server only, secret | Inngest Cloud → production environment → Signing key | Security control (MASTER §4.1) |
+| `INNGEST_EVENT_KEY` | Yes | Server only, secret | Inngest Cloud → production environment → Event key | Functional; schedules and Run now fail without it |
+| `GMAIL_READ_ACTIONS_ENABLED` | No — set it anyway | Server only | Literal `false` | Makes the V1 position visible in the env listing |
+| `RETENTION_CLEANUP_ENABLED` | No | Server only | `true` only when you intend the retention sweep to delete (Task 12) | Absent or anything else = deletes nothing |
+| Error reporter DSN | No (Task 02) | Server only, secret | Only after a vendor is chosen **and** listed in the privacy policy | Unread by code today |
+| `INNGEST_DEV` | **Must be absent** | — | Never | The app refuses to boot with it (`lib/config/env.ts`, tested) |
 
 `NODE_ENV`, `NEXT_PHASE` and `NEXT_RUNTIME` are platform-provided; do not set them.
 
@@ -202,7 +215,34 @@ ledger never recorded them. **Consequence: `supabase db push` against this
 project would try to re-apply ten migrations that are already live.** Do not
 run it.
 
-### `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED` (Task 13, not yet done)
+### `PROD_MIGRATION_HISTORY_RECONCILIATION_REQUIRED` (Task 13) — verified, awaiting CLI auth
+
+**2026-09-17 (release resume): pre-repair verification done; repair not yet run.**
+
+- Production ledger (read-only MCP): exactly `202605140001`, `202605150001`,
+  `202606220001`, `202607030001`, `202607050001`, `202607180001`. The ten Git
+  versions missing from it are exactly the ten in step 3 below.
+- Every effect of those ten was checked read-only by fingerprinting
+  production's catalog against **WfloAI Dev**, which was built from the same 16
+  files: columns (type, nullability, default), constraints, indexes, public and
+  storage policies (roles, `using`, `with check`), triggers (including
+  `on_auth_user_created` on `auth.users`), RLS flags, table ACLs, column
+  comments, the `workflow-files` bucket, and every public function's signature,
+  defaults, return type, language, `security definer`, `search_path` and ACL —
+  **all identical**. Function bodies: `handle_new_user` and
+  `redeem_invite_code` differ only in whitespace/CR; `consume_action_quota`
+  differs only because production's copy was pasted with its comments stripped —
+  with comments and whitespace removed it hashes identically to the migration
+  file (`137c28ca…`). No effect is absent or materially different.
+- Supabase docs re-read (CLI reference `supabase-migration-repair`, Database
+  Migrations guide): `--status applied` "will insert a new record", and repair
+  "updates the tracking table only — it does not apply or revert any SQL".
+  Still the supported mechanism.
+- **Blocked on:** the Supabase CLI on this machine is not authenticated
+  (`LegacyPlatformAuthRequiredError`). An isolated scratch workdir holding an
+  identical copy of `supabase/migrations/` is staged outside the repository so
+  this checkout's CLI link stays on Dev. After `supabase login`, the agent runs
+  steps 2–4 below with `--workdir <scratch>`.
 
 The supported fix is the CLI's `supabase migration repair`. Per the Supabase
 docs it "updates the tracking table only — it does not apply or revert any
@@ -310,14 +350,13 @@ Every step is a production action and is the operator's. Record each with a date
 in `RELEASE_PROGRESS.md`.
 
 1. **Resolve the Supabase decision** (§1). Nothing below is meaningful until it is.
-2. **Choose `<CANONICAL_HOST>`** and own the domain.
-3. **Create the Vercel project** from the GitHub repository `VishwathS/WfloAI`:
-   framework Next.js, root directory `/`, default build and install commands,
-   production branch `main`.
+2. **Canonical host** — decided: the Vercel production alias (§1). Record the
+   exact hostname once the project exists.
+3. **Create the Vercel project** — see §6, `VERCEL PROJECT CREATION CHECKPOINT`.
    - **Decide auto-deploy before pushing again.** With the Git integration on,
      every push to `main` is a production deployment. If deploys should be
-     deliberate, turn off automatic production deployments (or use a separate
-     production branch) and promote by hand.
+     deliberate, disable Git deployments for `main` (`git.deploymentEnabled`,
+     in project settings or a reviewed `vercel.json`) and promote by hand.
 4. **Confirm the plan's function duration ceiling is ≥ 300s.**
 5. **Set every production variable** from §2. Confirm `INNGEST_DEV` is absent.
 6. **Inngest Cloud:** create or choose the production environment and copy its
@@ -342,7 +381,7 @@ Each row needs a recorded artifact; "configured" is not evidence. Rows marked
 | # | Check | How | Expected | Who |
 |---|---|---|---|---|
 | 1 | HTTPS on canonical origin | `curl -sI https://<CANONICAL_HOST>/` | `200`, served over TLS | agent-verifiable |
-| 2 | Non-canonical redirects | `curl -sI` on the sibling host | `308` → `https://<CANONICAL_HOST>/` | agent-verifiable |
+| 2 | Non-canonical redirects | `curl -sI` on the sibling host | `308` → `https://<CANONICAL_HOST>/` | **N/A for V1** — no custom domain, so no sibling host (§1). Revisit if a domain is added |
 | 3 | Security headers | `curl -sI https://<CANONICAL_HOST>/` | `strict-transport-security`, `x-content-type-options: nosniff`, `referrer-policy`, `x-frame-options: DENY`, `content-security-policy: frame-ancestors 'none'`, `permissions-policy` | agent-verifiable |
 | 4 | **Unsigned POST to `/api/inngest` rejected** (signing key) | `curl -si -X POST https://<CANONICAL_HOST>/api/inngest -H 'content-type: application/json' -d '{}'` | 4xx rejection, no function run | agent-verifiable |
 | 5 | `INNGEST_DEV` absent | Vercel env listing (names only) | not present | operator; row 19 corroborates, since the app will not boot with it |
@@ -362,3 +401,40 @@ Each row needs a recorded artifact; "configured" is not evidence. Rows marked
 | 19 | Startup check passed (liveness) | `curl -s -o /dev/null -w '%{http_code}' https://<CANONICAL_HOST>/api/credentials` | `401` | agent-verifiable |
 | 20 | Auth gate | `curl -sI https://<CANONICAL_HOST>/dashboard` and `/settings` | `307` → `/login` | agent-verifiable |
 | 21 | Deployed SHA | Vercel deployment metadata | equals the commit being certified | agent-verifiable |
+
+---
+
+## 6. `VERCEL PROJECT CREATION CHECKPOINT` (2026-09-17)
+
+State found (Vercel MCP, read-only): authenticated, **zero teams, zero
+projects**, no Git-linked project; no `.vercel/` in this checkout; no Vercel CLI
+installed. Nothing has been created.
+
+Creating the project is a production-infrastructure action and is the
+operator's. The intended project:
+
+| Setting | Value |
+|---|---|
+| Project name | `wfloai` (Vercel lowercases names; product name WfloAI) |
+| Repository | `VishwathS/WfloAI` (GitHub) |
+| Framework preset | Next.js (auto-detected) |
+| Root directory | `/` |
+| Install / build command | defaults — `npm install`, `npm run build` (`next build`) |
+| Node.js | 22.x — `package.json` `engines` `>=22 <23`; confirm the project setting agrees |
+| Production branch | `main` |
+| Function duration | execute and Inngest routes export `maxDuration = 300`; the plan's ceiling must allow it (Task 04 operator item). Hobby is for non-commercial use |
+| Domain | the generated `*.vercel.app` production alias; no custom domain (§1) |
+| Environment variables | §2, **Production** scope only, set **before** the first production build |
+
+**Auto-deploy behaviour.** With the GitHub integration connected, every push to
+the production branch `main` creates a **production** deployment and other
+branches create previews, unless Git deployments are disabled
+(`git.deploymentEnabled`). Therefore:
+
+- A production build that runs before §2's variables exist inlines empty
+  `NEXT_PUBLIC_SUPABASE_*` values, and the startup check refuses to boot. Set the
+  variables first, or let that first build fail harmlessly and redeploy after.
+- **Once connected, a push to `main` is a production action.** The agent does
+  not push to `main` after that without explicit approval.
+- The first deployment builds whatever `origin/main` points at when the
+  repository is connected; local `main` may be ahead of it.
