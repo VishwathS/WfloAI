@@ -56,16 +56,26 @@ export function InviteForm() {
           onChange={(event) => setCode(event.target.value)}
           placeholder="Paste your code"
           autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          autoFocus
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "invite-code-error" : undefined}
           className="mt-1.5"
           disabled={isSubmitting}
         />
       </div>
 
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      {error ? (
+        <p id="invite-code-error" role="alert" className="text-sm text-rose-600">
+          {error}
+        </p>
+      ) : null}
 
       <Button type="submit" className="w-full" disabled={isSubmitting || code.trim() === ""}>
         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Redeem code
+        Unlock access
       </Button>
     </form>
   );

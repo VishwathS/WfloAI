@@ -2,23 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isSameOrigin } from "@/lib/security/origin";
 import { apiError } from "@/lib/observability/apiError";
+import { INVITE_OUTCOMES, MAX_INVITE_CODE_LENGTH } from "@/lib/auth/invite";
 
 interface RedeemBody {
   code?: unknown;
 }
-
-const MAX_CODE_LENGTH = 64;
-
-// redeem_invite_code returns an outcome string rather than raising, so the
-// mapping lives here in one place instead of being parsed out of an error.
-const OUTCOMES: Record<string, { status: number; message: string }> = {
-  approved: { status: 200, message: "Your account is approved." },
-  already_approved: { status: 200, message: "Your account is already approved." },
-  invalid: { status: 400, message: "That invite code is not valid." },
-  expired: { status: 400, message: "That invite code has expired." },
-  exhausted: { status: 400, message: "That invite code has been fully used." },
-  unauthenticated: { status: 401, message: "Unauthorized" }
-};
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
@@ -44,8 +32,12 @@ export async function POST(request: Request) {
 
   const code = typeof body.code === "string" ? body.code.trim() : "";
 
-  if (!code || code.length > MAX_CODE_LENGTH) {
+  if (!code) {
     return NextResponse.json({ error: "Enter an invite code." }, { status: 400 });
+  }
+
+  if (code.length > MAX_INVITE_CODE_LENGTH) {
+    return NextResponse.json({ error: INVITE_OUTCOMES.invalid.message }, { status: 400 });
   }
 
   const { data, error } = await supabase.rpc("redeem_invite_code", { p_code: code });
@@ -54,12 +46,19 @@ export async function POST(request: Request) {
     return apiError("api.invite.redeem.failed", error, { userId: user.id });
   }
 
-  const outcome = OUTCOMES[String(data)];
+  const outcome = INVITE_OUTCOMES[String(data)];
 
   if (!outcome) {
     return apiError("api.invite.redeem.unknown_outcome", new Error(String(data)), {
       userId: user.id
     });
+  }
+
+  if (outcome.status === 429) {
+    return NextResponse.json(
+      { error: outcome.message },
+      { status: 429, headers: { "Retry-After": "900" } }
+    );
   }
 
   if (outcome.status !== 200) {

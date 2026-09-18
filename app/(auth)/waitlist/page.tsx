@@ -32,19 +32,20 @@ export default async function WaitlistPage() {
         </p>
         <div>
           <CardTitle className="text-2xl tracking-tight text-gray-900">
-            You are on the list
+            Enter your invite code
           </CardTitle>
           <CardDescription className="mt-2 text-gray-600">
-            WfloAI is invite-only while we keep the group small. Your account is signed in as{" "}
-            <span className="font-medium text-gray-900">{user.email}</span> and will start
-            working the moment it is approved.
+            WfloAI is currently invite-only. You&apos;re signed in as{" "}
+            <span className="font-medium text-gray-900">{user.email}</span>. A valid invite
+            code unlocks your account immediately.
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
         <InviteForm />
         <p className="text-xs leading-5 text-gray-500">
-          Have no code? Nothing more is needed from you — you will be let in from the list.
+          Don&apos;t have a code? Ask the person who told you about WfloAI. Access isn&apos;t
+          granted automatically, so without a code there&apos;s nothing to wait for here.
         </p>
         <div className="border-t border-gray-100 pt-4">
           <SignOutButton />

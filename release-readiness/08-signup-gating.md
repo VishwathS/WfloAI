@@ -86,6 +86,20 @@ The last two read source rather than behaviour. That is a deliberate trade: ther
 - **Keep the Google OAuth app in Testing mode through Phase 1** (Manual Step 5) — the unverified-app cap is still doing real work and this gate does not replace it.
 - **HUMAN_UI_CHECK_REQUIRED:** a fresh Google account landing on the waitlist rather than a broken dashboard; approval taking effect without a re-login; no loop from `/`, `/settings` or a workflow URL; and the CAPTCHA challenge actually appearing in the flow.
 
+# Addendum (2026-09-17) — invite launch track
+
+**Superseded above:** existing accounts are **grandfathered approved** by `202609160001` (the migration was changed before it was applied), and all five September migrations have since been applied by the operator. The "left unapproved" section above describes an earlier draft.
+
+**Invite page copy.** `/waitlist` no longer says "You are on the list" or that nothing more is needed. It says WfloAI is invite-only, that a valid code unlocks access immediately, and that access is not granted by waiting. The route path is unchanged, so the proxy, the tests and the allow-list are untouched.
+
+**Durable attempt limiting — migration `202609170001_add_invite_redemption_rate_limit.sql` (OPERATOR_MIGRATION_REQUIRED, not applied).** The limit is **inside `redeem_invite_code`**, not in the route: the function is granted to `authenticated`, so any signed-in user can call it straight through PostgREST and never touch `/api/invite/redeem`. 5 attempts per 15 minutes and 20 per day, per user, counted in a new `invite_redemption_attempts` table with a read-own policy and **no client write policy**, so the window cannot be backdated or emptied. A per-user advisory lock makes count-then-insert atomic under concurrency; the code-row `FOR UPDATE` still guards the last seat. The `integration_action_executions` ledger was deliberately **not** reused: its UPDATE policy lets a user rewrite their own `pending`/`failed` rows, which would reset an attempt window. The route maps the new `rate_limited` outcome to **429** with `Retry-After`.
+
+The same migration **revokes `anon` EXECUTE** on `redeem_invite_code` and `consume_action_quota`. Supabase's default privileges grant EXECUTE on new public functions directly to `anon`, and the earlier `revoke ... from public` does not remove a direct role grant. Neither function did anything for anon, but the intended grant set is now true by construction.
+
+**Verified locally** against an in-memory Postgres (PGlite) with Supabase-shaped roles, `auth.uid()` and default privileges: 49/49 — every outcome, the rate limit and its expiry, last-seat, self-approval via UPDATE/INSERT denied, attempt rows not client-writable, anon grant removed. PGlite is single-connection, so true parallel redemption was not exercised; it rests on the advisory lock and `FOR UPDATE` by construction. `tests/inviteRedeem.test.ts` covers the route; `tests/proxyAdmission.test.ts` runs the real `proxy()` for approved, unapproved and anonymous users, **which ticks the "denied a protected route" and "approved user is unaffected" boxes below at the proxy level.**
+
+**Residual, accepted for V1:** the limit is per account, so someone with many Google accounts gets more guesses. A universal code of 128+ bits makes that irrelevant; a short human-chosen code does not. CAPTCHA remains outstanding as above.
+
 # Verification
 
 **Automated**
@@ -93,9 +107,9 @@ The last two read source rather than behaviour. That is a deliberate trade: ther
 - [x] `npm test` green.
 - [x] `npx tsc --noEmit` clean.
 - [x] `npm run build` succeeds.
-- [ ] Test: an authenticated but unapproved user is denied access to a protected route.
+- [x] Test: an authenticated but unapproved user is denied access to a protected route. (`tests/proxyAdmission.test.ts`)
 - [ ] Test: an authenticated but unapproved user is denied by the API routes that spend money — `/api/execute` and `/api/lookup` specifically. A gate that only covers pages is not a cost control.
-- [ ] Test: an approved user is unaffected.
+- [x] Test: an approved user is unaffected. (`tests/proxyAdmission.test.ts`)
 - [ ] Test: a `profiles` row is created on first login, and RLS prevents a user reading another user's row.
 
 **Manual**
