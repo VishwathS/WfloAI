@@ -21,10 +21,10 @@ pass.
 
 ## Prerequisites — all must hold before row 1
 
-| Prerequisite | State on 2026-09-17 |
+| Prerequisite | State on 2026-09-17 (release resume) |
 |---|---|
-| Task 13 `PRODUCTION READY` | **No** — no Vercel project; dev == prod Supabase decision open |
-| Task 14: a fresh non-test account can connect Gmail | **No** — `gmail.send` cannot call `users.getProfile`; the fix awaits the operator's scope decision (docs/GOOGLE-OAUTH.md §0) |
+| Task 13 `PRODUCTION READY` | **No** — no Vercel project (creation checkpoint, DEPLOYMENT.md §6); dev/prod separated (Dev `ureajvxesvmehlxlrboy`); production migration-ledger repair verified-ready, blocked on CLI auth |
+| Task 14: a fresh non-test account can connect Gmail | **Not yet proven** — fixed in code (`fee570c`: `openid email gmail.send`, address from OIDC userinfo; stubbed-Google tests green). Needs deployment and the real fresh-account test |
 | Task 14: consent screen out of Testing, or the cert account is a listed test user | Unknown — Console state is not visible to the agent |
 | Controlled HTTP endpoint (owned, public, logs headers and bodies) | Not set up |
 | Two dedicated production test accounts (A, B), admitted via invite | Not created |
@@ -179,7 +179,7 @@ conditional capabilities are rows to test (1a, 23a, 24a, 30a, 45a, 57–60), not
 
 | # | Row | Severity | Finding | Decision |
 |---|---|---|---|---|
-| F1 | 24 | CRITICAL | A fresh `gmail.send`-only connect fails at `users.getProfile` (found in Task 14 prep, before certification) | Operator chooses option A or B; fix + redeploy **before** this pass starts |
+| F1 | 24 | CRITICAL → fixed in code | A fresh `gmail.send`-only connect fails at `users.getProfile` (found in Task 14 prep, before certification) | Option A chosen and shipped in `fee570c`; must be **deployed** before this pass starts, and row 24 then certifies it against real Google |
 
 ## Result
 

@@ -139,9 +139,10 @@ Carry-forward HUMAN_UI_CHECK_REQUIRED items from Tasks 01–12 are marked **[CF]
 
 ### Cross-cutting
 - [ ] Empty / loading / error states for dashboard, canvas, run history, settings and template gallery — **all five**
-- [ ] **Phone width:** the product is usable **or** shows a desktop notice. **No notice exists today** → Blocker unless you explicitly accept desktop-only
+- [ ] **Phone width — OPERATOR DECISION REQUIRED:** the product is usable **or** shows a desktop notice. **No "desktop recommended" notice exists today** (re-checked 2026-09-17; not built or invented by the agent). Decide: (a) accept desktop-only explicitly and record who accepted it, or (b) ask for the notice (C1 half-day item) before launch. Until decided this is a Blocker
 - [ ] Keyboard-navigate login → dashboard → settings; record what is unreachable (C2, record only)
-- [ ] No placeholder text — **note:** the legal pages show `[… CONTACT ADDRESS — OPERATOR TO SUPPLY]` until a support address is chosen
+- [ ] No placeholder text — the contact placeholders were replaced by `vishwath@ucsb.edu` in `d78e84d`; confirm the privacy, terms and `/help#contact` links read correctly and open a mail client
+- [ ] **Gmail connect consent screen (after deployment):** Google should list sending email plus basic identity (your email address) — nothing about reading mail. Settings then shows "Connected as <address>". Changed in `fee570c`
 - [ ] Browser console on each page: no uncaught errors, no tokens
 - [ ] **[CF 12]** `/help` is clear; the README matches the product
 - [ ] **[CF 06 — Middleware]** Every gated path still gated and every public path still public (spot-check in the browser after the proxy rename)
