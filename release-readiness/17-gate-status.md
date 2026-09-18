@@ -32,3 +32,13 @@ gate is re-checked then.
 ## Terminal state
 
 `READY FOR HUMAN GO-LIVE`: **No.** The agent does not launch in any case.
+
+## Update 2026-09-18 — after first deployment (`6a331b5`, `wfloai.vercel.app`)
+
+| # | Gate | Status now | Remaining |
+|---|---|---|---|
+| 2 | Production deployment | **FAIL (12/18 evidence rows PASS or N/A)** | Task 13 rows 6, 10, 13, 14, 16, 17 |
+| 3 | Inngest signing key | **FAIL (2 of 3)** | unsigned POST rejected ✓; `INNGEST_DEV` absent ✓; event publishing (Run now → run row) open |
+| 16 | Smoke test ready | **PASS** | unchanged |
+
+Other gates unchanged; the authoritative evaluation follows Tasks 15/16.

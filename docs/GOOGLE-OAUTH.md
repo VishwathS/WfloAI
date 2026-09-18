@@ -2,7 +2,7 @@
 
 Operator material for releasing Gmail Send to real admitted users. The agent
 prepared this; **every Google Cloud action is the operator's**, and nothing here
-has been changed in any Console. `<CANONICAL_HOST>` is decided in
+has been changed in any Console. `<CANONICAL_HOST>` (recorded 2026-09-18: `wfloai.vercel.app`) is decided in
 [DEPLOYMENT.md](DEPLOYMENT.md) §1 and is not chosen yet.
 
 **V1 Gmail is Send Email on `gmail.send` only** (the connect also requests the

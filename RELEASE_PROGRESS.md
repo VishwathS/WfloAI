@@ -64,7 +64,19 @@ Record operator-performed actions here as they happen. These are **not** agent w
 
 | Date | Action | Task | Performed by | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 2026-09-17 | Supabase CLI login; authorised the ten-version production ledger repair | 13 | operator (repair run by agent under that authorisation) | ledger 16/16 |
+| 2026-09-18 | Vercel MCP re-authorised; approved creating project `wfloai` (`deploy: false`) | 13 | operator | project created by agent |
+| 2026-09-18 | Decision: reuse existing Anthropic/Tavily keys and Google OAuth client for the initial invite-only deployment; separation deferred as hardening | 13/14 | operator | — |
+| 2026-09-18 | Ran the read-only `INTEGRATION_TOKEN_KEY` compatibility check → `RESULT: MATCH` | 13 | operator | key reused, not rotated |
+| 2026-09-18 | Vercel CLI login | 13 | operator | agent then wrote 7 Production vars |
+| 2026-09-18 | Added `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (Production) in the Vercel dashboard | 13 | operator | — |
+| 2026-09-18 | Installed the Inngest Vercel integration (provisioned `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`) | 13 | operator | scope "all projects"; Sensitive conversion deferred |
+| 2026-09-18 | Framework Preset set to Next.js | 13 | operator | deployment records `nextjs` |
+| 2026-09-18 | Approved the first production push (`6a331b5`) | 13 | operator | deployment `dpl_5Lv1fmG7jiJ8LSmu1RihzrMY2yg3` READY |
+| 2026-09-18 | Supabase Auth Site URL / Redirect URLs set for `wfloai.vercel.app` | 13/14 | operator | — |
+| 2026-09-18 | Google OAuth client: added redirect URI `https://wfloai.vercel.app/api/integrations/gmail/callback` | 14 | operator | — |
+| 2026-09-18 | Inngest Production app `wfloai` synced; 3 functions registered | 13 | operator | runtime `PUT /api/inngest` 200 |
+| 2026-09-18 | Initial signed-in inspection of production ("looks good") | 16 | operator | informal; not a Task 16 checklist result |
 
 ## Deferred
 

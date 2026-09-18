@@ -8,8 +8,8 @@ Every action here is a production action and belongs to the operator. The SQL
 runs in the Supabase SQL editor of the **production** project, which runs as a
 privileged role and bypasses RLS — read the `where` clause twice.
 
-Placeholders the operator fills in: `<CANONICAL_HOST>` (see
-[DEPLOYMENT.md](DEPLOYMENT.md) §1) and `<OPERATOR_NAME>`. The support address is
+`<CANONICAL_HOST>` is `wfloai.vercel.app` (recorded 2026-09-18, see
+[DEPLOYMENT.md](DEPLOYMENT.md) §1). Placeholder the operator still fills in: `<OPERATOR_NAME>`. The support address is
 decided: `vishwath@ucsb.edu` (operator decision, 2026-09-17), held in
 `lib/support.ts`.
 

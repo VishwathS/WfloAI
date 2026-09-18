@@ -49,6 +49,8 @@ Vercel picks a different name when that one is taken, so **the exact hostname is
 recorded only after creation, from the project's Domains page.** Until then it
 stays a placeholder here, in RUNBOOK.md and in GOOGLE-OAUTH.md.
 
+**Recorded 2026-09-18 (Vercel Domains, first deployment): `<CANONICAL_HOST>` = `wfloai.vercel.app`.**
+
 Rules that follow:
 
 1. **The production alias is the one canonical origin.** Every OAuth redirect is

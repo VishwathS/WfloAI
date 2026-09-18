@@ -359,3 +359,28 @@ All 11 required Production variables present (names/scopes only); Supabase URL a
 ### Update 2026-09-18 — first production deployment READY
 
 Operator-approved push of `6a331b5`; deployment `dpl_5Lv1fmG7jiJ8LSmu1RihzrMY2yg3` READY at **`wfloai.vercel.app`**. Next.js 16.3.5 detected, Node 22.x project setting, no runtime boot errors, logged-out public/gated/API behaviour correct, `/api/inngest` in signed mode, per-deployment URL protected, security headers present. Open: Inngest app sync not observed; Supabase Auth URL config, Google redirect URI, and signed-in smoke tests are operator steps. Detail in `docs/DEPLOYMENT.md` §6.
+
+### Update 2026-09-18 — production evidence table status
+
+| # | Check | Status | Evidence |
+|---|---|---|---|
+| 1 | HTTPS on canonical origin | **PASS** | `https://wfloai.vercel.app/` 200 over TLS (HSTS present) |
+| 2 | Non-canonical redirect | **N/A for V1** | operator decision 2026-09-17: Vercel domain, no apex/www. The other production aliases (`wfloai-vishwaths-projects…`, `wfloai-git-main-…`) serve 200 rather than redirect |
+| 3 | Security headers | **PASS** | HSTS, CSP `frame-ancestors 'none'`, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy |
+| 4 | Unsigned POST `/api/inngest` rejected | **PASS** | `POST /api/inngest?fnId=x` → 401 `{"message":"Unauthorized"}` |
+| 5 | `INNGEST_DEV` absent | **PASS** | Production env names listing + value scan |
+| 6 | Event publishing | **OPEN — human** | a schedule "Run now" producing a `workflow_runs` row (Task 15 row 46) |
+| 7 | Inngest sync + functions | **PASS** | operator: Inngest dashboard Last Sync Success, 3 functions; runtime `PUT /api/inngest` 200 at 08:50:27 |
+| 8 | Migrations | **PASS** | ledger 16/16; `db push --dry-run` up to date |
+| 9 | `workflow-files` private | **PASS** | `storage.buckets.public = false` |
+| 10 | Storage RLS denies cross-user read | **OPEN — human** | 3 owner-scoped policies present; the denied request needs two signed-in accounts (Task 15 row 5) |
+| 11 | RLS on all tables | **PASS** | all 12 `public` tables `relrowsecurity = true`; `invite_codes` has 0 policies (deny-all by design) |
+| 12 | Supabase Auth URLs | **PASS (operator-attested)** | operator 2026-09-18; Google authorize round-trip healthy |
+| 13 | Distinct keys + console caps | **OPEN — operator** | distinct keys: deferred by the 2026-09-18 reuse decision (needs a named waiver); console budget caps on the keys in use: not evidenced |
+| 14 | `INTEGRATION_TOKEN_KEY` two places + restore test | **OPEN — operator** | the MATCH test proves the local copy decrypts production data; a second independent store and a retrieval from it are not recorded |
+| 15 | `GMAIL_READ_ACTIONS_ENABLED=false` | **PASS** | Production value scan |
+| 16 | Backups + retention | **OPEN — operator** | Supabase dashboard (plan-dependent) |
+| 17 | Error reporter receives a production error | **OPEN — operator decision** | no vendor (Task 02); needs a vendor or the Gate 10 logs-only waiver |
+| 18 | Node 22.x | **PASS** | project `nodeVersion 22.x`, `engines` `>=22 <23`, no engine warning in the build log |
+
+Completion criteria: canonical origin recorded (`wfloai.vercel.app`) and "preview/deployment URLs are not OAuth-capable" written (DEPLOYMENT.md §1); RUNBOOK present; health check option (b) recorded; manual actions logged in `RELEASE_PROGRESS.md`. **Task 13 is not yet `PRODUCTION READY`:** rows 6, 10, 13, 14, 16, 17 are open.

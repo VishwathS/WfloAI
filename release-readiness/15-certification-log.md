@@ -184,3 +184,16 @@ conditional capabilities are rows to test (1a, 23a, 24a, 30a, 45a, 57–60), not
 ## Result
 
 `INTEGRATION CERTIFIED`: **No.**
+
+## Pass record — 2026-09-18 (pre-pass: agent auto rows)
+
+Deployed build `6a331b5`, deployment `dpl_5Lv1fmG7jiJ8LSmu1RihzrMY2yg3`, canonical origin `https://wfloai.vercel.app`, Supabase production `axelqoxblpchscksfwbx`. **Proposed `CERTIFICATION_COMMIT` = `6a331b5`.** The human pass runs against this SHA; later local commits are docs-only and are not deployed during the pass.
+
+| # | Result | Evidence |
+|---|---|---|
+| 2 | **PASS** | signed-out `/dashboard`, `/settings`, `/waitlist`, `/workflows/<id>` → 307 `/login?next=…`; `/`, `/privacy`, `/terms`, `/help`, `/login` → 200 |
+| 3 | **PASS (no-code path)** | `/auth/callback?next=` `//example.com`, `https://example.com`, `/\example.com` → 307 `https://wfloai.vercel.app/login?error=auth` |
+| 59 | **PASS** | `/privacy`, `/terms`, `/help` 200 signed-out; DRAFT banner on `/privacy` and `/terms`; `vishwath@ucsb.edu` shown; no `<OPERATOR_NAME>` |
+| 60 | **PASS (config)** | `RETENTION_CLEANUP_ENABLED` absent in Production; `cleanupExpiredData` returns `skipped` unless the flag is exactly `"true"` |
+
+Prerequisites still open: Task 14 fresh non-test connect; controlled HTTP endpoint; test accounts A/B; error reporter (row 51 → Gate 10); provider caps.
