@@ -5,7 +5,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "blog-post-pipeline",
     name: "Blog Post Pipeline",
     description:
-      "Research a topic on the web, draft a full blog post, and polish it for publishing — all in one run.",
+      "Search the web for a topic, draft a blog post from the results, then run a rewrite pass for publishing.",
     category: "Content Creation",
     complexity: "Advanced",
     graph: {
@@ -90,7 +90,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "linkedin-post-generator",
     name: "LinkedIn Post Generator",
     description:
-      "Turn any topic or idea into a scroll-stopping LinkedIn post with a strong hook and engagement-driving close.",
+      "Generate a LinkedIn post from a topic, with an opening hook and a closing question.",
     category: "Content Creation",
     complexity: "Simple",
     graph: {
@@ -143,7 +143,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "content-repurposer",
     name: "Content Repurposer",
     description:
-      "Paste a blog post or article and get a Twitter thread, LinkedIn post, and newsletter section back.",
+      "Condense an article, then generate a Twitter thread, LinkedIn post, and newsletter section from it.",
     category: "Content Creation",
     complexity: "Intermediate",
     graph: {
@@ -214,7 +214,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "daily-social-post-generator",
     name: "Daily Social Post Generator",
     description:
-      "Search today's trending topics for your niche and generate a timely social post. Recommended: schedule daily at 8 AM.",
+      "Search current trending topics for a niche and generate a social post from them. Suited to a daily schedule.",
     category: "Content Creation",
     complexity: "Intermediate",
     graph: {
@@ -282,7 +282,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "seo-keyword-brief",
     name: "SEO Keyword Brief",
     description:
-      "Analyze what ranks for your target keyword and generate a complete SEO content brief with outline and semantic keywords.",
+      "Search what currently ranks for a keyword and generate an SEO content brief with an outline and related keywords.",
     category: "Content Creation",
     complexity: "Advanced",
     graph: {
@@ -366,7 +366,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "competitor-research-brief",
     name: "Competitor Research Brief",
     description:
-      "Search the web for a competitor's features, pricing, and reviews, then synthesize a competitive intelligence brief.",
+      "Search the web for a competitor's features, pricing, and reviews, and generate a competitive brief.",
     category: "Research",
     complexity: "Intermediate",
     graph: {
@@ -434,7 +434,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "startup-idea-validator",
     name: "Startup Idea Validator",
     description:
-      "Research the market for your idea, classify its viability, and get a full validation report with risks and next steps.",
+      "Search the market for an idea, classify its viability, and generate a validation report with risks and next steps.",
     category: "Research",
     complexity: "Advanced",
     graph: {
@@ -519,7 +519,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "research-paper-summarizer",
     name: "Research Paper Summarizer",
     description:
-      "Paste a paper or abstract and get an accessible summary plus five actionable key takeaways.",
+      "Summarize a paper or abstract, then extract five key takeaways.",
     category: "Research",
     complexity: "Intermediate",
     graph: {
@@ -590,7 +590,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "weekly-industry-news-digest",
     name: "Weekly Industry News Digest",
     description:
-      "Search this week's news for any industry and get a digest with top stories and trends. Recommended: schedule weekly on Mondays.",
+      "Search this week's news for an industry and summarize the top stories and trends. Suited to a weekly schedule.",
     category: "Research",
     complexity: "Intermediate",
     graph: {
@@ -658,7 +658,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "lead-research-brief",
     name: "Lead Research Brief",
     description:
-      "Research a target company and contact, then generate an outreach-ready sales brief with talking points.",
+      "Search the web for a company and contact, and generate a sales brief with talking points.",
     category: "Sales / Outbound",
     complexity: "Advanced",
     graph: {
@@ -742,7 +742,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "cold-email-personalizer",
     name: "Cold Email Personalizer",
     description:
-      "Research a prospect and generate a personalized cold email draft under 100 words with a compelling subject line.",
+      "Search for a prospect's recent activity and generate a personalized cold email with a subject line.",
     category: "Sales / Outbound",
     complexity: "Advanced",
     graph: {
@@ -826,7 +826,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "resume-screener",
     name: "Resume Screener",
     description:
-      "Score a resume against a job description, then automatically draft an advance email or a kind rejection based on fit.",
+      "Classify a resume against a job description, then route to an advance email or a rejection email based on the fit category.",
     category: "Recruiting",
     complexity: "Advanced",
     graph: {
@@ -960,7 +960,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "client-discovery-summary",
     name: "Client Discovery Summary",
     description:
-      "Turn raw discovery call notes into a structured, shareable client summary with pain points, goals, and next steps.",
+      "Extract pain points, goals, and next steps from discovery call notes and generate a client summary.",
     category: "Client Work",
     complexity: "Advanced",
     graph: {
@@ -1048,7 +1048,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "product-feedback-analyzer",
     name: "Product Feedback Analyzer",
     description:
-      "Analyze customer feedback for sentiment and issues in parallel, then generate a prioritized product report.",
+      "Classify sentiment and extract issues from customer feedback on separate branches, then generate a prioritized product report.",
     category: "Client Work",
     complexity: "Advanced",
     graph: {
@@ -1142,7 +1142,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
     id: "meeting-debrief",
     name: "Meeting Debrief",
     description:
-      "Extract action items and decisions from meeting notes, then produce a clean debrief document ready to share.",
+      "Extract action items and decisions from meeting notes and generate a debrief.",
     category: "Productivity",
     complexity: "Intermediate",
     graph: {

@@ -186,7 +186,8 @@ export function useExecution(
       });
 
       if (!response.ok || !response.body) {
-        setRunError("Execution request failed. Please try again.");
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setRunError(payload?.error ?? "The run could not be started. Try again.");
         return;
       }
 

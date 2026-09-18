@@ -124,20 +124,10 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
   if (items.length === 0) {
     return (
       <section className="space-y-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            Workflow library
-          </p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
-            No workflows yet
-          </h2>
-        </div>
+        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Your workflows</h2>
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-8 py-10 text-center">
           <p className="text-sm text-gray-500">
-            Start with a blank workflow and begin shaping your first AI-powered automation.
-          </p>
-          <p className="mt-2 text-sm text-gray-400">
-            Use the New workflow button above to create your first canvas.
+            No workflows yet. Create one with New workflow, or start from a template below.
           </p>
           {errorMessage ? (
             <p className="mt-3 text-sm text-rose-600">{errorMessage}</p>
@@ -150,14 +140,7 @@ export function WorkflowList({ workflows }: WorkflowListProps) {
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            Workflow library
-          </p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
-            Pick up where you left off
-          </h2>
-        </div>
+        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Your workflows</h2>
         {errorMessage ? (
           <p className="text-sm text-rose-600">{errorMessage}</p>
         ) : null}

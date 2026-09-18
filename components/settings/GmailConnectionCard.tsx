@@ -65,19 +65,19 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Gmail</h2>
           <p className="text-xs text-gray-500">
-            Send, draft, and read email from Gmail nodes in your workflows.
+            Used by Gmail nodes to send email from your account.
           </p>
         </div>
       </div>
 
       {notice === "connected" ? (
         <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          Gmail connected successfully.
+          Gmail connected.
         </p>
       ) : null}
       {notice === "error" ? (
         <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          Connecting Gmail didn&apos;t complete — please try again.
+          The Gmail connection did not complete. Try again.
         </p>
       ) : null}
 
@@ -100,28 +100,29 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
             </div>
             {needsReconnect ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                This connection expired — reconnect to keep Gmail nodes running.
+                Google no longer accepts this connection — it expired or access was revoked.
+                Reconnect to run Gmail nodes.
               </p>
             ) : null}
             <div className="space-y-1.5">
               <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
-                Authorized capabilities
+                Permissions
               </p>
               <ul className="space-y-1 text-sm text-gray-600">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  Send emails
+                  Send email
                 </li>
                 <li className="flex items-center gap-2">
                   {status.canRead ? (
                     <>
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      Find &amp; read emails
+                      Find and read email
                     </>
                   ) : (
                     <>
                       <span className="inline-block h-3.5 w-3.5 rounded-full border border-gray-300" />
-                      Find &amp; read emails — not enabled
+                      Find and read email — not granted
                     </>
                   )}
                 </li>
@@ -137,7 +138,7 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
                   minute · {status.usage.sentToday} of {status.usage.perDayLimit} sent today.
                 </p>
                 <p className="text-xs text-gray-500">
-                  A send that would cross a limit stops rather than queueing.
+                  A send over either limit fails; it is not queued.
                 </p>
               </div>
             ) : null}
@@ -198,7 +199,8 @@ export function GmailConnectionCard({ notice }: GmailConnectionCardProps) {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-gray-600">
-              Connect your Gmail account once — every Gmail node in your workflows will use it.
+              All Gmail nodes use this connection. The only Gmail scope requested is
+              gmail.send, so WfloAI cannot read your mailbox.
             </p>
             <a
               href="/api/integrations/gmail/connect"

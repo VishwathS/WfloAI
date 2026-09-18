@@ -140,7 +140,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   if (!isValidCronExpression(cronExpression, timezone)) {
-    return NextResponse.json({ error: "Invalid cron expression" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid cron expression. Use five fields: minute hour day-of-month month day-of-week." }, { status: 400 });
   }
 
   // A14a. Turning a schedule ON is the authorisation moment for unattended

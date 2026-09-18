@@ -84,7 +84,7 @@ export function validateWorkflow(
     return {
       valid: false,
       nodeErrors: {},
-      globalError: "Add an Input node to provide data for your workflow."
+      globalError: "Add an Input or File Input node. A workflow needs at least one source node to start from."
     };
   }
 

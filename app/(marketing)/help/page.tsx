@@ -7,7 +7,7 @@ import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata = {
   title: "Help — WfloAI",
-  description: "How workflows, variables, Gmail steps, schedules and limits work."
+  description: "How workflows, variables, Gmail nodes, schedules and limits work."
 };
 
 // B10. Every number on this page is imported from the module that enforces it
@@ -40,8 +40,8 @@ function Code({ children }: { children: React.ReactNode }) {
 
 const contents: [string, string][] = [
   ["variables", "Variables"],
-  ["gmail", "Gmail steps, and the Reply rule"],
-  ["nodes", "What each step does"],
+  ["gmail", "Gmail nodes and the Reply rule"],
+  ["nodes", "Node reference"],
   ["schedules", "Schedules"],
   ["limits", "Limits"],
   ["data", "Your data"],
@@ -53,9 +53,9 @@ export default function HelpPage() {
     <div className="mx-auto w-full max-w-3xl px-6 py-12 lg:py-16">
       <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Help</h1>
       <p className="mt-3 text-sm leading-6 text-gray-600">
-        A workflow is a graph. Each step receives the output of the steps connected into
-        it, does one thing, and passes its own output on. Everything below follows from
-        that.
+        A workflow is a directed acyclic graph of nodes. Nodes run in dependency order;
+        each one receives the output of the nodes connected into it and passes its own
+        output downstream.
       </p>
 
       <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-1.5">
@@ -68,8 +68,7 @@ export default function HelpPage() {
 
       <Section id="variables" title="Variables: previousOutput vs your own keys">
         <p>
-          These two look alike and mean different things. Almost every confusing result
-          traces back to using one where the other was meant.
+          These look similar but resolve to different values.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
@@ -85,8 +84,8 @@ export default function HelpPage() {
                   <Code>{"{{previousOutput}}"}</Code>
                 </td>
                 <td className="py-2.5">
-                  The combined output of every step connected <em>into</em> this one. It
-                  depends on where the step sits in the graph, not on anything you name.
+                  The combined output of every node connected <em>into</em> this one. It
+                  depends on where the node sits in the graph, not on anything you name.
                 </td>
               </tr>
               <tr className="border-b border-gray-100 align-top">
@@ -94,19 +93,18 @@ export default function HelpPage() {
                   <Code>{"{{yourKey}}"}</Code>
                 </td>
                 <td className="py-2.5">
-                  The value of the Input step whose key is <Code>yourKey</Code>. Input steps
-                  are where variables are declared, which is why the tag is shown on them
-                  and nowhere else.
+                  The value of the Input node whose key is <Code>yourKey</Code>. Variables
+                  are declared on Input nodes, which is why the tag is shown only there.
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          One thing worth knowing: when a prompt mentions <Code>{"{{previousOutput}}"}</Code>{" "}
-          explicitly, the automatic &ldquo;Context from previous step&rdquo; block is left
-          out, so the upstream text is not sent twice. If you do not mention it, that block
-          is added for you — so an AI step with no variables at all still sees its input.
+          When a prompt references <Code>{"{{previousOutput}}"}</Code> explicitly, the
+          automatic &ldquo;Context from previous step&rdquo; block is omitted so the upstream
+          text is not sent twice. Otherwise the block is added, so an AI node with no
+          variables still receives its input.
         </p>
         <p>
           <Code>{"{{input}}"}</Code> is the old spelling. It still works in Lookup queries,
@@ -115,41 +113,43 @@ export default function HelpPage() {
         </p>
       </Section>
 
-      <Section id="gmail" title="Gmail steps, and the Reply rule">
+      <Section id="gmail" title="Gmail nodes and the Reply rule">
         <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-violet-900">
           <span className="font-medium">
-            Reply to Email needs a Read Email step as its direct parent.
+            Reply to Email needs a Read Email node as its direct parent.
           </span>{" "}
-          Not an AI step in between, not a Read step further upstream — directly connected.
-          Without one the workflow refuses to run.
+          Not an AI node in between, not a Read node further upstream — directly connected.
+          Without one, validation fails and the workflow does not run.
         </p>
         <p>
-          The reason is that a Reply has to know which message it is replying to, and that
-          is resolved from the typed metadata a Read step emits rather than by reading text.
-          An AI step in between produces text, which carries no message identity, so the
-          reply would have nothing to attach to. The working shape is:
+          A Reply has to know which message it is replying to. That is resolved from the
+          typed metadata a Read node emits, not from output text. An AI node in between
+          produces text, which carries no message ID, so the reply would have nothing to
+          attach to. The working shape is:
         </p>
         <p className="font-mono text-[13px] text-gray-900">
           Find Emails → Read Email → AI (draft the reply) → Reply to Email
         </p>
         <p>
-          The AI step still sits in the chain — it just cannot sit between Read and Reply.
-          Connect both the Read step and the AI step into the Reply step.
+          The AI node still sits in the chain, just not between Read and Reply. Connect both
+          the Read node and the AI node into the Reply node.
         </p>
         <p>
           <span className="font-medium text-gray-900">
             In this version, Send Email is the only Gmail action available.
           </span>{" "}
-          Create Draft, Reply, Find and Read each need a Google permission that requires an
-          additional security review, so they are turned off. Connecting Gmail asks for
-          permission to send, and nothing else — it cannot read your mailbox.
+          Create Draft, Reply, Find and Read each need a restricted Google scope that requires
+          an additional security review, so they are disabled. Connecting Gmail requests the{" "}
+          <Code>gmail.send</Code> scope, plus <Code>openid</Code> and <Code>email</Code> to
+          show which address is connected. It cannot read your mailbox.
         </p>
       </Section>
 
-      <Section id="nodes" title="What each step does">
+      <Section id="nodes" title="Node reference">
         <ul className="space-y-2">
           <li>
-            <span className="font-medium text-gray-900">Trigger</span> — where a run starts.
+            <span className="font-medium text-gray-900">Trigger</span> — the entry point of a
+            run.
           </li>
           <li>
             <span className="font-medium text-gray-900">Input</span> — a named value you can
@@ -157,42 +157,46 @@ export default function HelpPage() {
           </li>
           <li>
             <span className="font-medium text-gray-900">File Input</span> — upload a PDF,
-            DOCX, TXT, MD or CSV; the step outputs the text extracted from it. Scanned or
-            image-only PDFs are rejected, because there is no OCR.
+            DOCX, TXT, MD or CSV; the node outputs the text extracted from it. Scanned or
+            image-only PDFs are rejected because there is no OCR.
           </li>
           <li>
-            <span className="font-medium text-gray-900">AI</span> — Summarize, Rewrite,
-            Classify, Extract or Generate. Each emits a fixed JSON shape, so the next step
-            can branch on a field rather than parse prose.
+            <span className="font-medium text-gray-900">AI</span> — runs a prompt through
+            Claude. Text mode returns free text. JSON mode takes an action — Summarize,
+            Rewrite, Classify, Extract or Generate — and returns a fixed JSON shape, so a
+            Router can branch on a field rather than parse prose.
           </li>
           <li>
             <span className="font-medium text-gray-900">Router</span> — splits the graph
             down a <Code>true</Code> or <Code>false</Code> path. Set a field and a value to
-            branch deterministically; leave them empty and the AI decides.
+            branch deterministically on upstream JSON; leave them empty and the model
+            evaluates the condition.
           </li>
           <li>
-            <span className="font-medium text-gray-900">Lookup</span> — a web search, 1 to
-            10 results.
+            <span className="font-medium text-gray-900">Lookup</span> — a Tavily web search
+            returning 1 to 10 results.
           </li>
           <li>
-            <span className="font-medium text-gray-900">Gmail</span> — sends mail as you.
+            <span className="font-medium text-gray-900">Gmail</span> — sends email from your
+            connected account.
           </li>
           <li>
-            <span className="font-medium text-gray-900">HTTP Request</span> — calls any
-            service you point it at, optionally with a credential you stored in Settings.
+            <span className="font-medium text-gray-900">HTTP Request</span> — sends a GET,
+            POST, PUT, PATCH or DELETE request to a public URL, optionally authenticated with
+            a credential stored in Settings. Private and internal addresses are blocked.
           </li>
           <li>
-            <span className="font-medium text-gray-900">Action</span> — saves, logs or
-            displays a result.
+            <span className="font-medium text-gray-900">Action</span> — ends a branch and
+            records the output it receives.
           </li>
         </ul>
       </Section>
 
       <Section id="schedules" title="Schedules">
         <p>
-          Schedules live in Workflow Settings, not on the canvas — a workflow with none is
-          simply run by hand. A scheduled run uses the workflow as it is saved at the moment
-          it fires, so editing a workflow changes what its schedules will do.
+          Schedules are configured in Workflow Settings, not on the canvas; a workflow with
+          none runs only when you click Run. A scheduled run executes the graph as saved at
+          the moment it fires, so editing a workflow changes what its schedules do.
         </p>
         <p>
           A schedule can run at most once every {SCHEDULE_LIMITS.MIN_INTERVAL_MINUTES}{" "}
@@ -201,9 +205,8 @@ export default function HelpPage() {
         </p>
         <p>
           If a schedule fails {SCHEDULE_LIMITS.AUTO_DISABLE_AFTER_FAILURES} times in a row
-          it turns itself off and says so in Workflow Settings, rather than failing quietly
-          forever. Any success resets the count. Re-enabling it is deliberate, and clears
-          the counter.
+          it is disabled, and Workflow Settings shows why. Any successful run resets the
+          count, and re-enabling the schedule clears it.
         </p>
         <p>
           Enabling a schedule on a workflow that sends email asks you to confirm first. That
@@ -214,8 +217,8 @@ export default function HelpPage() {
 
       <Section id="limits" title="Limits">
         <p>
-          These exist so a mistake in a workflow cannot run up an unbounded bill. A step
-          that would cross a limit stops; it does not queue.
+          These cap what a misconfigured workflow can spend. A node that would exceed a
+          limit fails; it is not queued.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[440px] border-collapse text-left text-sm">
@@ -228,14 +231,14 @@ export default function HelpPage() {
             <tbody>
               {(
                 [
-                  ["AI steps per minute", INTEGRATION_LIMITS.AI_CALLS_PER_MINUTE],
-                  ["AI steps per day", INTEGRATION_LIMITS.AI_CALLS_PER_DAY],
+                  ["AI calls per minute", INTEGRATION_LIMITS.AI_CALLS_PER_MINUTE],
+                  ["AI calls per day", INTEGRATION_LIMITS.AI_CALLS_PER_DAY],
                   ["Lookups per minute", INTEGRATION_LIMITS.LOOKUP_SEARCHES_PER_MINUTE],
                   ["Lookups per day", INTEGRATION_LIMITS.LOOKUP_SEARCHES_PER_DAY],
                   ["Emails per minute", INTEGRATION_LIMITS.GMAIL_SENDS_PER_MINUTE],
                   ["Emails per day", INTEGRATION_LIMITS.GMAIL_SENDS_PER_DAY],
-                  ["AI steps in a single run", INTEGRATION_LIMITS.MAX_AI_NODES_PER_RUN],
-                  ["Steps in a single run", EXECUTION_LIMITS.MAX_NODES_PER_RUN]
+                  ["AI and Router nodes per run", INTEGRATION_LIMITS.MAX_AI_NODES_PER_RUN],
+                  ["Nodes per run", EXECUTION_LIMITS.MAX_NODES_PER_RUN]
                 ] as [string, number][]
               ).map(([label, value]) => (
                 <tr key={label} className="border-b border-gray-100">
@@ -247,8 +250,8 @@ export default function HelpPage() {
           </table>
         </div>
         <p>
-          A Router step is an AI call and counts as one. That surprises people whose
-          workflow hits the AI limit sooner than the number of AI steps suggests.
+          Every Router node counts as an AI call, even when it branches on a field match,
+          so a workflow can reach the AI limits sooner than its number of AI nodes suggests.
         </p>
       </Section>
 

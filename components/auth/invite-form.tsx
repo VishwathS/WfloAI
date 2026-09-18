@@ -75,7 +75,7 @@ export function InviteForm() {
 
       <Button type="submit" className="w-full" disabled={isSubmitting || code.trim() === ""}>
         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Unlock access
+        Redeem code
       </Button>
     </form>
   );

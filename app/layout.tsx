@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swa
 
 export const metadata: Metadata = {
   title: "WfloAI",
-  description: "AI-first visual workflow builder"
+  description: "Visual builder for AI workflows"
 };
 
 export default function RootLayout({

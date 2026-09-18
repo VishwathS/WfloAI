@@ -19,12 +19,7 @@ export function TemplateGallery() {
 
   return (
     <section id="templates" className="scroll-mt-6 space-y-4 lg:scroll-mt-8">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-gray-900">Templates</h2>
-        <p className="mt-0.5 text-sm text-gray-500">
-          Start faster with a pre-built workflow — clone one and make it yours.
-        </p>
-      </div>
+      <h2 className="text-xl font-semibold tracking-tight text-gray-900">Templates</h2>
 
       <div className="flex flex-wrap gap-2">
         {(["All", ...CATEGORIES] as const).map((category) => (

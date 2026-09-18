@@ -104,7 +104,7 @@ export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<Route
         </p>
         <div className="flex flex-col gap-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
-            JSON Condition (optional)
+            Field equals (optional)
           </p>
           <div className="flex gap-2">
             <input
@@ -116,6 +116,7 @@ export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<Route
               onKeyDown={conditionFieldField.onEnterKeyDown}
               className="w-1/2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
               placeholder="field"
+              aria-label="Condition field"
             />
             <input
               type="text"
@@ -126,6 +127,7 @@ export const RouterNode = memo(function RouterNode({ id, data }: NodeProps<Route
               onKeyDown={conditionValueField.onEnterKeyDown}
               className="w-1/2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/25"
               placeholder="value"
+              aria-label="Condition value"
             />
           </div>
         </div>

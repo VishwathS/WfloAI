@@ -281,7 +281,7 @@ export function CredentialsCard() {
           </div>
         ) : credentials.length === 0 ? (
           <p className="text-sm text-gray-500">
-            No credentials yet. Add one to authenticate HTTP Request nodes.
+            No credentials yet.
           </p>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -322,6 +322,7 @@ export function CredentialsCard() {
                         type="button"
                         onClick={() => startReplace(credential)}
                         title="Replace value"
+                        aria-label={`Replace value of ${credential.name}`}
                         className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-50 hover:text-gray-700"
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -330,6 +331,7 @@ export function CredentialsCard() {
                         type="button"
                         onClick={() => handleDelete(credential.id, false)}
                         title="Delete"
+                        aria-label={`Delete ${credential.name}`}
                         className="rounded-lg p-1.5 text-gray-400 transition hover:bg-rose-50 hover:text-rose-600"
                       >
                         <Trash2 className="h-4 w-4" />

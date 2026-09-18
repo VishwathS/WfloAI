@@ -178,14 +178,14 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
             Gmail isn&apos;t connected —{" "}
             <a href="/settings" className="font-medium underline">
-              Connect in Settings
+              connect it in Settings
             </a>
             .
           </p>
         ) : null}
         {showReconnect ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
-            Your Gmail connection expired —{" "}
+            Google no longer accepts this Gmail connection —{" "}
             <a href="/settings" className="font-medium underline">
               reconnect in Settings
             </a>
@@ -194,7 +194,7 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
         ) : null}
         {showEnableReading ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
-            This action needs email reading —{" "}
+            This action needs read access to Gmail —{" "}
             <a href="/settings" className="font-medium underline">
               enable it in Settings
             </a>
@@ -204,8 +204,8 @@ export const GmailNode = memo(function GmailNode({ id, data }: NodeProps<GmailNo
 
         {actionUnavailable ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
-            &ldquo;{action}&rdquo; is unavailable — email reading is turned off. This step stays
-            saved and will fail until reading is enabled.
+            &ldquo;{action}&rdquo; is disabled on this server. The node stays saved but fails
+            when the workflow runs.
           </p>
         ) : null}
 

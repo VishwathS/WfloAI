@@ -331,6 +331,7 @@ export function WorkflowSettingsSidebar({
           size="icon"
           className="rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900"
           onClick={onClose}
+          aria-label="Close workflow settings"
         >
           <span className="text-base leading-none">×</span>
         </Button>
@@ -519,7 +520,7 @@ export function WorkflowSettingsSidebar({
         ) : schedules.length === 0 ? (
           <div className="space-y-3 px-4 py-8">
             <p className="text-sm text-gray-500">
-              This workflow only runs when you press Run. Add a schedule to run it automatically.
+              No schedules. This workflow runs only when you click Run.
             </p>
             <button
               type="button"

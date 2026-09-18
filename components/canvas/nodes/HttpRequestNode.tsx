@@ -208,6 +208,7 @@ export const HttpRequestNode = memo(function HttpRequestNode({
             onKeyDown={urlField.onEnterKeyDown}
             className={fieldClass}
             placeholder="https://api.example.com/items — supports {{variables}}"
+            aria-label="URL"
           />
         </div>
 
@@ -219,7 +220,7 @@ export const HttpRequestNode = memo(function HttpRequestNode({
         <KeyValueRows
           label="Headers"
           rows={data.headers ?? []}
-          helper="Don't put API keys here — use an API key credential below."
+          helper="Headers are saved in plain text with the workflow. Put secrets in a credential under Authentication."
           onChangeRows={(headers) => updateData({ headers })}
         />
 

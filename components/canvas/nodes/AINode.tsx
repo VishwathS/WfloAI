@@ -97,7 +97,7 @@ export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) 
           )}
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">AI Node</p>
+          <p className="text-sm font-semibold text-gray-900">AI</p>
           <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
             {data.label}
           </p>
@@ -181,7 +181,7 @@ export const AINode = memo(function AINode({ id, data }: NodeProps<AINodeData>) 
           onFocus={promptField.onFocus}
           onBlur={promptField.onBlur}
           className="flex-1 min-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
-          placeholder="Tell this AI node what to do with its incoming data."
+          placeholder="Instructions for Claude. Upstream output is included as context."
         />
         <p className="text-[11px] leading-4 text-gray-400">
           Use {"{{inputKey}}"} for Input values · {"{{previousOutput}}"} for the previous

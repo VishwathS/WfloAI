@@ -67,9 +67,6 @@ export default async function WorkflowPage({ params }: WorkflowPageProps) {
           Back to dashboard
         </Link>
         <WorkflowTitleEditor workflowId={workflow.id} initialName={workflow.name} />
-        <p className="mt-0.5 text-sm text-gray-500">
-          Arrange triggers, AI steps, and actions visually.
-        </p>
       </div>
 
       <WorkflowCanvasShell

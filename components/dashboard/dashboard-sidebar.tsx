@@ -1,4 +1,4 @@
-import { Bot, Sparkles, Workflow } from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -16,28 +16,11 @@ export async function DashboardSidebar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
             <Bot className="h-4 w-4" />
           </div>
-          <div>
-            <p className="text-sm font-semibold tracking-tight text-gray-900">WfloAI</p>
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-              AI workflow studio
-            </p>
-          </div>
+          <p className="text-sm font-semibold tracking-tight text-gray-900">WfloAI</p>
         </div>
       </div>
 
       <SidebarNav />
-
-      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            Builder mode
-          </p>
-          <Workflow className="h-4 w-4 text-violet-400" />
-        </div>
-        <p className="text-sm leading-6 text-gray-600">
-          Shape automations visually, then layer in AI nodes and orchestration logic.
-        </p>
-      </div>
 
       <div className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
         <div className="flex items-start gap-3">

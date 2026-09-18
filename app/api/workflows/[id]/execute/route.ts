@@ -95,7 +95,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
   if (!validation.valid) {
     return NextResponse.json(
-      { error: validation.globalError ?? "Invalid workflow", nodeErrors: validation.nodeErrors },
+      { error: validation.globalError ?? "The saved workflow failed validation. Save your changes and run again.", nodeErrors: validation.nodeErrors },
       { status: 400 }
     );
   }

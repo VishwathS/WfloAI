@@ -72,7 +72,7 @@ export async function requireApprovedUser(
   }
 
   return NextResponse.json(
-    { error: "Your account is not approved yet." },
+    { error: "This account has not been approved. Redeem an invite code to get access." },
     { status: 403 }
   );
 }

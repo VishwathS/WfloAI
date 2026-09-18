@@ -61,14 +61,14 @@ export const LookupNode = memo(function LookupNode({ id, data }: NodeProps<Looku
             )}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Lookup Node</p>
+            <p className="text-sm font-semibold text-gray-900">Lookup</p>
             <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
               {data.label}
             </p>
           </div>
         </div>
         <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-cyan-700">
-          Web Search
+          Tavily
         </span>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
@@ -81,7 +81,7 @@ export const LookupNode = memo(function LookupNode({ id, data }: NodeProps<Looku
           onFocus={queryField.onFocus}
           onBlur={queryField.onBlur}
           className="flex-1 min-h-[80px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/25"
-          placeholder="{{previousOutput}} or e.g. Latest AI coding tools"
+          placeholder="e.g. {{previousOutput}} or latest Postgres release notes"
         />
         <div className="flex items-center gap-3">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
@@ -91,6 +91,7 @@ export const LookupNode = memo(function LookupNode({ id, data }: NodeProps<Looku
             type="number"
             min={1}
             max={10}
+            aria-label="Max results"
             value={data.maxResults}
             onChange={(event) => {
               const nextMax = Math.min(10, Math.max(1, Number(event.target.value)));

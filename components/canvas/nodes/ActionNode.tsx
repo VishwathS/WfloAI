@@ -76,9 +76,6 @@ export const ActionNode = memo(function ActionNode({ id, data }: NodeProps<Actio
         </div>
       </div>
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-400">
-          Action
-        </p>
         <div className="inline-flex self-start rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
           {data.action}
         </div>

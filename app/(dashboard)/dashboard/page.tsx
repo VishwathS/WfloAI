@@ -93,23 +93,10 @@ export default async function DashboardPage() {
   const workflowCount = workflowsWithLastRun.length;
   const latestWorkflow = workflowsWithLastRun[0];
 
-  const hours = new Date().getHours();
-  const timeOfDay = hours < 12 ? "morning" : hours < 17 ? "afternoon" : "evening";
-  const rawName = (user.email ?? "").split("@")[0].split(".")[0];
-  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <section className="rounded-2xl border border-gray-200 bg-white px-8 py-8 shadow-card">
-        <p className="text-xl font-semibold tracking-tight text-gray-900">
-          Good {timeOfDay}, {displayName}
-        </p>
-        <p className="mt-2 text-sm text-gray-600">
-          Build AI-native automations visually.
-        </p>
-        <p className="mt-0.5 text-sm text-gray-400">
-          From blank canvas to intelligent workflows.
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900">Dashboard</h1>
         <div className="mt-6">
           <CreateWorkflowButton />
         </div>
@@ -123,22 +110,17 @@ export default async function DashboardPage() {
           <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums text-gray-900">
             {workflowCount} {workflowCount === 1 ? "workflow" : "workflows"}
           </p>
-          <p className="mt-2 text-sm leading-6 text-gray-500">
-            Everything you are building lives here, ready to be edited or expanded.
-          </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
           <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            Recent activity
+            Last edited
           </p>
           <p className="mt-3 text-base font-semibold text-gray-900">
-            {latestWorkflow ? formatTimestamp(latestWorkflow.updated_at) : "No activity yet"}
+            {latestWorkflow ? formatTimestamp(latestWorkflow.updated_at) : "Never"}
           </p>
-          <p className="mt-2 text-sm leading-6 text-gray-500">
-            {latestWorkflow
-              ? `Most recently touched: ${latestWorkflow.name}.`
-              : "Create your first workflow to begin tracking updates here."}
-          </p>
+          {latestWorkflow ? (
+            <p className="mt-2 truncate text-sm leading-6 text-gray-500">{latestWorkflow.name}</p>
+          ) : null}
         </div>
       </section>
 

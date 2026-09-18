@@ -144,6 +144,7 @@ export function ExecutionLog({
             size="icon"
             className="rounded-full"
             onClick={() => setIsOpen((currentValue) => !currentValue)}
+            aria-label={isOpen ? "Collapse execution log" : "Expand execution log"}
           >
             {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
@@ -153,7 +154,7 @@ export function ExecutionLog({
       <div ref={scrollContainerRef} className="max-h-[216px] overflow-y-auto">
         {entries.length === 0 ? (
           <div className="px-4 py-5 text-sm text-gray-400">
-            Run the workflow to see node-by-node output and timing here.
+            Waiting for the first node to start.
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -209,8 +210,8 @@ export function ExecutionLog({
 
       {/* B1: AI-generated-content disclosure, shown wherever run output is read. */}
       <p className="border-t border-gray-100 px-4 py-2.5 text-[11px] leading-4 text-gray-400">
-        AI steps write this output. It can be wrong, and nothing reviews it before the next
-        step acts on it.
+        AI nodes generate this output. It can be wrong, and it reaches downstream nodes without
+        review.
       </p>
     </div>
   );

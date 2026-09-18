@@ -496,7 +496,7 @@ function WorkflowCanvasInner({
                 </span>
               </div>
               <p className="mt-3 max-w-md text-base font-semibold tracking-tight text-gray-900">
-                Drag an Input node from the sidebar to start your workflow
+                Drag a node from the sidebar onto the canvas
               </p>
             </div>
           </div>

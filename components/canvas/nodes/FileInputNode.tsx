@@ -17,6 +17,8 @@ import { useNodeResize } from "@/hooks/useNodeResize";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import {
   FILE_INPUT_ACCEPT,
+  MAX_DOCUMENT_BYTES,
+  MAX_TEXT_BYTES,
   formatBytes,
   getFileKind,
   getMaxBytes
@@ -268,7 +270,10 @@ export const FileInputNode = memo(function FileInputNode({ id, data }: NodeProps
           >
             <UploadCloud className="h-5 w-5 text-orange-500" />
             <p className="text-xs font-medium text-gray-700">Upload a file</p>
-            <p className="text-[11px] text-gray-400">PDF, DOCX, TXT, MD, CSV · up to 20 MB</p>
+            <p className="text-[11px] text-gray-400">
+              PDF, DOCX up to {MAX_DOCUMENT_BYTES / 1024 / 1024} MB · TXT, MD, CSV up to{" "}
+              {MAX_TEXT_BYTES / 1024 / 1024} MB
+            </p>
           </button>
         )}
 

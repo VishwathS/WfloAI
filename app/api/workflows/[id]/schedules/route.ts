@@ -131,7 +131,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (!isValidCronExpression(body.cron_expression, body.timezone)) {
-    return NextResponse.json({ error: "Invalid cron expression" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid cron expression. Use five fields: minute hour day-of-month month day-of-week." }, { status: 400 });
   }
 
   // A12: validated against the parsed cron, so every spelling of "every

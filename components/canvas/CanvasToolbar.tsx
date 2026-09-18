@@ -86,7 +86,7 @@ export function CanvasToolbar({
             ) : (
               <>
                 <Plus className="h-3.5 w-3.5" />
-                Add trigger
+                Add schedule
               </>
             )}
           </button>

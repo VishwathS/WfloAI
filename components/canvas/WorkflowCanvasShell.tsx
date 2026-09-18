@@ -154,7 +154,7 @@ export function WorkflowCanvasShell({
         setHasUnsavedChanges(false);
       }
     } catch {
-      setSaveError("Unable to save the latest canvas changes.");
+      setSaveError("The latest changes could not be saved. Click Save to retry.");
     } finally {
       setIsSaving(false);
     }

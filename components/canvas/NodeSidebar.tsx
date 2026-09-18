@@ -12,7 +12,7 @@ const NODE_CARDS = [
     type: "inputNode",
     category: "Sources",
     title: "Input",
-    description: "Provide a named value that flows into your workflow steps.",
+    description: "Define a named value that other nodes reference as {{key}}.",
     accentClassName: "bg-fuchsia-50 text-fuchsia-700",
     borderClass: "border-fuchsia-200 hover:border-fuchsia-300"
   },
@@ -20,15 +20,15 @@ const NODE_CARDS = [
     type: "fileInputNode",
     category: "Sources",
     title: "File Input",
-    description: "Upload a document and pass its text downstream.",
+    description: "Extract text from an uploaded PDF, DOCX, TXT, MD, or CSV file.",
     accentClassName: "bg-orange-50 text-orange-700",
     borderClass: "border-orange-200 hover:border-orange-300"
   },
   {
     type: "lookupNode",
     category: "Sources",
-    title: "Lookup Node",
-    description: "Search the web via Tavily and pass results downstream.",
+    title: "Lookup",
+    description: "Search the web with Tavily and return the top results.",
     accentClassName: "bg-cyan-50 text-cyan-700",
     borderClass: "border-cyan-200 hover:border-cyan-300"
   },
@@ -36,7 +36,7 @@ const NODE_CARDS = [
     type: "gmailNode",
     category: "Sources",
     title: "Gmail",
-    description: "Send, draft, find, and read email with your connected Gmail account.",
+    description: "Send email through your connected Gmail account.",
     accentClassName: "bg-red-50 text-red-700",
     borderClass: "border-red-200 hover:border-red-300"
   },
@@ -44,31 +44,31 @@ const NODE_CARDS = [
     type: "httpRequestNode",
     category: "Sources",
     title: "HTTP Request",
-    description: "Call any API with methods, headers, and encrypted credentials.",
+    description: "Send an HTTP request to an external API, with optional stored credentials.",
     accentClassName: "bg-indigo-50 text-indigo-700",
     borderClass: "border-indigo-200 hover:border-indigo-300"
   },
   {
     type: "aiNode",
     category: "AI",
-    title: "AI Node",
-    description: "Transform incoming context with prompts and model-driven actions.",
+    title: "AI",
+    description: "Generate, rewrite, summarize, classify, or extract content with Claude.",
     accentClassName: "bg-violet-50 text-violet-700",
     borderClass: "border-violet-200 hover:border-violet-300"
   },
   {
     type: "routerNode",
     category: "Logic",
-    title: "Router Node",
-    description: "Branch execution by deciding whether a condition is true or false.",
+    title: "Router",
+    description: "Route execution to a true or false branch based on a condition.",
     accentClassName: "bg-amber-50 text-amber-700",
     borderClass: "border-amber-200 hover:border-amber-300"
   },
   {
     type: "actionNode",
     category: "Actions",
-    title: "Action Node",
-    description: "Finish the flow by saving, logging, or displaying the result.",
+    title: "Action",
+    description: "End a branch and record the output it receives.",
     accentClassName: "bg-blue-50 text-blue-700",
     borderClass: "border-blue-200 hover:border-blue-300"
   }
@@ -105,7 +105,7 @@ export function NodeSidebar() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25"
-            placeholder="Search..."
+            placeholder="Search nodes"
             aria-label="Search nodes"
           />
         </div>

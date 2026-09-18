@@ -100,18 +100,14 @@ export function RunHistorySidebar({
   return (
     <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-hidden border-l border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-gray-500">
-            Run history
-          </p>
-          <h2 className="mt-1 text-sm font-semibold text-gray-900">Past runs</h2>
-        </div>
+        <h2 className="text-sm font-semibold text-gray-900">Run history</h2>
         <Button
           type="button"
           variant="ghost"
           size="icon"
           className="rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900"
           onClick={onClose}
+          aria-label="Close run history"
         >
           <span className="text-base leading-none">×</span>
         </Button>
@@ -124,7 +120,7 @@ export function RunHistorySidebar({
           </div>
         ) : runs.length === 0 ? (
           <div className="px-4 py-8 text-sm text-gray-500">
-            No runs yet. Run the workflow to see history here.
+            No runs yet.
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import { safeRedirectPath } from "@/lib/security/redirect";
 
@@ -43,13 +43,7 @@ export function LoginCard({ nextPath = "/dashboard" }: LoginCardProps) {
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-violet-600">
           WfloAI
         </p>
-        <div>
-          <CardTitle className="text-2xl tracking-tight text-gray-900">Sign in</CardTitle>
-          <CardDescription className="mt-2 text-gray-600">
-            Continue with Google to access your workflows and start building AI-powered
-            automations.
-          </CardDescription>
-        </div>
+        <CardTitle className="text-2xl tracking-tight text-gray-900">Sign in</CardTitle>
       </CardHeader>
       <CardContent>
         <Button

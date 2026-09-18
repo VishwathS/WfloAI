@@ -61,12 +61,7 @@ export const InputNode = memo(function InputNode({ id, data }: NodeProps<InputNo
             <Inbox className="h-3.5 w-3.5 text-fuchsia-600" />
           )}
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900">Input</p>
-          <p className={`text-xs ${isError ? "text-rose-600" : "text-gray-500"}`}>
-            Information for this workflow
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-gray-900">Input</p>
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-4 py-4">
@@ -95,7 +90,7 @@ export const InputNode = memo(function InputNode({ id, data }: NodeProps<InputNo
             onFocus={valueField.onFocus}
             onBlur={valueField.onBlur}
             className="flex-1 min-h-[72px] w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/25"
-            placeholder="Paste or type anything this workflow needs…"
+            placeholder="Value passed to downstream nodes"
           />
         </div>
 
