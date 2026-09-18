@@ -53,6 +53,8 @@ Two behaviors are effectively undiscoverable: Gmail Reply's requirement that a R
 - [x] Enable Dependabot.
 - [x] Add `npm audit` to CI. Decide deliberately whether it blocks or warns — a blocking audit that fires on an unfixable transitive advisory will be disabled within a week.
 
+**Scope note — this task provides the harness, not the coverage.** B7 is the CI machinery that makes the other tasks' tests meaningful. It does **not** backfill tests for the untested existing routes, middleware, auth, or RLS noted above. That gap is real and it is not a launch blocker (MASTER §7.7): each implementing task adds focused regression tests for what *it* changes, and Task 15 owns production E2E certification. If this task starts turning into a test-suite rewrite, stop — that is C9 territory and it stays deferred.
+
 ### B8 — README
 
 - [x] Correct the model and `max_tokens` claims.
@@ -162,7 +164,7 @@ It also covers the steps, schedules, limits and retention. **Every number on the
 
 Stop and ask before proceeding if:
 
-- The retention migration or cleanup function would run against **production data**. Deleting real user data is an irreversible production data change — a hard stop. Test against a local or staging database.
+- The retention migration or cleanup function would run against **production data**. Deleting real user data is an irreversible production data change — a hard stop. Test against a **local** database. (Staging is not a V1 prerequisite — MASTER §7.5 — so do not read this as a reason to build one.)
 - The retention periods have not been decided by the operator, or do not match the published privacy policy. Do not pick numbers unilaterally; the policy is a commitment.
 - Enabling `npm audit` in CI surfaces advisories that require dependency upgrades beyond this task's scope — particularly if they overlap task 06.
 - CI setup requires repository secrets or GitHub organization settings changes.

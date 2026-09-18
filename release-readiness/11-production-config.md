@@ -4,6 +4,8 @@ Get the production environment configured correctly and prove it. This task is m
 
 It contains the single most important manual verification in the whole plan: confirming the Inngest serve endpoint rejects unsigned requests.
 
+> **Scope boundary with Tasks 13 and 14.** This task owns the **repository-side** artifacts (`.env.local.example`, the README env section, the startup check, the key-recovery documentation) and the written operator checklist. **Task 13** executes and records evidence for that checklist against the real production environment. **Task 14** owns all Google Cloud production work and **supersedes the §Google Cloud (B6) manual steps 12–19 below** — execute them there, not here, so the consent screen, scope justification, and verification submission have a single owner.
+
 # Audit Items
 
 **A10** (Inngest signing key unset/unverified) · **B5** (Supabase production config) · **B6** (Google Cloud production setup) · **B9** (`INTEGRATION_TOKEN_KEY` backup procedure)

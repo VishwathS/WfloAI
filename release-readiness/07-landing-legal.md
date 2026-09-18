@@ -162,4 +162,4 @@ Stop and ask before proceeding if:
 3. **Add the published privacy policy URL** to the Google Cloud OAuth configuration (task 11 / B6).
 4. **Verify the domain** in Search Console — required for the OAuth submission.
 5. **Decide the retention periods** you are willing to commit to, so task 12 implements what the policy promises rather than the reverse.
-6. **Provide a real contact address** for privacy inquiries. The policy needs one that is monitored.
+6. **Provide a real contact address** for privacy inquiries. The policy needs one that is monitored. **This is the same address Task 13's `docs/RUNBOOK.md` names as the support/incident route** — one monitored address, published here and routed there, not two. Task 17's Gate 15 checks that they match.

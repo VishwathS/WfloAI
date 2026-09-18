@@ -4,6 +4,8 @@ Make sending real email as the user something they authorize deliberately — pa
 
 Also: keep Gmail read actions off in production for V1, and verify that they are off rather than assuming it.
 
+> **Downstream dependents.** The production-environment checks in this task require the environment established by **Task 13**. The Send-only V1 scope this task assumes is released to real users by **Task 14**, and re-verified in production by **Task 15** (which asserts Create Draft / Find / Read / Reply are unreachable via both the dropdown and a crafted graph). Nothing here advances the deferred D1 restricted-scope program.
+
 # Audit Items
 
 **A14a** (consent for schedule-enabled Gmail sends — blocker) · **B14b** (manual-run confirmation — recommended, Phase 3) · **D1** (flag-off verification only; the full restricted-scope program stays in the backlog)

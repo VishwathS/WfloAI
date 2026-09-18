@@ -62,7 +62,9 @@ No Redux, Zustand, or other state managers. State is React hooks + React Context
 ### Supabase client usage
 - Use `lib/supabase/server.ts → createServerSupabaseClient()` in Server Components and API routes. It is **async** — Next 15 made `cookies()` async, so every call site must `await` it
 - Use `lib/supabase.ts → createBrowserSupabaseClient()` in Client Components
-- Never use the service role key in request-scoped code. The only permitted consumer of `lib/supabase/admin.ts → createAdminSupabaseClient()` is the Inngest execution path (`lib/inngest/functions.ts`), which runs with no user session. Admin-client code must re-verify ownership in application code (the workflow row's `user_id` must match the schedule owner carried in the event) and must always write rows with the schedule owner's `user_id` so RLS-scoped reads stay correct
+- Never use the service role key in request-scoped code. `lib/supabase/admin.ts → createAdminSupabaseClient()` has exactly **two** permitted consumers, listed below. Any third use is a bug — the list does not grow by precedent, and "this is like account deletion" is not a justification
+  1. **The Inngest execution path** (`lib/inngest/functions.ts`), which runs with no user session. It must re-verify ownership in application code (the workflow row's `user_id` must match the schedule owner carried in the event) and must always write rows with the schedule owner's `user_id` so RLS-scoped reads stay correct
+  2. **Authenticated self-service account deletion**, which needs `auth.admin.deleteUser()` — an operation no user-scoped client can perform. Narrowly scoped: the target `user_id` must come from `supabase.auth.getUser()` on the server within that same request, and must **never** be read from the request body, query string, route param, header, or any other client-supplied value. A deletion endpoint that accepts a target user ID is an account-deletion oracle for every account in the system. The admin client's use here is confined to deleting the caller's own auth user and the storage objects under their own `{user_id}/` prefix — it must not be reused for other reads or writes in the same handler, which stay on the user-scoped client where RLS applies
 
 ### Execution engine
 
@@ -409,7 +411,7 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 - `app/api/inngest/route.ts` — `serve()` endpoint, `maxDuration = 300`
 - `lib/execution/runToCompletion.ts` — accumulates execution events into a `CollectedRun` without SSE; mirrors the accumulation in the execute route (kept duplicated so the SSE route stays untouched)
 - `lib/schedule/cron.ts` — `computeNextRunAt` (cron-parser, IANA tz), preset↔cron mapping, `describeCron`
-- `lib/supabase/admin.ts` — service-role client; Inngest path only
+- `lib/supabase/admin.ts` — service-role client; Inngest path and authenticated self-service account deletion only (see Supabase client usage)
 - `app/api/workflows/[id]/schedules` — GET list / POST create; `[scheduleId]` PATCH/DELETE; `[scheduleId]/run` POST emits the same `workflow/schedule.due` event (Run now)
 
 **Poller mechanics (do not weaken):**
@@ -421,7 +423,6 @@ Scheduled: Inngest cron poller → event fan-out → runner → runWorkflowToCom
 - A run skipped for ownership, a deleted schedule, or an unapproved owner returns before `persist-run` — deliberately, since there is nothing to record — but that also means **no run row, no failure count and no report**. An owner whose approval is revoked therefore has every schedule stop silently. Revoking approval is not a casual action
 
 **Capacity, not a quota.** The poller takes `.limit(50)` due schedules per minute. That is a **throughput ceiling on the poller**, never a per-user allowance: `MAX_SCHEDULES_PER_USER` is 20 and `MIN_INTERVAL_MINUTES` is 15, so three users at cap can fill a single minute. Nothing is lost when it binds — unclaimed schedules stay due and are picked up on a later tick, because `next_run_at` only advances on a successful claim — but they run **late**, and lateness grows with the backlog. Watch claimed-per-tick against 50 in production; if it is regularly at the ceiling, that is a capacity signal, not a reason to raise per-user caps. Do not read `.limit(50)` as a quota in either direction
-
 
 **input_values:** applied in the runner before validation — Input nodes whose `key` appears in `schedule.input_values` get their `defaultValue` replaced (immutably). No UI edits this yet; it defaults to `{}`.
 
@@ -579,7 +580,8 @@ The Lookup node establishes the pattern for future external-tool nodes (HTTP Req
 | `extractJson()` strips fences before `JSON.parse()` in both executors | Claude occasionally wraps JSON in code fences despite instructions; without stripping, all AI nodes fail JSON validation |
 | `"Structured output:\n"` prefix written by `buildParentContext()` | `cleanOutput()` in `NodeOutputDisplay` matches this exact string — changing the prefix breaks display in the canvas, execution log, and run history sidebar |
 | CAS claim in `checkDueSchedules` (`UPDATE … WHERE next_run_at = <observed>`) | Only duplicate-run protection — replacing it with a plain UPDATE lets concurrent polls fire the same occurrence twice |
-| `createAdminSupabaseClient()` used only in `lib/inngest/functions.ts` | Service role bypasses RLS; any request-scoped use would let a forged request read/write other users' data |
+| `createAdminSupabaseClient()` used only in `lib/inngest/functions.ts` and the authenticated self-service account-deletion path | Service role bypasses RLS; any other request-scoped use would let a forged request read/write other users' data |
+| Account deletion derives its target `user_id` from `auth.getUser()` server-side, never from client input | The admin client bypasses RLS, so a client-supplied target id turns the deletion endpoint into an account-deletion oracle for every user |
 | `runScheduledWorkflow` split into execute + persist `step.run`s | Inngest retries replay memoized steps — merging them makes a persistence retry re-run the whole AI chain and double-spend tokens |
 | `resolvedText` on fileInputNode injected server-side pre-execution only | Canvas code must never read/write it; if it leaked into the saved graph, stale file text would silently override the current upload |
 | `user_id` filter in `resolveFileInputs` on the Inngest path | The admin client bypasses RLS and graph JSONB is user-writable — removing the filter lets a forged `fileId` read another user's file text |

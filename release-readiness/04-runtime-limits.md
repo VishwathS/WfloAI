@@ -16,7 +16,7 @@ Beyond that, the route has:
 
 - **No node-count cap.** A graph with an arbitrary number of nodes is accepted.
 - **No total runtime cap.**
-- **No per-user concurrent-run limit.** Note that `MAX_CONCURRENT_REQUESTS` in `lib/integrations/limits.ts:16` is in-memory and therefore a no-op on serverless — it does not provide this.
+- **No per-user concurrent-run limit.** Note that `MAX_CONCURRENT_REQUESTS` in `lib/integrations/limits.ts:16` is in-memory and therefore a no-op on serverless — it does not provide this. **Task 03 owns its resolution** (implement a durable mechanism, or remove/reframe it and name the durable protections that cover the requirement). Do not resolve it here and do not build a second concurrency mechanism — if this task's caps turn out to be part of what satisfies that requirement, that is Task 03's finding to record.
 - **No `AbortSignal`** on the Anthropic or Tavily fetches. A hung provider call hangs the run.
 - **Execution continues after client disconnect** (`app/api/workflows/[id]/execute/route.ts:101`). Closing the browser tab does not stop the workflow, and the user has no way to cancel.
 
